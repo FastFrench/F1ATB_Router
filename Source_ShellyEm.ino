@@ -18,8 +18,8 @@ void LectureShellyEm() {
   arr[3] = (RMSextIP >> 24) & 0xFF;  // 0x12
 
   String host = String(arr[3]) + "." + String(arr[2]) + "." + String(arr[1]) + "." + String(arr[0]);
-  if (!clientESP_RMS.connect(host.c_str(),80)) {
-    StockMessage("connection to client Shelly Em failed : " + host);
+  if (!clientESP_RMS.connect(host.c_str(), 80)) {
+    StockMessage("connection to Shelly Em failed : " + host);
     delay(200);
     WIFIbug++;
     return;
@@ -87,8 +87,8 @@ void LectureShellyEm() {
     total_E_injecte += ValJson("total_returned", Shelly_Data);
     Energie_M_Soutiree = int(total_E_soutire);
     Energie_M_Injectee = int(total_E_injecte);
-    if (total_Pw == 0){
-      total_Pva=0;
+    if (total_Pw == 0) {
+      total_Pva = 0;
     }
     if (total_Pw > 0) {
       PuissanceS_M_inst = total_Pw;
@@ -109,23 +109,24 @@ void LectureShellyEm() {
       voltage = ValJson("voltage", Shelly_Data);
       pf = ValJson("pf", Shelly_Data);
       pf = abs(pf);
+      if (pf > 1) pf = 1;
       if (Voie == voie) {  //voie du routeur
         if (Pw >= 0) {
           PuissanceS_M_inst = Pw;
           PuissanceI_M_inst = 0;
-          if (pf > 0) {
-            PVAS_M_inst = Pw / pf;
+          if (pf > 0.01) {
+            PVAS_M_inst = PfloatMax(Pw / pf);
           } else {
-            PVAS_M_inst=0;
+            PVAS_M_inst = 0;
           }
           PVAI_M_inst = 0;
         } else {
           PuissanceS_M_inst = 0;
           PuissanceI_M_inst = -Pw;
-          if (pf > 0) {
-            PVAI_M_inst = -Pw / pf;
+          if (pf > 0.01) {
+            PVAI_M_inst = PfloatMax(-Pw / pf);
           } else {
-            PVAI_M_inst=0;
+            PVAI_M_inst = 0;
           }
           PVAS_M_inst = 0;
         }
@@ -133,23 +134,30 @@ void LectureShellyEm() {
         Energie_M_Injectee = int(ValJson("total_returned", Shelly_Data));
         PowerFactor_M = pf;
         Tension_M = voltage;
+        Pva_valide=true;
       } else {  // voie secondaire
+        if (LissageLong) {
+          PwMoy2 = 0.2 * Pw + 0.8 * PwMoy2;  //Lissage car moins de mesure sur voie secondaire
+          pfMoy2 = 0.2 * pf + 0.8 * pfMoy2;
+          Pw = PwMoy2;
+          pf = pfMoy2;
+        }
         if (Pw >= 0) {
           PuissanceS_T_inst = Pw;
           PuissanceI_T_inst = 0;
-          if (pf > 0) {
-            PVAS_T_inst = Pw / pf;
+          if (pf > 0.01) {
+            PVAS_T_inst = PfloatMax(Pw / pf);
           } else {
-            PVAS_T_inst=0;
+            PVAS_T_inst = 0;
           }
           PVAI_T_inst = 0;
         } else {
           PuissanceS_T_inst = 0;
-          PuissanceI_T_inst =Pw;
-          if (pf > 0) {
-            PVAI_T_inst = -Pw / pf;
+          PuissanceI_T_inst = -Pw;
+          if (pf > 0.01) {
+            PVAI_T_inst = PfloatMax(-Pw / pf);
           } else {
-            PVAI_T_inst=0;
+            PVAI_T_inst = 0;
           }
           PVAS_T_inst = 0;
         }

@@ -8,7 +8,7 @@ void Setup_UxIx2() {
   MySerial.begin(4800, SERIAL_8N1, RXD2, TXD2);  //PORT DE CONNEXION AVEC LE CAPTEUR JSY-MK-194
 }
 void LectureUxIx2() {  //Ecriture et Lecture port série du JSY-MK-194  .
- 
+
   int i, j;
   byte msg_send[] = { 0x01, 0x03, 0x00, 0x48, 0x00, 0x0E, 0x44, 0x18 };
   // Demande Info sur le Serial port 2 (Modbus RTU)
@@ -87,6 +87,7 @@ void LectureUxIx2() {  //Ecriture et Lecture port série du JSY-MK-194  .
     }
     filtre_puissance();
     EnergieActiveValide = true;
+    Pva_valide = true;
     esp_task_wdt_reset();  //Reset du Watchdog à chaque trame du module JSY-MK-194 reçue
     if (cptLEDyellow > 30) {
       cptLEDyellow = 4;

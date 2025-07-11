@@ -10,10 +10,10 @@
 
 //Class Action
 Action::Action() {
-  Gpio=-1 ;
+  Gpio = -1;
 }
 Action::Action(int aIdx) {
-  Gpio=-1 ;  // si le n° de pin n'est pas valid, on ne fait rien
+  Gpio = -1;  // si le n° de pin n'est pas valid, on ne fait rien
   Idx = aIdx;
   T_LastAction = int(millis() / 1000);
   On = false;
@@ -23,6 +23,7 @@ Action::Action(int aIdx) {
   OutOff = 0;
   Tempo = 0;
   Repet = 0;
+  tOnOff = 0;
 }
 
 
@@ -30,7 +31,7 @@ Action::Action(int aIdx) {
 void Action::Arreter() {
   int Tseconde = int(millis() / 1000);
   if ((Tseconde - T_LastAction) >= Tempo || Idx == 0 || Actif != 1) {
-    if (Gpio>0 || Idx == 0) {
+    if (Gpio > 0 || Idx == 0) {
       digitalWrite(Gpio, OutOff);
       T_LastAction = Tseconde;
     } else {
@@ -45,9 +46,10 @@ void Action::Arreter() {
 void Action::RelaisOn() {
   int Tseconde = int(millis() / 1000);
   if ((Tseconde - T_LastAction) >= Tempo) {
-    if (Gpio>0) {
+    if (Gpio > 0) {
       digitalWrite(Gpio, OutOn);
       T_LastAction = Tseconde;
+      On = true;
     } else {
       if (Actif == 1) {
         if (!On || ((Tseconde - T_LastAction) > Repet && Repet != 0)) {
@@ -57,6 +59,18 @@ void Action::RelaisOn() {
         On = true;
       }
     }
+  }
+}
+void Action::Prioritaire() {
+  int tempo_ = Tempo;
+  if (tOnOff != 0) {
+    Tempo = 0;
+    if (tOnOff > 0) {
+      RelaisOn();
+    } else {
+      Arreter();
+    }
+    Tempo = tempo_;
   }
 }
 
@@ -145,14 +159,16 @@ byte Action::TypeEnCours(int Heure, float Temperature, int Ltarfbin) {  //Retour
   for (int i = 0; i < NbPeriode; i++) {
     TemperatureOk = true;
     if (Temperature > -100) {
-      if (Tinf[i] <= 100 && Temperature > Tinf[i]) { TemperatureOk = false; }
-      if (Tsup[i] <= 100 && Temperature < Tsup[i]) { TemperatureOk = false; }
+      if (Tinf[i] <= 1000 && Temperature * 10 > Tinf[i]) { TemperatureOk = false; }
+      if (Tsup[i] <= 1000 && Temperature * 10 < Tsup[i]) { TemperatureOk = false; }
     }
     TarifOk = true;
     if (Ltarfbin > 0 && (Ltarfbin & Tarif[i]) == 0) TarifOk = false;
     if (Heure >= Hdeb[i] && Heure <= Hfin[i] && TemperatureOk && TarifOk) S = Type[i];
   }
-  return S;  //0=NO,1=OFF,2=ON,3=PW,4=Triac
+  if (tOnOff > 0) S = 2;  // Force On
+  if (tOnOff < 0) S = 1;  // Force Off
+  return S;               //0=NO,1=OFF,2=ON,3=PW,4=Triac
 }
 int Action::Valmin(int Heure) {  //Retourne la valeur Vmin (ex seuil Triac) à cette heure
   int S = 0;
@@ -175,54 +191,48 @@ int Action::Valmax(int Heure) {  //Retourne la valeur Vmax (ex ouverture du Tria
 
 void Action::InitGpio() {  //Initialise les sorties GPIO pour des relais
   int p;
-  int q;
   String S;
+  String IS = String((char)31);  //Input Separator
 
   if (Idx > 0) {
     T_LastAction = 0;
     Gpio = -1;
-    p = OrdreOn.indexOf("gpio=");
+    p = OrdreOn.indexOf(IS);
     if (p >= 0) {
-      S = OrdreOn.substring(p + 5);
-      q = S.indexOf("&");
-      if (q == -1) q = 2;
-      Gpio = S.substring(0, q).toInt();
-      OutOn = 1 + OrdreOn.indexOf("out=1");
-      OutOn = min(OutOn, 1);
-      OutOff = (OutOn + 1) % 2;
-
-      if (Gpio <= 0 || Gpio > 33) Gpio = -1; // GPIO non valide
-      if (Host != "" && Host != "localhost") Gpio = -1;
-      if ( Gpio>0) {
+      Gpio = OrdreOn.substring(0, p).toInt();
+      OutOn = OrdreOn.substring(p+1).toInt();
+      OutOff=(1+OutOn)%2;
+      if (Gpio > 0) {
         pinMode(Gpio, OUTPUT);
         digitalWrite(Gpio, OutOff);
-        
       }
     }
   }
 }
 void Action::CallExterne(String host, String url, int port) {
-  // Use WiFiClient class to create TCP connections
-  WiFiClient clientExt;
-  char hostbuf[host.length() + 1];
-  host.toCharArray(hostbuf, host.length() + 1);
+  if (url != "") {
+    // Use WiFiClient class to create TCP connections
+    WiFiClient clientExt;
+    char hostbuf[host.length() + 1];
+    host.toCharArray(hostbuf, host.length() + 1);
 
-  if (!clientExt.connect(hostbuf, port)) {
-    StockMessage("connection to clientExt failed :" + host);
-    return;
-  }
-  clientExt.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
-  unsigned long timeout = millis();
-  while (clientExt.available() == 0) {
-    if (millis() - timeout > 5000) {
-      StockMessage(">>> clientESP_Ext Timeout ! : " + host);
-      clientExt.stop();
+    if (!clientExt.connect(hostbuf, port)) {
+      StockMessage("connection to :" + host + " failed");
       return;
     }
-  }
+    clientExt.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
+    unsigned long timeout = millis();
+    while (clientExt.available() == 0) {
+      if (millis() - timeout > 5000) {
+        StockMessage(">>> clientESP_Ext Timeout ! : " + host);
+        clientExt.stop();
+        return;
+      }
+    }
 
-  // Read all the lines of the reply from server
-  while (clientExt.available()) {
-    String line = clientExt.readStringUntil('\r');
+    // Read all the lines of the reply from server
+    while (clientExt.available()) {
+      String line = clientExt.readStringUntil('\r');
+    }
   }
 }

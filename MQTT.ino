@@ -2,6 +2,10 @@
 // *                        MQTT AUTO-DISCOVERY POUR HOME ASSISTANT ou DOMOTICZ                            *
 // **********************************************************************************************
 bool Discovered = false;
+char DEVICE[300];
+char ESP_ID[15];
+char mdl[30];
+char StateTopic[50];
 
 
 // Types de composants reconnus par HA et obligatoires pour l'Auto-Discovery.
@@ -11,37 +15,71 @@ const char *NB = "number";
 const char *BINS = "binary_sensor";
 const char *SWTC = "switch";
 const char *TXT = "text";
+void GestionMQTT() {
+  if (MQTTRepet > 0 || Source_Temp == "tempMqtt" || Source == "Pmqtt" || subMQTT == 1) {
+    if (testMQTTconnected()) {
+      clientMQTT.loop();
+      envoiVersMQTT();
+    }
+  }
+}
 
-void envoiAuMQTT() {  // Cette Fonction d'origine a été modifiée
-  unsigned long tps = millis();
-  int etat = 0;                                                                // utilisé pour l'envoie de l'état On/Off des actions.
-  if (int((tps - previousMqttMillis) / 1000) > MQTTRepet && MQTTRepet != 0) {  // Si Service MQTT activé avec période sup à 0
-    previousMqttMillis = tps;
-    if (!clientMQTT.connected()) {  // si le mqtt n'est pas connecté (utile aussi lors de la 1ere connexion)
-      Serial.println("Connection au serveur MQTT ...");
-      byte arr[4];
-      arr[0] = MQTTIP & 0xFF;          // 0x78
-      arr[1] = (MQTTIP >> 8) & 0xFF;   // 0x56
-      arr[2] = (MQTTIP >> 16) & 0xFF;  // 0x34
-      arr[3] = (MQTTIP >> 24) & 0xFF;  // 0x12
-      String host = String(arr[3]) + "." + String(arr[2]) + "." + String(arr[1]) + "." + String(arr[0]);
-      clientMQTT.setServer(host.c_str(), MQTTPort);
-      clientMQTT.setCallback(callback);                                                     //Déclaration de la fonction de souscription
-      if (clientMQTT.connect(MQTTdeviceName.c_str(), MQTTUser.c_str(), MQTTPwd.c_str())) {  // si l'utilisateur est connecté au mqtt
-        Serial.println(MQTTdeviceName + "connecté");
-        Debug.println(MQTTdeviceName + "connecté");
-
-      } else {  // si utilisateur pas connecté au mqtt
-        Serial.print("echec connexion au MQTT, code erreur= ");
-        Serial.println(clientMQTT.state());
-        Debug.print("echec connexion au MQTT, code erreur= ");
-        Debug.println(clientMQTT.state());
-        StockMessage("Echec connexion MQTT : " + host);
-        return;
+bool testMQTTconnected() {
+  bool connecte = true;
+  if (!clientMQTT.connected()) {  // si le mqtt n'est pas connecté (utile aussi lors de la 1ere connexion)
+    Serial.println("Connection au serveur MQTT ...");
+    byte arr[4];
+    arr[0] = MQTTIP & 0xFF;          // 0x78
+    arr[1] = (MQTTIP >> 8) & 0xFF;   // 0x56
+    arr[2] = (MQTTIP >> 16) & 0xFF;  // 0x34
+    arr[3] = (MQTTIP >> 24) & 0xFF;  // 0x12
+    String host = String(arr[3]) + "." + String(arr[2]) + "." + String(arr[1]) + "." + String(arr[0]);
+    clientMQTT.setServer(host.c_str(), MQTTPort);
+    clientMQTT.setCallback(callback);                                                     //Déclaration de la fonction de souscription
+    if (clientMQTT.connect(MQTTdeviceName.c_str(), MQTTUser.c_str(), MQTTPwd.c_str())) {  // si l'utilisateur est connecté au mqtt
+      StockMessage(MQTTdeviceName + " connecté au broker MQTT");
+      if (Source_Temp == "tempMqtt") {
+        char TopicV[50];
+        sprintf(TopicV, "%s", TopicT.c_str());
+        clientMQTT.subscribe(TopicV);
       }
-    }  // ici l'utilisateur est normalement connecté au mqtt
-    clientMQTT.loop();
+      if (Source == "Pmqtt") {
+        char Topicp[50];
+        sprintf(Topicp, "%s", TopicP.c_str());
+        clientMQTT.subscribe(Topicp);
+      }
+      if (subMQTT == 1) {
+        for (int i = 0; i < NbActions; i++) {
+          if (LesActions[i].Actif > 0) {
+            char TopicAct[50];
+            sprintf(TopicAct, "%s", LesActions[i].Titre.c_str());
+            clientMQTT.subscribe(TopicAct);
+          }
+        }
+      }
+      sprintf(StateTopic, "%s/%s_state", MQTTPrefix.c_str(), MQTTdeviceName.c_str());
+      byte mac[6];  // the MAC address of your Wifi shield
+      WiFi.macAddress(mac);
+      sprintf(ESP_ID, "%02x%02x%02x", mac[2], mac[1], mac[0]);  // ID de l'entité pour HA
+      sprintf(mdl, "%s%s", "ESP32 - ", ESP_ID);                 // ID de l'entité pour HA
+      String mf = "F1ATB - https://f1atb.fr";
+      String cu = "http://" + WiFi.localIP().toString();
+      String hw = String(ESP.getChipModel()) + " rev." + String(ESP.getChipRevision());
+      String sw = Version;
+      sprintf(DEVICE, "{\"ids\":\"%s\",\"name\":\"%s\",\"mdl\":\"%s\",\"mf\":\"%s\",\"hw\":\"%s\",\"sw\":\"%s\",\"cu\":\"%s\"}", ESP_ID, nomRouteur.c_str(), mdl, mf.c_str(), hw.c_str(), sw.c_str(), cu.c_str());
 
+    } else {  // si utilisateur pas connecté au mqtt
+      StockMessage("Echec connexion MQTT : " + host);
+      connecte = false;
+    }
+  }
+  return connecte;
+}
+void envoiVersMQTT() {
+  unsigned long tps = millis();
+  int etat = 0;                                                                     // utilisé pour l'envoie de l'état On/Off des actions.
+  if (int((tps - previousMQTTenvoiMillis) / 1000) > MQTTRepet && MQTTRepet != 0) {  // Si Service MQTT activé avec période sup à 0
+    previousMQTTenvoiMillis = tps;
     if (!Discovered) {  //(uniquement au démarrage discovery = 0)
       sendMQTTDiscoveryMsg_global();
     }
@@ -49,10 +87,34 @@ void envoiAuMQTT() {  // Cette Fonction d'origine a été modifiée
     clientMQTT.loop();
   }
 }
-//Callback  pour souscrire a un topic et  prévoir une action
+//Callback  après souscription à un topic et  réaliser une action
 void callback(char *topic, byte *payload, unsigned int length) {
-  Serial.println("-------Nouveau message du broker mqtt. Non utilisé-----");
-  Debug.println("-------Nouveau message du broker mqtt. Non utilisé-----");
+  char Message[length + 1];
+  for (int i = 0; i < length; i++) {
+    Message[i] = payload[i];
+  }
+  Message[length] = '\0';
+  String message = String(Message) + ",";
+  if (String(topic) == TopicT && Source_Temp == "tempMqtt") {  //Temperature attendue
+    temperature = ValJson("temperature", message);
+  }
+  if (String(topic) == TopicP && Source == "Pmqtt") {  //Mesure de puissance
+    PwMQTT = ValJson("Pw", message);
+    PvaMQTT = ValJson("Pva", message);
+    PfMQTT = ValJson("Pf", message);
+    P_MQTT_Brute = String(Message);
+    if (message.indexOf("Pw") > 0) LastPwMQTTMillis = millis();
+  }
+  if (subMQTT == 1) {
+    for (int i = 0; i < NbActions; i++) {
+      if (LesActions[i].Actif > 0 && LesActions[i].Titre == String(topic)) {
+        LesActions[i].tOnOff=ValJson("tOnOff", message);
+        LesActions[i].Prioritaire();
+      }
+    }
+  }
+  Serial.print(topic);
+  Serial.println(Message);
 }
 //*************************************************************************
 //*          CONFIG OF DISCOVERY MESSAGE FOR HOME ASSISTANT  / DOMOTICZ             *
@@ -75,13 +137,16 @@ void sendMQTTDiscoveryMsg_global() {
     DeviceToDiscover("EnergieJour_T_Injectee", "Wh", "energy", "0");
     DeviceToDiscover("Frequence", "Hz", "frequency", "2");
   }
-  if (temperature >-100) {
-    DeviceToDiscover("Temperature", "°C", "temperature", "1");
-  }
-  
-  if (Source == "Linky"){
+  if (Source_Temp != "tempNo") DeviceToDiscover("Temperature", "°C", "temperature", "1");
+
+
+  if (Source == "Linky") {
     DeviceTextToDiscover("LTARF", "Option Tarifaire");
     DeviceToDiscover("Code_Tarifaire", "", "", "0");
+  }
+  if (Source == "Enphase") {
+    DeviceToDiscover("PactProd", "W", "power", "0");
+    DeviceToDiscover("PactConso_M", "W", "power", "0");
   }
 
   DeviceToDiscover("PuissanceS_M", "W", "power", "0");
@@ -95,14 +160,13 @@ void sendMQTTDiscoveryMsg_global() {
   DeviceToDiscover("EnergieJour_M_Injectee", "Wh", "energy", "0");
 
   for (int i = 0; i < NbActions; i++) {
-    ActType="Ouverture_Relais_" + String(i);
-    if (i==0) ActType="OuvertureTriac" ;
+    ActType = "Ouverture_Relais_" + String(i);
+    if (i == 0) ActType = "OuvertureTriac";
     DeviceToDiscover(ActType, "%", "power_factor", "0");  //Type power factor pour etre accepté par HA
   }
 
 
   Serial.println("Paramètres Auto-Discovery publiés !");
-  Debug.println("Paramètres Auto-Discovery publiés !");
 
   //clientMQTT.setBufferSize(512);  // go to initial value wifi/mqtt buffer
   Discovered = true;
@@ -110,164 +174,89 @@ void sendMQTTDiscoveryMsg_global() {
 
 }  // END OF sendMQTTDiscoveryMsg_global
 
-void DeviceToDiscover(String Name, String Unit, String Class, String Round) {
-
-  String StateTopic = String(MQTTPrefix) + "/" + MQTTdeviceName + "_state";
-  DynamicJsonDocument doc(512);  // this is the Payload json format
-  JsonObject device;             // for device object  "device": {}
-  JsonArray option;              // options (array) of this device
-  char buffer[512];
-  size_t n;
-  bool published;
-
-  String ESP_ID = WiFi.macAddress();  //The chip ID is essentially its MAC address.                                        // ID de l'entité pour HA
-  String DiscoveryTopic;              // nom du topic pour ce capteur
-
-  //DiscoveryTopic = ConfigTopic(Name, SSR, "config");
-  DiscoveryTopic = String(MQTTPrefix) + "/" + String(SSR) + "/" + String(MQTTdeviceName) + "_" + String(Name) + "/" + String("config");
-  doc["name"] = String(MQTTdeviceName) + " " + String(Name);     // concatenation des ID uniques des entités (capteurs ou commandes)
-  doc["uniq_id"] = String(MQTTdeviceName) + "_" + String(Name);  // concatenation des Noms uniques des entités
-  doc["stat_t"] = StateTopic;
-  doc["unit_of_meas"] = Unit;
-  if (Unit=="Wh"){
-      doc["state_class"] = "total_increasing";
+void DeviceToDiscover(String VarName, String Unit, String Class, String Round) {
+  char value[700];
+  char DiscoveryTopic[120];
+  char UniqueID[50];
+  char ValTpl[60];
+  char state_class[60];
+  String TitleName = String(MQTTdeviceName) + " " + String(VarName);
+  sprintf(DiscoveryTopic, "%s/%s/%s_%s/%s", MQTTPrefix.c_str(), SSR, MQTTdeviceName.c_str(), VarName.c_str(), "config");
+  sprintf(UniqueID, "%s_%s", MQTTdeviceName.c_str(), VarName.c_str());
+  sprintf(ValTpl, "{{ value_json.%s|default(0)|round(%s)}}", VarName.c_str(), Round.c_str());
+  sprintf(state_class, "%s", "");
+  if (Unit == "Wh" || Unit == "kWh") {
+    sprintf(state_class, "\"state_class\":\"total_increasing\"%s,", state_class);
   }
-  doc["device_class"] = Class;
-  doc["val_tpl"] = "{{ value_json." + Name + "|default(0)| round(" + Round + ") }}";
-  device = doc.createNestedObject("device");
-  device["ids"][0] = ESP_ID;  // identification unique sur Home Assistant (obligatoire).
-  device["cu"] = "http://" + WiFi.localIP().toString();
-  device["hw"] = String(ESP.getChipModel()) + " rev." + String(ESP.getChipRevision());
-  device["mf"] = "F1ATB - https://f1atb.fr";
-  device["mdl"] = "ESP32 - " + ESP_ID;
-  device["name"] = nomRouteur;
-  device["sw"] = Version;
-
-  n = serializeJson(doc, buffer);
-  published = clientMQTT.publish(DiscoveryTopic.c_str(), buffer, n);
-  doc.clear();
-  buffer[0] = '\0';
+  sprintf(value, "{\"name\": \"%s\",\"uniq_id\": \"%s\",\"stat_t\": \"%s\",\"device_class\": \"%s\",\"unit_of_meas\": \"%s\",%s\"val_tpl\": \"%s\",\"device\": %s}", TitleName.c_str(), UniqueID, StateTopic, Class.c_str(), Unit.c_str(), state_class, ValTpl, DEVICE);
+  clientMQTT.publish(DiscoveryTopic, value);
 }
-void DeviceBinToDiscover(String Name, String Titre) {
-
-  String StateTopic = String(MQTTPrefix) + "/" + MQTTdeviceName + "_state";
-  DynamicJsonDocument doc(512);  // this is the Payload json format
-  JsonObject device;             // for device object  "device": {}
-  JsonArray option;              // options (array) of this device
-  char buffer[512];
-  size_t n;
-  bool published;
-
-  String ESP_ID = WiFi.macAddress();  //The chip ID is essentially its MAC address.                                        // ID de l'entité pour HA
-  String DiscoveryTopic;              // nom du topic pour ce capteur
-
- 
-  DiscoveryTopic = String(MQTTPrefix) + "/" + String(BINS) + "/" + String(MQTTdeviceName) + "_" + String(Name) + "/" + String("config");
-  doc["name"] = String(MQTTdeviceName) + " " + String(Titre);    // concatenation des ID uniques des entités (capteurs ou commandes)
-  doc["uniq_id"] = String(MQTTdeviceName) + "_" + String(Name);  // concatenation des Noms uniques des entités
-  doc["stat_t"] = StateTopic;
-  doc["init"] = "OFF";  // default value
-  doc["ic"] = "mdi:electric-switch";
-  doc["val_tpl"] = "{{ value_json." + Name + " }}";
-  device = doc.createNestedObject("device");
-  device["ids"][0] = ESP_ID;
-  n = serializeJson(doc, buffer);
-  published = clientMQTT.publish(DiscoveryTopic.c_str(), buffer, n);
-  doc.clear();
-  buffer[0] = '\0';
+void DeviceBinToDiscover(String VarName, String TitleName) {
+  char value[700];
+  char DiscoveryTopic[120];
+  char UniqueID[50];
+  char ValTpl[60];
+  String init = "OFF";  // default value
+  String ic = "mdi:electric-switch";
+  sprintf(DiscoveryTopic, "%s/%s/%s_%s/%s", MQTTPrefix.c_str(), BINS, MQTTdeviceName.c_str(), VarName.c_str(), "config");
+  sprintf(UniqueID, "%s_%s", MQTTdeviceName.c_str(), VarName.c_str());
+  sprintf(ValTpl, "{{ value_json.%s}}", VarName.c_str());
+  sprintf(value, "{\"name\": \"%s\",\"uniq_id\": \"%s\",\"stat_t\": \"%s\",\"init\": \"%s\",\"ic\": \"%s\",\"val_tpl\": \"%s\",\"device\": %s}", TitleName.c_str(), UniqueID, StateTopic, init.c_str(), ic.c_str(), ValTpl, DEVICE);
+  clientMQTT.publish(DiscoveryTopic, value);
 }
 
-void DeviceTextToDiscover(String Name, String Titre) {
-  String StateTopic = String(MQTTPrefix) + "/" + MQTTdeviceName + "_state";
-  DynamicJsonDocument doc(512);  // this is the Payload json format
-  JsonObject device;             // for device object  "device": {}
-  JsonArray option;              // options (array) of this device
-  char buffer[512];
-  size_t n;
-  bool published;
-  String ESP_ID = WiFi.macAddress();  //The chip ID is essentially its MAC address.                                        // ID de l'entité pour HA
-  String DiscoveryTopic;              // nom du topic pour ce capteur
-  DiscoveryTopic = String(MQTTPrefix) + "/" + String(SSR) + "/" + String(MQTTdeviceName) + "_" + String(Name) + "/" + String("config");
-  doc["name"] = String(MQTTdeviceName) + " " + String(Titre);    // concatenation des ID uniques des entités (capteurs ou commandes)
-  doc["uniq_id"] = String(MQTTdeviceName) + "_" + String(Name);  // concatenation des Noms uniques des entités
-  doc["stat_t"] = StateTopic;
-  doc["device_class"] = "enum";
-  doc["val_tpl"] = "{{ value_json." + Name + " }}";
-  device = doc.createNestedObject("device");
-  device["ids"][0] = ESP_ID;
-  n = serializeJson(doc, buffer);
-  published = clientMQTT.publish(DiscoveryTopic.c_str(), buffer, n);
-  doc.clear();
-  buffer[0] = '\0';
+void DeviceTextToDiscover(String VarName, String TitleName) {
+  char value[600];
+  char DiscoveryTopic[120];
+  char UniqueID[50];
+  char ValTpl[50];
+  sprintf(DiscoveryTopic, "%s/%s/%s_%s/%s", MQTTPrefix.c_str(), SSR, MQTTdeviceName.c_str(), VarName.c_str(), "config");
+  sprintf(UniqueID, "%s_%s", MQTTdeviceName.c_str(), VarName.c_str());
+  sprintf(ValTpl, "{{ value_json.%s }}", VarName.c_str());
+  sprintf(value, "{\"name\": \"%s\",\"uniq_id\": \"%s\",\"stat_t\": \"%s\",\"device_class\": \"%s\",\"val_tpl\": \"%s\",\"device\": %s}", TitleName.c_str(), UniqueID, StateTopic, "enum", ValTpl, DEVICE);
+  clientMQTT.publish(DiscoveryTopic, value);
 }
 //****************************************
 //* ENVOIE DES DATAS VERS HOME ASSISTANT *
 //****************************************
 
 void SendDataToHomeAssistant() {
-
-  //common state topic for all entities of this ESP32 Device
-  String StateTopic = String(MQTTPrefix) + "/" + MQTTdeviceName + "_state";
   String ActType;
-  DynamicJsonDocument doc(1024);  // 1024 octets = capacité  largement suffisante
-  char buffer[1024];
-  if (Source == "UxIx2"  || Source == "ShellyEm") {
-    doc["PuissanceS_T"] = PuissanceS_T;  // Triac
-    doc["PuissanceI_T"] = PuissanceI_T;  // Triac
-    doc["Tension_T"] = Tension_T;
-    doc["Intensite_T"] = Intensite_T;
-    doc["PowerFactor_T"] = PowerFactor_T;
-    doc["Energie_T_Soutiree"] = Energie_T_Soutiree;
-    doc["Energie_T_Injectee"] = Energie_T_Injectee;
-    doc["EnergieJour_T_Soutiree"] = EnergieJour_T_Soutiree;
-    doc["EnergieJour_T_Injectee"] = EnergieJour_T_Injectee;
-    doc["Frequence"] = Frequence;
-  }
-  if (temperature >-100) {
-    doc["Temperature"] = temperature;
-  }
-  if (Source == "Linky"){
-    
-    doc["LTARF"]= LTARF;
-    int code=0;
-    if (LTARF.indexOf("HEURE  CREUSE")>=0) code=1; //Code Linky
-    if (LTARF.indexOf("HEURE  PLEINE")>=0) code=2;
-    if (LTARF.indexOf("HC BLEU")>=0) code=11;
-    if (LTARF.indexOf("HP BLEU")>=0) code=12;
-    if (LTARF.indexOf("HC BLANC")>=0) code=13;
-    if (LTARF.indexOf("HP BLANC")>=0) code=14;
-    if (LTARF.indexOf("HC ROUGE")>=0) code=15;
-    if (LTARF.indexOf("HP ROUGE")>=0) code=16;
-    if (LTARF.indexOf("TEMPO_BLEU")>=0) code=17; // Code EDF
-    if (LTARF.indexOf("TEMPO_BLANC")>=0) code=18;
-    if (LTARF.indexOf("TEMPO_ROUGE")>=0) code=19;
-    doc["Code_Tarifaire"]= code;
-  }
-  doc["PuissanceS_M"] = PuissanceS_M ;  // Maison
-  doc["PuissanceI_M"] = PuissanceI_M;  // Maison
-  doc["Tension_M"] = Tension_M;
-  doc["Intensite_M"] = Intensite_M;
-  doc["PowerFactor_M"] = PowerFactor_M;
-  doc["Energie_M_Soutiree"] = Energie_M_Soutiree;
-  doc["Energie_M_Injectee"] = Energie_M_Injectee;
-  doc["EnergieJour_M_Soutiree"] = EnergieJour_M_Soutiree;
-  doc["EnergieJour_M_Injectee"] = EnergieJour_M_Injectee;
+  char value[1000];
+  sprintf(value, "{\"PuissanceS_M\": %d, \"PuissanceI_M\": %d, \"Tension_M\": %.1f, \"Intensite_M\": %.1f, \"PowerFactor_M\": %.2f, \"Energie_M_Soutiree\":%d,\"Energie_M_Injectee\":%d, \"EnergieJour_M_Soutiree\":%d, \"EnergieJour_M_Injectee\":%d", PuissanceS_M, PuissanceI_M, Tension_M, Intensite_M, PowerFactor_M, Energie_M_Soutiree, Energie_M_Injectee, EnergieJour_M_Soutiree, EnergieJour_M_Injectee);
 
+  if (Source == "UxIx2" || Source == "ShellyEm") {
+    sprintf(value, "%s,\"PuissanceS_T\": %d, \"PuissanceI_T\": %d, \"Tension_T\": %.1f, \"Intensite_T\": %.1f, \"PowerFactor_T\": %.2f, \"Energie_T_Soutiree\":%d,\"Energie_T_Injectee\":%d, \"EnergieJour_T_Soutiree\":%d, \"EnergieJour_T_Injectee\":%d, \"Frequence\":%.2f", value, PuissanceS_T, PuissanceI_T, Tension_T, Intensite_T, PowerFactor_T, Energie_T_Soutiree, Energie_T_Injectee, EnergieJour_T_Soutiree, EnergieJour_T_Injectee, Frequence);
+  }
+  if (temperature > -100 && Source_Temp != "tempNo") {
+    sprintf(value, "%s,\"Temperature\": %.1f", value, temperature);
+  }
+  if (Source == "Linky") {
+    int code = 0;
+    if (LTARF.indexOf("HEURE  CREUSE") >= 0) code = 1;  //Code Linky
+    if (LTARF.indexOf("HEURE  PLEINE") >= 0) code = 2;
+    if (LTARF.indexOf("HC BLEU") >= 0) code = 11;
+    if (LTARF.indexOf("HP BLEU") >= 0) code = 12;
+    if (LTARF.indexOf("HC BLANC") >= 0) code = 13;
+    if (LTARF.indexOf("HP BLANC") >= 0) code = 14;
+    if (LTARF.indexOf("HC ROUGE") >= 0) code = 15;
+    if (LTARF.indexOf("HP ROUGE") >= 0) code = 16;
+    if (LTARF.indexOf("TEMPO_BLEU") >= 0) code = 17;  // Code EDF
+    if (LTARF.indexOf("TEMPO_BLANC") >= 0) code = 18;
+    if (LTARF.indexOf("TEMPO_ROUGE") >= 0) code = 19;
+    sprintf(value, "%s,\"LTARF\":\"%s\", \"Code_Tarifaire\":%d", value, LTARF, code);
+  }
 
-  doc["OuvertureTriac"] = 100 - Retard[0];
+  if (Source == "Enphase") {
+    sprintf(value, "%s,\"PactProd\":%d, \"PactConso_M\":%d", value, PactProd, PactConso_M);
+  }
+
   for (int i = 0; i < NbActions; i++) {
-    ActType="Ouverture_Relais_" + String(i);
-    if (i==0) ActType="OuvertureTriac" ;
-    doc[ActType] = 100 - Retard[i];
+    ActType = "Ouverture_Relais_" + String(i);
+    if (i == 0) ActType = "OuvertureTriac";
+    int Ouv = 100 - Retard[i];
+    sprintf(value, "%s,\"%s\":%d", value, ActType.c_str(), Ouv);
   }
-
-
-
-  size_t n = serializeJson(doc, buffer);
-  bool published = clientMQTT.publish(StateTopic.c_str(), buffer, n);
-  doc.clear();
-  buffer[0] = '\0';
-
-
-
-}  // END SendDataToHomeAssistant
+  sprintf(value, "%s}", value);
+  bool published = clientMQTT.publish(StateTopic, value);
+}

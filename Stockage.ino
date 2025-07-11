@@ -16,10 +16,7 @@
 
 void INIT_EEPROM(void) {
   if (!EEPROM.begin(EEPROM_SIZE)) {
-    Serial.println("Failed to initialise EEPROM");
-    Serial.println("Restarting...");
-    Debug.println("Failed to initialise EEPROM");
-    Debug.println("Restarting...");
+    StockMessage("Failed to initialise EEPROM");
     delay(10000);
     ESP.restart();
   }
@@ -81,8 +78,8 @@ void JourHeureChange() {
     int minute = String(buffer).toInt();
     strftime(buffer, MAX_SIZE_T, "%s", pTime);
     unsigned long Tactu = String(buffer).toInt();
-    if (T0_seconde==0) T0_seconde = Tactu;
-    T_On_seconde =Tactu-T0_seconde;
+    if (T0_seconde == 0) T0_seconde = Tactu;
+    T_On_seconde = Tactu - T0_seconde;
     HeureCouranteDeci = hour * 100 + minute * 10 / 6;
     if (DateCeJour != JourCourant) {                  //Changement de jour
       if (EnergieActiveValide && DateCeJour != "") {  //Données recues
@@ -128,8 +125,11 @@ unsigned long LectureCle() {
 void LectureEnROM() {
   int Hdeb;
   int address = adr_ParaActions;
+  int VersionStocke;
   Cle_ROM = EEPROM.readULong(address);
   address += sizeof(unsigned long);
+  VersionStocke = EEPROM.readUShort(address);
+  address += sizeof(unsigned short);
   ssid = EEPROM.readString(address);
   address += ssid.length() + 1;
   password = EEPROM.readString(address);
@@ -168,6 +168,12 @@ void LectureEnROM() {
   address += MQTTPrefix.length() + 1;
   MQTTdeviceName = EEPROM.readString(address);
   address += MQTTdeviceName.length() + 1;
+  TopicP = EEPROM.readString(address);
+  address += TopicP.length() + 1;
+  TopicT = EEPROM.readString(address);
+  address += TopicT.length() + 1;
+  subMQTT = EEPROM.readByte(address);
+  address += sizeof(byte);
   nomRouteur = EEPROM.readString(address);
   address += nomRouteur.length() + 1;
   nomSondeFixe = EEPROM.readString(address);
@@ -176,12 +182,25 @@ void LectureEnROM() {
   address += nomSondeMobile.length() + 1;
   nomTemperature = EEPROM.readString(address);
   address += nomTemperature.length() + 1;
+  Source_Temp = EEPROM.readString(address);
+  address += Source_Temp.length() + 1;
+  IPtemp = EEPROM.readULong(address);
+  address += sizeof(unsigned long);
   CalibU = EEPROM.readUShort(address);
   address += sizeof(unsigned short);
   CalibI = EEPROM.readUShort(address);
   address += sizeof(unsigned short);
   TempoEDFon = EEPROM.readByte(address);
   address += sizeof(byte);
+  WifiSleep = EEPROM.readByte(address);
+  address += sizeof(byte);
+  pSerial = EEPROM.readByte(address);
+  address += sizeof(byte);
+  pTriac = EEPROM.readByte(address);
+  address += sizeof(byte);
+
+  address += 100; //Réserve de 100 bytes
+
   //Zone des actions
   NbActions = EEPROM.readUShort(address);
   address += sizeof(unsigned short);
@@ -204,6 +223,7 @@ void LectureEnROM() {
     address += sizeof(unsigned short);
     LesActions[iAct].Reactivite = EEPROM.readByte(address);
     address += sizeof(byte);
+    address += 40; //Réserve de 40 bytes
     LesActions[iAct].NbPeriode = EEPROM.readByte(address);
     address += sizeof(byte);
     Hdeb = 0;
@@ -224,14 +244,21 @@ void LectureEnROM() {
       address += sizeof(unsigned short);
       LesActions[iAct].Tarif[i] = EEPROM.readByte(address);
       address += sizeof(byte);
+      address += 10; //Réserve de 10 bytes
     }
   }
   Calibration(address);
+  
 }
 int EcritureEnROM() {
   int address = adr_ParaActions;
+  int VersionStocke = 0;
+  String V=Version;
+  VersionStocke =int(100*V.toFloat());
   EEPROM.writeULong(address, Cle_ROM);
   address += sizeof(unsigned long);
+  EEPROM.writeUShort(address, VersionStocke);
+  address += sizeof(unsigned short);
   EEPROM.writeString(address, ssid);
   address += ssid.length() + 1;
   EEPROM.writeString(address, password);
@@ -270,6 +297,12 @@ int EcritureEnROM() {
   address += MQTTPrefix.length() + 1;
   EEPROM.writeString(address, MQTTdeviceName);
   address += MQTTdeviceName.length() + 1;
+  EEPROM.writeString(address, TopicP);
+  address += TopicP.length() + 1;
+  EEPROM.writeString(address, TopicT);
+  address += TopicT.length() + 1;
+  EEPROM.writeByte(address, subMQTT);
+  address += sizeof(byte);
   EEPROM.writeString(address, nomRouteur);
   address += nomRouteur.length() + 1;
   EEPROM.writeString(address, nomSondeFixe);
@@ -278,12 +311,25 @@ int EcritureEnROM() {
   address += nomSondeMobile.length() + 1;
   EEPROM.writeString(address, nomTemperature);
   address += nomTemperature.length() + 1;
+  EEPROM.writeString(address, Source_Temp);
+  address += Source_Temp.length() + 1;
+  EEPROM.writeULong(address, IPtemp);
+  address += sizeof(unsigned long);
   EEPROM.writeUShort(address, CalibU);
   address += sizeof(unsigned short);
   EEPROM.writeUShort(address, CalibI);
   address += sizeof(unsigned short);
   EEPROM.writeByte(address, TempoEDFon);
   address += sizeof(byte);
+  EEPROM.writeByte(address, WifiSleep);
+  address += sizeof(byte);
+  EEPROM.writeByte(address, pSerial);
+  address += sizeof(byte);
+  EEPROM.writeByte(address, pTriac);
+  address += sizeof(byte);
+
+  address += 100; //Réserve de 100 bytes
+
   //Enregistrement des Actions
   EEPROM.writeUShort(address, NbActions);
   address += sizeof(unsigned short);
@@ -306,6 +352,7 @@ int EcritureEnROM() {
     address += sizeof(unsigned short);
     EEPROM.writeByte(address, LesActions[iAct].Reactivite);
     address += sizeof(byte);
+    address += 40; //Réserve de 40 bytes
     EEPROM.writeByte(address, LesActions[iAct].NbPeriode);
     address += sizeof(byte);
     for (byte i = 0; i < LesActions[iAct].NbPeriode; i++) {
@@ -323,6 +370,7 @@ int EcritureEnROM() {
       address += sizeof(unsigned short);
       EEPROM.writeByte(address, LesActions[iAct].Tarif[i]);
       address += sizeof(byte);
+      address += 10; //Réserve de 10 bytes
     }
   }
   Calibration(address);
@@ -334,7 +382,6 @@ void Calibration(int address) {
   kI = KI * CalibI / 1000;
   P_cent_EEPROM = int(100 * address / EEPROM_SIZE);
   Serial.println("Mémoire EEPROM utilisée : " + String(P_cent_EEPROM) + "%");
-  Debug.println("Mémoire EEPROM utilisée : " + String(P_cent_EEPROM) + "%");
 }
 
 void init_puissance() {
@@ -354,42 +401,62 @@ void init_puissance() {
   PVAS_M_inst = 0.0;
   PVAI_T_inst = 0.0;
   PVAI_M_inst = 0.0;
-  PuissanceS_T_moy = 0.0;
-  PuissanceS_M_moy = 0.0;
-  PuissanceI_T_moy = 0.0;
-  PuissanceI_M_moy = 0.0;
-  PVAS_T_moy = 0.0;
-  PVAS_M_moy = 0.0;
-  PVAI_T_moy = 0.0;
-  PVAI_M_moy = 0.0;
+  Puissance_T_moy = 0.0;
+  Puissance_M_moy = 0.0;
+  PVA_T_moy = 0.0;
+  PVA_M_moy = 0.0;
 }
 void filtre_puissance() {  //Filtre RC
-  float A = 0.3;
+
+  float A = 0.3;  //Coef pour un lissage en multi-sinus et train de sinus sur les mesures de puissance courte
   float B = 0.7;
-  PuissanceS_T_moy = A * PuissanceS_T_inst + B * PuissanceS_T_moy;
-  PuissanceS_M_moy = A * PuissanceS_M_inst + B * PuissanceS_M_moy;
-  PuissanceI_T_moy = A * PuissanceI_T_inst + B * PuissanceI_T_moy;
-  PuissanceI_M_moy = A * PuissanceI_M_inst + B * PuissanceI_M_moy;
+  if (!LissageLong) {
+    A = 1;
+    B = 0;
+  }
 
-  PuissanceS_T = int(PuissanceS_T_moy);
-  PuissanceS_M = int(PuissanceS_M_moy);
-  PuissanceI_T = int(PuissanceI_T_moy);
-  PuissanceI_M = int(PuissanceI_M_moy);  //Puissance Watt affichée en entiers Maison et Triac
+  Puissance_T_moy = A * (PuissanceS_T_inst - PuissanceI_T_inst) + B * Puissance_T_moy;
+  if (Puissance_T_moy < 0) {
+    PuissanceI_T = -int(Puissance_T_moy);  //Puissance Watt affichée en entier  Triac
+    PuissanceS_T = 0;
+  } else {
+    PuissanceS_T = int(Puissance_T_moy);
+    PuissanceI_T = 0;
+  }
 
-  PVAS_T_moy = A * PVAS_T_inst + B * PVAS_T_moy;
-  PVAS_M_moy = A * PVAS_M_inst + B * PVAS_M_moy;
-  PVAI_T_moy = A * PVAI_T_inst + B * PVAI_T_moy;
-  PVAI_M_moy = A * PVAI_M_inst + B * PVAI_M_moy;
 
-  PVAS_T = int(PVAS_T_moy);
-  PVAS_M = int(PVAS_M_moy);
-  PVAI_T = int(PVAI_T_moy);
-  PVAI_M = int(PVAI_M_moy);  //Puissance VA affichée en entiers Maison et Triac
+  Puissance_M_moy = A * (PuissanceS_M_inst - PuissanceI_M_inst) + B * Puissance_M_moy;
+  if (Puissance_M_moy < 0) {
+    PuissanceI_M = -int(Puissance_M_moy);  //Puissance Watt affichée en entier Maison
+    PuissanceS_M = 0;
+  } else {
+    PuissanceS_M = int(Puissance_M_moy);
+    PuissanceI_M = 0;
+  }
+
+
+  PVA_T_moy = A * (PVAS_T_inst - PVAI_T_inst) + B * PVA_T_moy;  //Puissance VA affichée en entiers
+  if (PVA_T_moy < 0) {
+    PVAI_T = -int(PVA_T_moy);
+    PVAS_T = 0;
+  } else {
+    PVAS_T = int(PVA_T_moy);
+    PVAI_T = 0;
+  }
+
+  PVA_M_moy = A * (PVAS_M_inst - PVAI_M_inst) + B * PVA_M_moy;
+  if (PVA_M_moy < 0) {
+    PVAI_M = -int(PVA_M_moy);
+    PVAS_M = 0;
+  } else {
+    PVAS_M = int(PVA_M_moy);
+    PVAI_M = 0;
+  }
 }
 
-void StockMessage(String m){
-  m = DATE +" : " +m;
+void StockMessage(String m) {
+  m = DATE + " : " + m;
   Serial.println(m);
-  Message[idxMessage] = m;
-  idxMessage = (idxMessage+1)%4;
+  MessageH[idxMessage] = m;
+  idxMessage = (idxMessage + 1) % 10;
 }

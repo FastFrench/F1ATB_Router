@@ -22,12 +22,10 @@ void LectureLinky() {  //Lecture port série du LINKY .
   float deltaT = 0;
   boucle_appel_Linky++;
   if (boucle_appel_Linky > 4000) {
-    Debug.println(boucle_appel_Linky);
     boucle_appel_Linky = 0;
     MySerial.flush();
     MySerial.write("Ok");
     StockMessage("Attente Linky 4000 boucles = 8s");
-    Serial.println("Attente Linky 4000 boucles = 8s");
   }
   while (MySerial.available() > 0) {
     boucle_appel_Linky = 0;
@@ -79,7 +77,6 @@ void LectureLinky() {  //Lecture port série du LINKY .
           }
           if (code.indexOf("EAST") == 0 || code.indexOf("EAIT") == 0 || code == "SINSTS" || code.indexOf("SINSTI") == 0) {
             if (checksum != checkLinky) {
-              Debug.println("Erreur checksum code : " + code + " " + String(checksum) + "," + String(checkLinky));
               StockMessage("Erreur checksum code : " + code + " " + String(checksum) + "," + String(checkLinky));
             } else {
               if (code.indexOf("EAST") == 0) {
@@ -150,6 +147,7 @@ void LectureLinky() {  //Lecture port série du LINKY .
                   PowerFactor_M = COSphiI;
                 }
                 PuissanceI_M = PintMax(int(COSphiI * float(PVAI_M)));
+                Pva_valide=true;
               }
             }
           }

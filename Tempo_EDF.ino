@@ -13,15 +13,20 @@ void Call_EDF_data() {
   int Hcour = HeureCouranteDeci / 2;  //Par pas de 72secondes pour faire 2 appels si un bug
   int LastH = LastHeureEDF / 2;
 
-  if ((LastH != Hcour) && (Hcour == 0 || Hcour == 1 || Hcour == 10 || Hcour == 50 || Hcour == 300 || Hcour == 530 || Hcour == 560 || Hcour == 600 || Hcour == 800 || Hcour == 1000) || LastHeureEDF < 0) {
+  if ((LastH != Hcour) && ( Hcour == 300 || Hcour == 310 || Hcour == 530 || Hcour == 560 || Hcour == 600 || Hcour == 900 || Hcour == 1150) || LastHeureEDF < 0) {
     if (TempoEDFon == 1) {
       // Use clientSecu class to create TCP connections
       clientSecuEDF.setInsecure();  //skip verification
       if (!clientSecuEDF.connect(adr_EDF_Host, 443)) {
         StockMessage("Connection failed to EDF server :" + Host);
       } else {
-
-        clientSecuEDF.print(String("GET ") + urlJSON + " HTTP/1.1\r\n" + "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8\r\n" + "Host: " + Host + "\r\n" + "Connection: keep-alive\r\n\r\n");
+        String Request=String("GET ") + urlJSON + " HTTP/1.1\r\n" ;
+        Request += "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8\r\n" ;
+        Request += "Accept-Encoding: gzip, deflate, br, zstd\r\n" ;
+        Request += "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36\r\n" ;
+        Request += "Host: " + Host + "\r\n" ;
+        Request += "Connection: keep-alive\r\n\r\n";
+        clientSecuEDF.print(Request);
         Serial.println("Request vers EDF Envoyé");
         unsigned long timeout = millis();
         while (clientSecuEDF.available() == 0) {

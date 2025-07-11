@@ -24,8 +24,8 @@ const char *ConnectAP_Html = R"====(
 </div>
 <br>
 <div id='form-passe'>
-  <div >Entrez le mot de passe du r&eacute;seau : </div>
-  <input type='password' name='passe' id='passe' required>
+  <div >Entrez le mot de passe du r&eacute;seau : <span id='nom_reseau'></span></div>
+  <input type='password' name='passe' id='passe' >
 </div>
 <div id="envoyer" >
     <input type='button' onclick="Envoyer();" value='Envoyer' >
@@ -86,6 +86,7 @@ const char *ConnectAP_Html = R"====(
   ssid="";
   function ChoixWifi(V){
       ssid = V;
+      GH("nom_reseau",ssid);
       GID("envoyer").style.display = "inline-block";
       GID("form-passe").style.display = "inline-block";
   }

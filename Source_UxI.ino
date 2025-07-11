@@ -3,8 +3,7 @@
 // *          UXI             *
 // ****************************
 
-float EASfloat=0;
-float EAIfloat=0;
+
 void Setup_UxI() {
   for (int i = 0; i < 100; i++) {  //Reset table measurements
     voltM[i] = 0;
@@ -67,6 +66,7 @@ void ComputePower() {
     PVAS_M_inst = 0;
     PVAI_M_inst = PVA;
   }
+  Pva_valide=true;
   if (cptLEDyellow > 30) {
     cptLEDyellow = 4;
   }

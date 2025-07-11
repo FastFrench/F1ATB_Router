@@ -20,7 +20,7 @@ const char *PageBrute = R"====(
     .titre{background-color:#ccc; text-align: center;font-weight: bold;}
     .foot { color:white;}
     #date,#dateLinky { color:white;}
-    #DataLinky,#dataSmartG,#dataShellyEm {border:10px inset azure; background-color:white;margin:auto;padding:4px;text-align:left;overflow:hidden;display:inline-block;}
+    #DataLinky,#dataSmartG,#dataShellyEm,#dataUxIx3,#dataPmqtt {border:10px inset azure; background-color:white;margin:auto;padding:4px;text-align:left;overflow:hidden;display:inline-block;}
     #tableau,#DataESP32,#tableauLinky,#tableauEnphase { background-color:white;display:inline-block;margin:auto;padding:4px;}
     table {border:10px inset azure;}
     td { text-align: left;padding:4px;}
@@ -32,7 +32,7 @@ const char *PageBrute = R"====(
     .dispT{display:none;}
     .ce { text-align: center;position:relative;}
     svg { border:10px inset azure;background: linear-gradient(#333,#666,#333);}
-    #infoUxIx2,#infoUxI,#infoLinky,#infoEnphase,#infoSmartG,#infoShellyEm{display:none;}
+    #infoUxIx2,#infoUxIx3,#infoUxI,#infoLinky,#infoEnphase,#infoSmartG,#infoShellyEm,#infoPmqtt{display:none;}
     #donneeDistante{font-size:50%;color:white;text-align:center;margin-bottom:10px;display:none;}
   </style></head>
   <body  onload='LoadParaRouteur();' >
@@ -50,8 +50,12 @@ const char *PageBrute = R"====(
       <br><br><div class='foot' >Donn&eacute;es brutes capteur JSY-MK-194T</div>
       <div id='tableau'></div>
     </div>
+    <div id='infoUxIx3'>
+      <div class='foot' >Donn&eacute;es brutes capteur JSY-MK-333</div>
+      <div id='dataUxIx3'></div>
+    </div>
     <div id='infoEnphase'>
-      <br><br><div class='foot' >Donn&eacute;es Enphase Envoye-S Metered</div>
+      <br><br><div class='foot' >Donn&eacute;es Enphase Envoy-S Metered</div>
       <div id='tableauEnphase'></div>
     </div>
     <div id='infoSmartG'>
@@ -61,6 +65,10 @@ const char *PageBrute = R"====(
     <div id='infoShellyEm'>
       <div class='foot' >Donn&eacute;es Shelly Em </div>
       <div id='dataShellyEm'></div>
+    </div>
+    <div id='infoPmqtt'>
+      <div class='foot' >Données puissances recues par MQTT</div>
+      <div id='dataPmqtt'></div>
     </div>
     <div id='infoLinky'>
       <div id='dateLinky'></div>
@@ -265,6 +273,10 @@ const char *PageBruteJS = R"====(
               }
                GH('dataSmartG', S);
             }
+            if (Source_data == "UxIx3"){
+              GID('infoUxIx3').style.display="block";
+               GH('dataUxIx3', groupes[1]);
+            }
             if (Source_data == "ShellyEm"){
               GID('infoShellyEm').style.display="block";
               groupes[1] = groupes[1].replaceAll('"','');
@@ -274,6 +286,10 @@ const char *PageBruteJS = R"====(
                     S +=G1[i]+"<br>";
               }
                GH('dataShellyEm', S);
+            }
+            if (Source_data == "Pmqtt"){
+              GID('infoPmqtt').style.display="block";
+               GH('dataPmqtt', groupes[1]);
             }
             if (Source_data == "Linky"){
               GID('infoLinky').style.display="block";
@@ -346,13 +362,13 @@ const char *PageBruteJS = R"====(
               S+='<tr><td>Adresse IP ESP32 :</td><td>'+message[5]+'</td></tr>';
               S+='<tr><td>Adresse passerelle :</td><td>'+message[6]+'</td></tr>';
               S+='<tr><td>Masque du r&eacute;seau :</td><td>'+message[7]+'</td></tr>';
-              S+='<tr><td>Charge coeur 0 (Lecture RMS) Min, Moy, Max :</td><td>'+message[8]+' ms</td></tr>';
+              S+='<tr><td>Charge coeur 0 (Lecture Puissance) Min, Moy, Max :</td><td>'+message[8]+' ms</td></tr>';
               S+='<tr><td>Charge coeur 1 (Calcul + Wifi) Min, Moy, Max :</td><td>'+message[9]+' ms</td></tr>';
               S+='<tr><td>Espace mémoire EEPROM utilisé :</td><td>'+message[10]+' %</td></tr>';
               S+="<tr><td>Nombre d'interruptions en 15ms du Gradateur (signal Zc) : Filtrés/Brutes :</td><td>"+message[11]+'</td></tr>';
               S+='<tr><td>Synchronisation 10ms au Secteur ou asynchrone horloge ESP32</td><td>'+message[12]+'</td></tr>';
               S +='<tr><td style="text-align:center;"><strong>Messages</strong></td><td></td></tr>';
-              for (var i=0;i<4;i++){
+              for (var i=0;i<10;i++){
                 S +='<tr><td>'+message[13+i]+'</td><td></td></tr>';
               }
               S+='</table>';

@@ -19,6 +19,7 @@ public:
   void Activer(float Pw, int Heure, float Temperature, int Ltarfbin);
   void Arreter();
   void RelaisOn();
+  void Prioritaire();
  
  
   byte TypeEnCours(int Heure,float Temperature, int Ltarfbin);
@@ -36,6 +37,7 @@ public:
   int Gpio;
   int OutOn;
   int OutOff;
+  int tOnOff;
   byte Reactivite;
   byte NbPeriode;
   bool On;

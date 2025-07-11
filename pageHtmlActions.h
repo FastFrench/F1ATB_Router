@@ -51,8 +51,14 @@ const char *ActionsHtml = R"====(
     #mode,.bouton_curseur{display:flex;justify-content: space-around;font-size:20px;}
     .boutons{display:inline-flex;}
     .triacNone0{display:none;}
+    .lds-dual-ring {color: #cccc5b;visibility: hidden;}
+    .lds-dual-ring,.lds-dual-ring:after {box-sizing: border-box;}
+    .lds-dual-ring {display: inline-block;width: 80px;height: 80px;}
+    .lds-dual-ring:after {content: " ";display: block;width: 64px;height: 64px;margin: 8px;border-radius: 50%;border: 6.4px solid currentColor;border-color: currentColor transparent currentColor transparent;animation: lds-dual-ring 1.2s linear infinite;}
+    @keyframes lds-dual-ring {0% {transform: rotate(0deg);} 100% {transform: rotate(360deg);}}
   </style>
   <script src="ActionsJS"></script>
+  <script src="ActionsJS2"></script>
   <script src="/ParaRouteurJS"></script>
   </head>
   <body onLoad="Init();" onmouseup='mouseClick=false;' >
@@ -71,6 +77,7 @@ const char *ActionsHtml = R"====(
       </div> 
       <div  style='text-align:right;padding-top:20px;'>
         <input type='button' value='Sauvegarder' onclick="SendValues();">
+        <div class="lds-dual-ring" id="attente"></div>
       </div>
     </div>
     <div id="message"></div><br>
@@ -83,7 +90,8 @@ const char *ActionsJS = R"====(
   var blockEvent = false;
   var temperatureDS=-127;
   var LTARFbin=0;
-  var ITmode=0;
+  var pTriac=0;
+  var IS=String.fromCharCode(31); //Input Separator
   function Init() {
       LoadActions();
       DispTimer();
@@ -110,18 +118,29 @@ const char *ActionsJS = R"====(
       if (iAct > 0){Radio1 = "<div ><input type='radio' name='modeactif" + iAct +"' id='radio" + iAct +"-1'  onclick='checkDisabled();'>On/Off</div>";}
       Radio1 += "<div ><input type='radio' name='modeactif" + iAct +"' id='radio" + iAct +"-2'  onclick='checkDisabled();'>Multi-sinus</div>";
       Radio1 += "<div ><input type='radio' name='modeactif" + iAct +"' id='radio" + iAct +"-3'  onclick='checkDisabled();'>Train de sinus</div>";
-
+      var Pins=[0,4,5,14,16,17,21,22,23,25,26,27,-1];
+      var SelectPin="Gpio <select id='selectPin"+iAct +"' onchange='checkDisabled();' onmousemove='Disp(this)'>";
+      for (var i=0;i<Pins.length;i++){
+        var v="gpio:"+Pins[i];
+        if (Pins[i]==0) v="";
+        if (Pins[i]==-1) v="Externe";
+        SelectPin +="<option value="+Pins[i]+">"+v+"</option>";
+      }
+      SelectPin +="</select>";
+      var SelectOut="<span id='SelectOut" + iAct +"'>&nbsp;&nbsp;&nbsp;Sortie 'On' <select id='selectOut"+iAct +"' onmousemove='Disp(this)'><option value=0>0V</option><option value=1 selected>3.3V</option></select></span>";
       var S = "<div class='titre'><h4 id ='titre" + iAct + "' onmousemove='Disp(this)' onclick='editTitre(" + iAct + ")'>Titre</h4></div>";
       S +="<div  id='mode' onmousemove='Disp(this)'>" +Radio0 + Radio1 + "</div>";
 
       S +="<div id='blocPlanning"+iAct+"' class='triacNone0' >";
         S += "<table class='tableAct triacNone"+ iAct +"'><tr>";       
-        S += "<td id='Host" + iAct + "'>Host<small> (si externe)</small></td><td class='w15'><input type='text' id='host" + iAct + "' onmousemove='Disp(this)' onchange='checkDisabled();' ></td>";
-        S += "<td>Ordre On</td><td class='w15'><input type='text' id='ordreOn" + iAct + "' onmousemove='Disp(this)'></td><td class='tm' id='Repet" + iAct + "'>Répétition(s)</td>";
+        S += "<td><div id='Host" + iAct + "'>Host <input type='text' id='host" + iAct + "' onmousemove='Disp(this)' onchange='checkDisabled();' ></div></td>";
+        S += "<td>"+SelectPin+SelectOut+"</td>";
+        S += "<td><div id='ordreon" + iAct +"'>Ordre On <input type='text' id='ordreOn" + iAct + "' onmousemove='Disp(this)'></div></td><td class='tm' id='Repet" + iAct + "'>Répétition(s)</td>";
         S += "<td class='tm' id='Tempo" + iAct + "'>Temporisation(s)</td>";
         S += "</tr><tr id='ligne_bas"  +iAct + "'>";
-        S += "<td id='Port" + iAct + "'>Port</td><td class='w15'><input type='number' id='port" + iAct + "' onmousemove='Disp(this)'></td>";
-        S += "<td id='ordreoff" + iAct +"'>Ordre Off</td><td class='w15'><input type='text' id='ordreOff" + iAct + "' onmousemove='Disp(this)'></td>";
+        S += "<td><div id='Port" + iAct + "'>Port <input type='number' id='port" + iAct + "' onmousemove='Disp(this)'></div></td>";
+        S += "<td></td>";
+        S += "<td><div id='ordreoff" + iAct +"'>Ordre Off <input type='text' id='ordreOff" + iAct + "' onmousemove='Disp(this)'></div></td>";
         S += "<td class='tm'><input type='number' id='repet" + iAct + "' class='tm' onmousemove='Disp(this)'></td>";
         S += "<td class='tm'><input type='number' id='tempo" + iAct + "' class='tm' onmousemove='Disp(this)'></td>";
         S += "</tr></table>";
@@ -147,7 +166,17 @@ const char *ActionsJS = R"====(
       GV("ordreOff" + iAct, LesActions[iAct].OrdreOff);
       GV("repet" + iAct, LesActions[iAct].Repet);
       GV("tempo" + iAct, LesActions[iAct].Tempo);
-      GV("sensi" + iAct, LesActions[iAct].Reactivite);
+      GV("slider" + iAct ,LesActions[iAct].Reactivite); 
+      GH("sensi" + iAct ,LesActions[iAct].Reactivite);
+      if(LesActions[iAct].OrdreOn.indexOf(IS)>0){
+        var vals=LesActions[iAct].OrdreOn.split(IS);
+        GID("selectPin"+iAct).value=vals[0];
+        GID("SelectOut" + iAct).value=vals[1];
+      } else {      
+        GID("selectPin"+iAct).value=-1;
+        GID("SelectOut" + iAct).value=1;
+        if(LesActions[iAct].OrdreOn=="") GID("selectPin"+iAct).value=0;
+      }
       TracePeriodes(iAct);
       
   }
@@ -167,9 +196,9 @@ const char *ActionsJS = R"====(
         var temperature="";
         if (temperatureDS>-100) { // La sonde de température fonctionne          
           var Tsup=LesActions[iAct].Periodes[i].Tsup;
-          if (Tsup>=0 && Tsup <=100) temperature +="<div> <small> si </small> T &ge;"+Tsup+"°</div>";
+          if (Tsup>=0 && Tsup <=1000) temperature +="<div> <small> si </small> T &ge;" + Tsup/10 + "°</div>";
           var Tinf=LesActions[iAct].Periodes[i].Tinf;
-          if (Tinf>=0 && Tinf <=100) temperature +="<div> <small> si </small> T &le;"+Tinf+"°</div>";
+          if (Tinf>=0 && Tinf <=1000) temperature +="<div> <small> si </small> T &le;" + Tinf/10 + "°</div>";
         }  
         var TxtTarif= "";
         if (LTARFbin>0)  {   
@@ -247,8 +276,8 @@ const char *ActionsJS = R"====(
                 Type: 1,
                 Vmin:0,
                 Vmax:100,
-                Tinf:150,
-                Tsup:150,
+                Tinf:1500,
+                Tsup:1500,
                 Tarif:31
             }); //Tarif codé en bits
             var Hbas = 0;
@@ -286,8 +315,10 @@ const char *ActionsJS = R"====(
               var Vmax=LesActions[iAct].Periodes[i].Vmax;
               var Tinf=LesActions[iAct].Periodes[i].Tinf;
               var Tsup=LesActions[iAct].Periodes[i].Tsup;
-              if (Tinf>100 || Tinf<0) Tinf=""; //Temperature entre 0 et 100
-              if (Tsup>100 || Tsup<0) Tsup=""; //Temperature entre 0 et 100
+              var TinfC=Tinf/10;
+              var TsupC=Tsup/10;
+              if (Tinf>1000 || Tinf<0) TinfC=""; //Temperature entre 0 et 100° représenté en dixième
+              if (Tsup>1000 || Tsup<0) TsupC=""; //Temperature entre 0 et 100
               if (iAct > 0) {
                   var Routage=["","Routage ON/Off","Routage Multi-sinus","Routage Train de Sinus"];
                   S += "<div class='zPw " + c + "' onclick='selectZ(3," + i + "," + iAct + ");'><div><small>" +Routage[LesActions[iAct].Actif] + "</small></div>";
@@ -313,9 +344,9 @@ const char *ActionsJS = R"====(
               if (temperatureDS>-100) {
                 S += "<div  class='bord1px' onmousemove='Disp(\"tmpr\")'>";
                 S += "<div>Actif si température :</div>";
-                S += "<div>T &ge;<input id='T_sup_"+idZ+"'  type='number' value='"+Tsup+"' onchange='NewVal(this)' >°</div>";
-                S += "<div>T &le;<input id='T_inf_"+idZ+"'  type='number' value='"+Tinf+"' onchange='NewVal(this)' >°</div>";
-                S += "<div><small>T en degré (0 à 100) ou laisser vide</small></div>";
+                S += "<div>T &ge;<input id='T_sup_"+idZ+"'  type='number' value='" + TsupC +"' onchange='NewVal(this)' >°</div>";
+                S += "<div>T &le;<input id='T_inf_"+idZ+"'  type='number' value='" + TinfC +"' onchange='NewVal(this)' >°</div>";
+                S += "<div><small>T en degré (0.0 à 100.0) ou laisser vide</small></div>";
                 S += "</div>";
               }
               if (LTARFbin>0)  { 
@@ -362,6 +393,8 @@ const char *ActionsJS = R"====(
           TracePeriodes(iAct);
       }
   }
+)====";
+const char *ActionsJS2 = R"====(
   function NewVal(t){
       var champs=t.id.split("info");
       var idx=champs[1].split("Z");   //Num Action, Num période
@@ -378,12 +411,12 @@ const char *ActionsJS = R"====(
       if (champs[0].indexOf("inf")>0){
         var V= GID(t.id).value;
         if (V=="") V=128;
-        LesActions[idx[0]].Periodes[idx[1]].Tinf=Math.floor(V);
+        LesActions[idx[0]].Periodes[idx[1]].Tinf=Math.floor(V*10);
       }
       if (champs[0].indexOf("sup")>0){
         var V= GID(t.id).value;
         if (V=="") V=128;
-        LesActions[idx[0]].Periodes[idx[1]].Tsup=Math.floor(V);
+        LesActions[idx[0]].Periodes[idx[1]].Tsup=Math.floor(V*10);
       }	
    
       if (champs[0].indexOf("Tarif")>=0){
@@ -416,22 +449,27 @@ const char *ActionsJS = R"====(
             if( GID("radio" + iAct +"-"+ i).checked ) { LesActions[iAct].Actif =i;}
         }
         TracePeriodes(iAct);
-        GID("planning0").style.display = (ITmode>0) ? "block" : "none";  // Pas de Triac si pas de synchro Zc
-        GID("TitrTriac").style.display = (ITmode>0) ? "block" : "none";  
+        GID("planning0").style.display = (pTriac>0) ? "block" : "none";  // Si Pas de Triac 
+        GID("TitrTriac").style.display = (pTriac>0) ? "block" : "none";  
         GID("blocPlanning"+iAct).style.display = (LesActions[iAct].Actif>0) ? "block" : "none";
         var visible = ( LesActions[iAct].Actif== 1) ? "visible" : "hidden";
-        GID("Host"+iAct).style.visibility =visible;
-        GID("host"+iAct).style.visibility =visible;
         GID("Tempo"+iAct).style.visibility =visible;
         GID("tempo"+iAct).style.visibility =visible;
-        LesActions[iAct].Host = GID("host" + iAct).value.trim();
-        if (LesActions[iAct].Host =="") visible="hidden";
-        GID("ordreoff"+iAct).style.visibility =visible;
-        GID("ordreOff"+iAct).style.visibility =visible;       
+        var disable=true;
+        var disp="block";
+        if (GID("selectPin"+iAct).value>=0) { visible="hidden";disable=false;disp="none";} 
+        GID("SelectOut"+iAct).style.display = (GID("selectPin"+iAct).value<=0) ? "none":"inline-block";       
+        GID("Host"+iAct).style.visibility =visible;
+        GID("host"+iAct).style.visibility =visible;
         GID("Port"+iAct).style.visibility =visible;
         GID("port"+iAct).style.visibility =visible;
         GID("Repet"+iAct).style.visibility =visible;
-        GID("repet"+iAct).style.visibility =visible;       
+        GID("repet"+iAct).style.visibility =visible;   
+        GID("radio" + iAct +"-2").disabled = disable; 
+        GID("radio" + iAct +"-3").disabled = disable;
+        GID("ordreoff"+iAct).style.display=disp;  
+        GID("ordreon"+iAct).style.display =disp;
+        if (GID("selectPin"+iAct).value==-1 && GID("ordreOn"+iAct).value.indexOf(IS)>0) GID("ordreOn"+iAct).value="";            
         GID("ligne_bas"+iAct).style.display  =( LesActions[iAct].Actif> 1) ?  "none" :"table-row";
         GID("fen_slide"+iAct).style.visibility = (LesActions[iAct].Actif== 1 && iAct>0  ) ? "hidden" : "visible";
     }
@@ -445,7 +483,7 @@ const char *ActionsJS = R"====(
               var LesParas = Les_ACTIONS[0].split(RS);
               temperatureDS=LesParas[0];
               LTARFbin = parseInt(LesParas[1]);
-              ITmode = parseInt(LesParas[2]);
+              pTriac = parseInt(LesParas[2]);
               LesActions.splice(0,LesActions.length);
               for (var iAct=1;iAct<Les_ACTIONS.length-1;iAct++){
                 var champs=Les_ACTIONS[iAct].split(RS);
@@ -464,8 +502,8 @@ const char *ActionsJS = R"====(
                           Type: 4,
                           Vmin:0,
                           Vmax:100,
-                          Tinf:150,
-                          Tsup:150,
+                          Tinf:1500,
+                          Tsup:1500,
                           Tarif:31
                       }
                   ]));
@@ -475,8 +513,8 @@ const char *ActionsJS = R"====(
                       Type: 3,
                       Vmin:0,
                       Vmax:100,
-                      Tinf:150,
-                      Tsup:150,
+                      Tinf:1500,
+                      Tsup:1500,
                       Tarif:31
                   }
               ]));
@@ -487,16 +525,6 @@ const char *ActionsJS = R"====(
               GH("plannings", S);
               for (var iAct = 0; iAct < LesActions.length; iAct++) {
                   TracePlanning(iAct);
-                  GID("radio" + iAct +"-" +LesActions[iAct].Actif).checked = true;
-                  GH("titre" + iAct,LesActions[iAct].Titre);
-                  GV("host" + iAct,LesActions[iAct].Host);
-                  GV("port" + iAct,LesActions[iAct].Port);
-                  GV("ordreOn" + iAct,LesActions[iAct].OrdreOn);
-                  GV("ordreOff" + iAct,LesActions[iAct].OrdreOff);
-                  GV("repet" + iAct,LesActions[iAct].Repet);
-                  GV("tempo" + iAct,LesActions[iAct].Tempo);
-                  GV("slider" + iAct ,LesActions[iAct].Reactivite); 
-                  GH("sensi" + iAct ,LesActions[iAct].Reactivite)
               }
               checkDisabled();
               
@@ -508,6 +536,7 @@ const char *ActionsJS = R"====(
   
   
   function SendValues() {
+      GID("attente").style="visibility: visible;";
       for (var iAct = 0; iAct < LesActions.length; iAct++) {
         for (var i=0;i<=3;i++){
             if( GID("radio" + iAct +"-"+ i).checked ) { LesActions[iAct].Actif =i;}
@@ -520,11 +549,12 @@ const char *ActionsJS = R"====(
         LesActions[iAct].Repet = GID("repet" + iAct).value;
         LesActions[iAct].Tempo = GID("tempo" + iAct).value;
         LesActions[iAct].Reactivite = GID("slider" + iAct).value;
-        if (LesActions[iAct].OrdreOn=="" && iAct>0) LesActions[iAct].Actif=0;
+        if (GID("selectPin"+iAct).value>=0) LesActions[iAct].OrdreOn=GID("selectPin"+iAct).value +IS + GID("selectOut"+iAct).value;
+        if (GID("selectPin"+iAct).value==0 && iAct>0) LesActions[iAct].Actif=-1; //Action à effacer
       }
       var S="";
       for (var iAct = 0; iAct < LesActions.length; iAct++) {
-        if ((iAct==0)||LesActions[iAct].Actif>0){
+        if (LesActions[iAct].Actif>=0){
             S +=LesActions[iAct].Actif+RS+LesActions[iAct].Titre+RS;
             S +=LesActions[iAct].Host+RS+LesActions[iAct].Port+RS;
             S +=LesActions[iAct].OrdreOn+RS+LesActions[iAct].OrdreOff+RS+LesActions[iAct].Repet+RS+LesActions[iAct].Tempo+RS;
@@ -574,10 +604,12 @@ const char *ActionsJS = R"====(
           var m = "Port d'acc&egrave;s via le protocole http , uniquement pour machine distante. En g&eacute;n&eacute;ral <b>80</b>.";
           break;
       case "ordr":
-          var m = "Page appel&eacute;e avec les param&egrave;tres. <br>";
-          m += "Ex. pour un GPIO de l'ESP32  :<br><b>gpio=5&out=1</b> mettre le GPIO 5 &agrave; 1. <br>"
-          m += "Ex. pour une machine sur le r&eacute;seau :<br><b>/commande?idx=23&position=on</b>. Se r&eacute;f&eacute;rer &agrave; la documentation constructeur.<br>"
-          m += "Ne rien mettre dans les champs Ordre On et (Ordre Off) pour supprimer l'action.<br>"
+          var m = "Ordre à passer à la machine distante. <br>";
+          m += "Ex. pour une machine sur le r&eacute;seau :<br><b>/commande?idx=23&position=on</b>. Se r&eacute;f&eacute;rer &agrave; la documentation constructeur."
+          break;
+      case "sele":
+          var m = "Sélection du GPIO. <br>";
+          m += "Choix de l'état de sortie haut ou bas quand l'action est 'On'"
           break;
       case "repe":
           var m = "P&eacute;riode en s de r&eacute;p&eacute;tition/rafra&icirc;chissement de la commande. Uniquement pour les commandes vers l'extérieur.<br>";

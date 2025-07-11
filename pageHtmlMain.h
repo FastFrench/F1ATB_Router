@@ -33,12 +33,13 @@ const char *MainHtml = R"====(
     .jaugeBack{background-color:aqua;width:208px;height:36px;position:relative;padding:4px;}
     .w100{width:100%;position:absolute;top:4px;left:4px;}
     .centrer{text-align:center;}
-    .dispT,#SVG_PW48hT,#SVG_PW2sT,#SVG_Temp48h{display:none;}
-    #donneeDistante,#donneeLocale{font-size:50%;color:white;text-align:center;margin-bottom:10px;display:none;}
-    #info{position:absolute;background-color:black;padding:2px;border: 3px inset azure;}
+    .dispT,#SVG_PW48hT,#SVG_PW2sT,#SVG_Temp48h,#SVG_Ouvertures{display:none;}
+    #donneeDistante{font-size:50%;color:white;text-align:center;margin-bottom:10px;display:none;}
+    #info{position:absolute;border-left: 1px solid black;display:none;}
+    #info_txt{position:absolute;background-color:rgba(120, 120, 120, 0.7);padding:4px;right:10px;border: 1px solid black;text-align: right;}
     #couleurTarif_jour,#couleurTarif_J1{font-size:8px;}
   </style></head>
-  <body onload='LoadParaRouteur();LoadData();LoadHisto10mn();EtatActions();' >
+  <body onload='LoadParaRouteur();LoadData();LoadHisto10mn();EtatActions(0,0);' >
     <div id='LED'></div>
     <div class='onglets'><div class='Baccueil'><a href='/'>Accueil</a></div><div class='Bbrut'><a href='/Brute'>Donn&eacute;es brutes</a></div><div class='Bparametres'><a href='/Para'>Param&egrave;tres</a></div><div class='Bactions'><a href='/Actions'>Actions</a></div></div>
     <h2 id='nom_R'>Routeur Solaire - RMS</h2>
@@ -53,14 +54,14 @@ const char *MainHtml = R"====(
     </table></div></div>
     <div id="donneeDistante">Données distantes</div>
     <div id='etatActions'></div>
-    <div id="donneeLocale">Données locales</div>
-    <p id='SVG_PW2sM'></p>
-    <p id='SVG_PW2sT'></p>
-    <p id='SVG_PW48hM'></p>
-    <p id='SVG_PW48hT'></p>
+    <p id='SVG_PW2sM' ></p>
+    <p id='SVG_PW2sT' ></p>
+    <p id='SVG_PW48hM' ></p>
+    <p id='SVG_PW48hT' ></p>
     <p id='SVG_Temp48h'></p>
-    <p id='SVG_Wh1an'></p>
-    <div id='info'></div>
+    <p id='SVG_Ouvertures' ></p>
+    <p id='SVG_Wh1an' ></p>
+    <div id='info'><div id='info_txt'></div></div>
     <br><br><div class='foot' >Donn&eacute;es  RMS<div id='source'></div></div>
     <div class='pied'><div>Routeur Version : <span id='version'></span></div><div><a href='https:F1ATB.fr' >F1ATB.fr</a></div></div>
     <script src='MainJS'></script>
@@ -73,10 +74,12 @@ const char *MainJS = R"====(
     var tabPW2sT=[];
     var initUxIx2=false;
     var biSonde=false;
-    var TableauX = [];
-    var TableauY0 = [];
-    var TableauY1 = [];
-    var  myTimeout;
+    var TabVal = [];
+    var TabCoul= [];
+    var myTimeout;
+    var myActionTimeout;
+    var ActionForce =[];
+    var Pva_valide =false;
     function LoadData() {
       GID('LED').style='display:block;';
       var xhttp = new XMLHttpRequest();
@@ -135,6 +138,7 @@ const char *MainJS = R"====(
             }
             GID('couleurTarif_J1').style.backgroundColor= couleur[idx+2];
             GID('couleurTarif_J1').innerHTML =txtJ;
+            Pva_valide = (G0[6] == 1 ) ? true:false;
             
           if (groupes.length==4) { // La source_data des données est de type UxIx2 ou on est en shelly monophas avec un deuxièeme canal
             GID('PwS_T').innerHTML = LaVal(G2[0]); //Triac
@@ -161,7 +165,7 @@ const char *MainJS = R"====(
           } else{
             biSonde=false;
           } 
-          if (Source_data=='SmartG') { GID('ligneVA').style='display:none;';}   
+          if (!Pva_valide) { GID('ligneVA').style='display:none;';}   
           GID('LED').style='display:none;';
           setTimeout('LoadData();',2000);
         }
@@ -210,11 +214,17 @@ const char *MainJS = R"====(
             GID('SVG_PW48hT').style.display="block";
             Plot('SVG_PW48hT',tabPWT,'#f33','Puissance Active '+GID("nomSondeFixe").innerHTML+' sur 48h en W','',''); 
           }
-          if (parseFloat(groupes[3])> -100) {
-             var tabTemperature=groupes[4].split(',');
+          groupes.shift();groupes.shift();groupes.shift();
+          if (parseFloat(groupes[0])> -100) {
+            var tabTemperature=groupes[1].split(',');
             tabTemperature.pop();
             GID('SVG_Temp48h').style.display="block";
             Plot('SVG_Temp48h',tabTemperature,'#3f3',nomTemperature+' sur 48h ','',''); 
+          }
+          groupes.shift();
+          groupes.shift();
+          if (groupes.length>0) {
+            Plot_ouvertures(groupes);
           }
           setTimeout('LoadHisto48h();',300000);
         }
@@ -242,10 +252,11 @@ const char *MainJS = R"====(
     function Plot(SVG,Tab,couleur1,titre1,couleur2,titre2){
         var Vmax=0;
         var Vmin=0;
-        var TabX=[];
         var TabY0=[];
         var TabY1=[];
         for (var i = 0; i < Tab.length; i++) {
+              Tab[i]=Math.min(Tab[i],10000000);
+              Tab[i]=Math.max(Tab[i],-10000000);
               Vmax = Math.max(Math.abs(Tab[i]), Vmax);       
         }    
         var cadrageMax=1;
@@ -315,7 +326,7 @@ const char *MainJS = R"====(
         }
         var c1='"' + couleur1 + '"';
         var c2='"' + couleur2 + '"';
-        var S= "<svg viewbox='0 0 1030 500' height='500' width='100%' id='S_" + SVG +"' onmouseover ='DispVal(this,event," +c1+","+c2+");' >";
+        var S= "<svg viewbox='0 0 1030 500' height='500' width='100%' id='S_" + SVG +"' onmousemove ='DispVal(this,event);' >"; //   
         S += "<line x1='100' y1='20' x2='100' y2='480' style='stroke:white;stroke-width:2' />";
         S += "<line x1='100' y1='" + Y0 + "' x2='1000' y2='" + Y0 + "' style='stroke:white;stroke-width:2' />";
         
@@ -346,7 +357,7 @@ const char *MainJS = R"====(
             S +="<text x='"+X+"' y='"+Y2+"' style='font-size:16px;fill:white;'>"+T+"</text>";
           }
         }
-        if (dI==2 && Source_data!='SmartG'){ //Pas de puissance apparente pour SmartG
+        if (dI==2 && Pva_valide){ //Puissance apparente 
           S +="<text x='450' y='40' style='font-size:18px;fill:"+couleur2+";'>"+titre2+"</text>";
           S += "<polyline points='"; 
             var j=0;       
@@ -354,7 +365,6 @@ const char *MainJS = R"====(
               var Y = Y0 - Yamp * Tab[i] / cadrageMax;
               var X = 100+dX * i;
               S += X + "," + Y + " ";
-              TabX[j]=X;
               TabY1[j]=parseFloat(Tab[i]);
               j++;
             }
@@ -367,52 +377,106 @@ const char *MainJS = R"====(
             var Y = Y0 - Yamp * Tab[i] / cadrageMax;
             var X = 100+dX * i;
             S += X + "," + Y + " ";
-            TabX[j]=X;
             TabY0[j]=parseFloat(Tab[i]);
             j++;
           }
         S += "' style='fill:none;stroke:"+couleur1+";stroke-width:4' />";
-        
         S += "</svg>";
         GID(SVG).innerHTML = S;
-        TableauX["S_" + SVG] = TabX; //Sauvegarde valeurs
-        TableauY0["S_" + SVG] = TabY0; //Sauvegarde valeurs
-        TableauY1["S_" + SVG] = TabY1; //Sauvegarde valeurs
+        TabVal["S_" + SVG]=[TabY0,TabY1];; //Sauvegarde valeurs
+        TabCoul["S_" + SVG]=[couleur1, couleur2];
+        
     }
-    function DispVal(t,evt,couleur1,couleur2){
+    
+    function DispVal(t,evt){
       var ClientRect =  t.getBoundingClientRect();
       var largeur_svg=ClientRect.right-ClientRect.left-20; //20 pixels de marge
       var x= Math.round(evt.clientX - ClientRect.left-10);
-      x=x*1030/largeur_svg;
-      if(x>=0 && x<=1000){
-        var p=-1;
-        var distM=10000;
-        for (var i=0;i<TableauX[t.id].length;i++){ //Recherche position dans tableau valeurs
-          var Dist=Math.abs(TableauX[t.id][i]-x);
-          if (Dist<=distM) {
-            p=i;
-            distM=Dist;
+      x=x*1030/largeur_svg; 
+      var  p=Math.floor((x-100)*TabVal[t.id][0].length/900);
+      if (p>=0 && p<TabVal[t.id][0].length){
+        var S="";
+        for (j=0;j<TabVal[t.id].length;j++) {
+          if (TabVal[t.id][j].length>0) {
+            S +="<div style='color:"+TabCoul[t.id][j]  + ";'>" + TabVal[t.id][j][p] + "</div>";
           }
-          if (Dist==0) i=10000;
         }
-        if (p>=0){
-          var S="<div style='color:"+couleur1 + ";'>" + TableauY0[t.id][p] + "</div>";
-          if (TableauY1[t.id].length>0) S ="<div style='color:"+couleur2 + ";'>"+ TableauY1[t.id][p]+ "</div>" + S;
-          x = evt.pageX+10;
-          GID("info").style.left=x + "px";
-          x = evt.pageY+10;
-          GID("info").style.top=x +"px";
-          GH("info",S);
-          GID("info").style.display="block";
-          if (myTimeout !=null) clearTimeout(myTimeout);
-          myTimeout=setTimeout(stopAffiche, 5000);
-        }
+        x = evt.pageX;
+        GID("info").style.left=x + "px";
+        x = ClientRect.top+10 +window.scrollY;
+        GID("info").style.top=x +"px";
+        x=evt.pageY- x;
+        GID("info_txt").style.top=x +"px";
+        x = ClientRect.height-20;
+        GID("info").style.height=x +"px";
+        GH("info_txt",S);
+        GID("info").style.display="block";
+        if (myTimeout !=null) clearTimeout(myTimeout);
+        myTimeout=setTimeout(stopAffiche, 5000);
       }
+      
     }
     function stopAffiche(){
       GID("info").style.display="none";
     }
-    function EtatActions() {
+    function Plot_ouvertures(Gr){
+      GID("SVG_Ouvertures").style.display="block";
+      const d = new Date();
+      var label='heure';
+      var pixelTic=72;
+      var dTextTic=4;
+      var moduloText=24;
+      var H0=d.getHours()+d.getMinutes()/60;
+      var H00= 4*Math.floor(H0/4);
+      var X0=18*(H00-H0);
+      var Hmax=50+150*Gr.length;
+      var Y0=Hmax-50;
+      var Couls=["#f83","#3fa","#68f"];
+      var LesVals =[];
+      var LesCouls =[];
+      var S= "<svg viewbox='0 0 1030 " + Hmax + "' height='" + Hmax + "' width='100%' id='S_Ouvertures'  onmousemove ='DispVal(this,event);'>";
+      S += "<line x1='100' y1='"+Y0+"' x2='1000' y2='"+Y0+"' style='stroke:white;stroke-width:2' />";
+      for (var x=1000+X0;x>100;x=x-pixelTic){
+        var X=x;
+        var Y2=Y0+6;
+        S +="<line x1='"+X+"' y1='"+Y0+"' x2='"+X+"' y2='"+Y2+"' style='stroke:white;stroke-width:2' />";
+        X=X-8;
+        Y2=Y0+22;
+        S +="<text x='"+X+"' y='" + Y2 + "' style='font-size:16px;fill:white;'>"+H00+"</text>";
+        H00=(H00-dTextTic+moduloText)%moduloText;
+      }
+      for (var i=0;i<Gr.length;i++){
+        var tableau=Gr[i].split(RS);
+        var Y00=(i+1)*150;
+        var Y2=Y00-110;
+        S +="<text x='450' y='" + Y2 + "' style='font-size:18px;fill:" + Couls[i%3] + ";'>"+ tableau.pop() +"</text>";
+        S += "<line x1='100' y1='"+Y00+"' x2='1000' y2='"+Y00+"' style='stroke:white;stroke-width:1;' />";
+        Y2= Y00 - 100;
+        S += "<line x1='100' y1='"+Y2+"' x2='1000' y2='"+Y2+"' style='stroke:white;stroke-width:1;stroke-dasharray:5 10;' />";
+        Y2= Y00 +7;
+        S +="<text x='80' y='"+Y2+"' style='font-size:16px;fill:white;'>0</text>";
+        Y2= Y00 -93;
+        S +="<text x='65' y='"+Y2+"' style='font-size:16px;fill:white;'>100</text>";
+        Y2 = Y00-100;
+        S += "<line x1='100' y1='"+Y00+"' x2='100' y2='"+Y2+"' style='stroke:white;stroke-width:1;' />";
+        S += "<polyline points='";      
+          for (var j = 0; j < tableau.length; j++) {
+            var Y = Y00 - tableau[j];
+            var X = 100+1.5 * j;
+            S += X + "," + Y + " ";
+          }
+        S += "' style='fill:none;stroke:" + Couls[i%3] + ";stroke-width:3' />";
+        
+        LesVals.push(tableau); //Sauvegarde valeurs
+        LesCouls.push(Couls[i%3]);
+      }
+      S += "</svg>";
+      TabVal["S_Ouvertures"] = LesVals;
+      TabCoul["S_Ouvertures"] = LesCouls;
+      GID("SVG_Ouvertures").innerHTML = S;
+      
+    }
+    function EtatActions(Force,NumAction) {
       var xhttp = new XMLHttpRequest();
       xhttp.onreadystatechange = function() { 
         if (this.readyState == 4 && this.status == 200) {
@@ -423,31 +487,37 @@ const char *MainJS = R"====(
           var T="";
           if(message[0]>-100){
                var Temper=parseFloat(message[0]).toFixed(1);
-               T="<tr class='temper'><td>" + nomTemperature +"</td><td class='centrer'>"+Temper+"°C</td></tr>";
+               T="<tr class='temper'><td>" + nomTemperature +"</td><td class='centrer'>"+Temper+"°C</td><td colspan='3' style='visibility: hidden;'></td></tr>";
           }
           var S="";
-          if (message[3]>0){ //Nb Actions            
+          if (message[3]>0){ //Nb Actions 
+            ActionForce.splice(0, ActionForce.length);           
             for (var i=0;i<message[3];i++){ 
               var data=message[i+4].split(RS);
+              ActionForce[i]= data[3];
               S+="<tr><td>"+data[1]+"</td>";
-              var W=1+1.99*data[2];
-              S+="<td><div class='jaugeBack'><div class='jauge' style='width:"+W+"px'></div><div class='centrer w100'>"+data[2]+"%</div></div></td></tr>";
+              if (data[2]=="On" || data[2]=="Off"){
+                S+="<td><div ><div class='centrer'>"+data[2]+"</div></td>";
+              } else {
+                var W=1+1.99*data[2];
+                S+="<td><div class='jaugeBack'><div class='jauge' style='width:"+W+"px'></div><div class='centrer w100'>"+data[2]+"%</div></div></td>";
+              }
+              var stOn=(ActionForce[i]>0) ? "style='background-color:#f66;'":"";
+              var stOff=(ActionForce[i]<0) ? "style='background-color:#f66;'":"";
+              var min=(ActionForce[i]==0) ? "&nbsp;&nbsp;":Math.abs(ActionForce[i]) +" min";
+              S +="<td><input type='button' onclick='Force(" +data[0] +",1);' value='On' " +stOn+"></td><td><small>"+min+"</small></td><td><input type='button' onclick='Force(" +data[0] +",-1);' value='Off' " + stOff + "></td></tr>";
             }
           }
           S=S+T;
           if (S!=""){
-            S="<div><div class='tableau'><table >" +S;
-            S +="</table>";
+            S="<div class='tableau'><table ><tr><th colspan='2'>Etat Action(s)</th><th colspan='3'> Forçage</th></tr>" +S + "</table></div>";
             GH("etatActions",S);
-            if(Source=="Ext" ){
-                GID("donneeLocale").style.display="block";   
-            }
           }
-          setTimeout('EtatActions();',3500);
+          myActionTimeout=setTimeout('EtatActions(0,0);',3500);
         }
         
       };
-      xhttp.open('GET', 'ajax_etatActions', true);
+      xhttp.open('GET', 'ajax_etatActions?Force=' +Force + '&NumAction=' + NumAction, true);
       xhttp.send();
     }
     
@@ -455,6 +525,10 @@ const char *MainJS = R"====(
         d=parseInt(d);
         d='           '+d.toString();
         return d.substr(-9,3)+' '+d.substr(-6,3)+' '+d.substr(-3,3);
+    }
+    function Force(NumAction,Force){
+        if (myActionTimeout !=null) clearTimeout(myActionTimeout);
+        EtatActions(Force,NumAction);
     }
     
     function AdaptationSource(){

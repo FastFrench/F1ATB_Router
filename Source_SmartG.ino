@@ -7,7 +7,7 @@ void LectureSmartG() {
   String Gr[4];
   String data_[20];
 
-
+  Pva_valide=false;
   // Use WiFiClient class to create TCP connections
   WiFiClient clientESP_RMS;
   byte arr[4];
@@ -18,7 +18,7 @@ void LectureSmartG() {
 
   String host = String(arr[3]) + "." + String(arr[2]) + "." + String(arr[1]) + "." + String(arr[0]);
   if (!clientESP_RMS.connect(host.c_str(), 82)) {  // PORT 82 pour Smlart Gateways
-    StockMessage("connection to client SmartGateways failed : " + host);
+    StockMessage("connection to SmartGateways failed : " + host);
     delay(200);
     WIFIbug++;
     return;
@@ -54,6 +54,7 @@ void LectureSmartG() {
   filtre_puissance();
   esp_task_wdt_reset();  //Reset du Watchdog à chaque trame du SmartGateways reçue
   EnergieActiveValide = true;
+  
   if (cptLEDyellow > 30) {
     cptLEDyellow = 4;
   }

@@ -5,7 +5,7 @@ void CallESP32_Externe() {
   String S = "";
   String RMSExtDataB = "";
   String Gr[4];
-  String data_[21];
+  String data_[22];
 
 
   // Use WiFiClient class to create TCP connections
@@ -18,7 +18,7 @@ void CallESP32_Externe() {
 
   String host = String(arr[3]) + "." + String(arr[2]) + "." + String(arr[1]) + "." + String(arr[0]);
   if (!clientESP_RMS.connect(host.c_str(), 80)) {
-    StockMessage("connection to client ESP_RMS failed : " + host);
+    StockMessage("connection to ESP_RMS : " + host +" failed");
     delay(200);
     WIFIbug++;
     return;
@@ -80,54 +80,57 @@ void CallESP32_Externe() {
           //Temperature non utilisé
           break;
         case 5:
-          PuissanceS_M = PintMax(data_[i].toInt());
+          Pva_valide=data_[i].toInt();
           break;
         case 6:
-          PuissanceI_M =  PintMax(data_[i].toInt());
+          PuissanceS_M = PintMax(data_[i].toInt());
           break;
         case 7:
-          PVAS_M =  PintMax(data_[i].toInt());
+          PuissanceI_M =  PintMax(data_[i].toInt());
           break;
         case 8:
-          PVAI_M =  PintMax(data_[i].toInt());
+          PVAS_M =  PintMax(data_[i].toInt());
           break;
         case 9:
-          EnergieJour_M_Soutiree = data_[i].toInt();
+          PVAI_M =  PintMax(data_[i].toInt());
           break;
         case 10:
-          EnergieJour_M_Injectee = data_[i].toInt();
+          EnergieJour_M_Soutiree = data_[i].toInt();
           break;
         case 11:
-          Energie_M_Soutiree = data_[i].toInt();
+          EnergieJour_M_Injectee = data_[i].toInt();
           break;
         case 12:
+          Energie_M_Soutiree = data_[i].toInt();
+          break;
+        case 13:
           Energie_M_Injectee = data_[i].toInt();
           esp_task_wdt_reset();  //Reset du Watchdog à chaque trame du RMS reçue
           cptLEDyellow = 4;
           EnergieActiveValide=true;
           break;
-        case 13:  //CAS UxIx2 avec une deuxieme sonde
+        case 14:  //CAS UxIx2 avec une deuxieme sonde
           PuissanceS_T = data_[i].toInt();
           break;
-        case 14:
+        case 15:
           PuissanceI_T = data_[i].toInt();
           break;
-        case 15:
+        case 16:
           PVAS_T = data_[i].toInt();
           break;
-        case 16:
+        case 17:
           PVAI_T = data_[i].toInt();
           break;
-        case 17:
+        case 18:
           EnergieJour_T_Soutiree = data_[i].toInt();
           break;
-        case 18:
+        case 19:
           EnergieJour_T_Injectee = data_[i].toInt();
           break;
-        case 19:
+        case 20:
           Energie_T_Soutiree = data_[i].toInt();
           break;
-        case 20:
+        case 21:
           Energie_T_Injectee = data_[i].toInt();
           break;
       }
