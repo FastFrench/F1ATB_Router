@@ -1,4 +1,4 @@
-#define Version "14.24"
+#define Version "14.25"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -152,7 +152,8 @@
   - V14.24
     Bug affichage ouverture action 2s
     Bug affichage puissance HomeWizard. Modif ValJsonSG().
-            
+  - V14.25
+    Affichage des autres routeurs en page d'accueil         
   
   Les détails sont disponibles sur / Details are available here:
   https://f1atb.fr  Section Domotique / Home Automation

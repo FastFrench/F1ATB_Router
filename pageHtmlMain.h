@@ -33,6 +33,9 @@ const char *MainHtml = R"====(
     th,td{border:2px solid grey;}
     .choixG{text-align:left;width:100%;height:0px;}
     .choix{position:relative;left:120px;top:-80px;font-size:16px;display:none;}
+    iframe{width:100%;min-height:900px;}
+    .autreRMS{width:100%;height:36px;background-color:grey;color:white;font-size:30px;display: flex; justify-content: space-between;margin-top:4px;}
+    .autreRif{width:100%;}
   </style>
   </head>
   <body onload='Init();' >
@@ -61,6 +64,7 @@ const char *MainHtml = R"====(
     <p id='SVG_Wh1an' ></p>
     <div id='info'><div id='info_txt'></div></div>
     <br><br><div class='foot' >Donn&eacute;es  RMS<div id='source'></div></div>
+    <div id='autresRMS'></div>
     <div id='pied'></div>
     <script src="/ParaRouteurJS"></script>
     <script src='MainJS'></script>
@@ -87,6 +91,7 @@ const char *MainJS = R"====(
     var ActionForce =[];
     var Pva_valide =false;
     var BordsInverse=[".Baccueil"];
+    var DispAutres=[];
     function LoadData() {
       GID('LED').style='display:block;';
       var xhttp = new XMLHttpRequest();
@@ -269,8 +274,38 @@ const char *MainJS = R"====(
       LoadData();
       LoadHisto10mn();
       EtatActions(0,0);
+      var S="";
+      for (var C=1;C<IP_RMS.length;C++) {  //Affichage autres routeurs
+        S +="<div class='autreRMS'><div>"+ IP_RMS[C] + "</div><div>" + nomRMS[C] + "</div><div id='autreRid" + C +"' onclick='autreRclick(" + C + ");' style='cursor:pointer;' ></div></div>";      
+        S +="<div class='autreRif' id='autreRif" + C +"'></div>";    
+      }
+      GH("autresRMS",S);
+      for (var C=1;C<IP_RMS.length;C++) {
+        autreRaffiche(C);
+      }
     }
-    
+    function autreRclick(C){
+      var S="";
+      var fleche="&#x21E7";
+      if(DispAutres[C]=="true"){
+          DispAutres[C]="false";         
+      } else {
+          DispAutres[C]="true"  ;       
+      }
+      autreRaffiche(C);
+    }
+    function autreRaffiche(C){
+      var S="";
+      var fleche="⬆️";
+      if(DispAutres[C]=="true"){  
+        S +="<iframe src='http://"+IP_RMS[C]+ "' ></iframe>";         
+      } else {
+          fleche="⬇️";         
+      }
+      GH("autreRif"+C,S);
+      GH("autreRid"+C,fleche);
+      localStorage.setItem("DispAutre"+C,DispAutres[C]);
+    }
     
     function Plot(SVG,Tab,couleur1,titre1,couleur2,titre2){
         var Vmax=0;
@@ -315,7 +350,6 @@ const char *MainJS = R"====(
             dI=2; //2 courbes PW et PVA
             GID(SVG +'_L').style='color:'+couleur2+';display:block;';
             dispVA=GID(SVG +'_C').checked ; //Plot courbe VA
-            console.log("dispVA PWM",dispVA);
             localStorage.setItem(SVG +'_LS', dispVA);
           break;
           case  'SVG_PW2sT':
@@ -328,7 +362,6 @@ const char *MainJS = R"====(
             dI=2; //2 courbes PW et PVA
             GID(SVG +'_L').style='color:'+couleur2+';display:block;';
             dispVA=GID(SVG +'_C').checked ; //Plot courbe VA
-             console.log("dispVA PWT",dispVA);
             localStorage.setItem(SVG +'_LS', dispVA);
           break;
           case  'SVG_Wh1an':
@@ -685,17 +718,22 @@ const char *MainJS = R"====(
     }
     function Init(){
       SetHautBas();
-      LoadParaRouteur();
-        var VA_M="true";
+      
+      var VA_M="true";
       var VA_T="true";
+      for (var i=0;i<8;i++){
+        DispAutres[i]=false;
+      }
       if (localStorage.getItem("SVG_PW2sM_LS") !== null) { //Plot ou pas les VA
         VA_M = localStorage.getItem("SVG_PW2sM_LS");
         VA_T = localStorage.getItem("SVG_PW2sT_LS");
-        console.log("VA",VA_M,VA_T);
+        for (var i=0;i<8;i++){
+          DispAutres[i]=localStorage.getItem("DispAutre"+i);
+        }
       }
+      LoadParaRouteur();
       GID("SVG_PW2sM_C").checked =(VA_M=="true") ? true:false;
       GID("SVG_PW2sT_C").checked =(VA_T=="true") ? true:false;
-      console.log("Vapres",GID("SVG_PW2sM_C").checked,GID("SVG_PW2sT_C").checked);
       setInterval(Refresh_2s, 2000);
     
     }

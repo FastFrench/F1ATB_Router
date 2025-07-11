@@ -630,7 +630,6 @@ void handleParaAjax() {
   for (int c = 0; c < 4; c++) {
     S += GS + nomTemperature[c] + RS + Source_Temp[c] + RS + TopicT[c] + RS + String(refTempIP[c]) + RS + String(canalTempExterne[c]) + RS + String(offsetTemp[c]);
   }
-  Serial.println(S);
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
 }
