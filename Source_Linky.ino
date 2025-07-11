@@ -153,7 +153,7 @@ void LectureLinky() {  //Lecture port série du LINKY .
             }
           }
           if (code.indexOf("DATE") == 0) {
-            ComOK();  //Reset du Watchdog à chaque trame du Linky reçue
+            PuissanceRecue=true;  //Reset du Watchdog à chaque trame du Linky reçue
           }
           if (code.indexOf("URMS1") == 0) {
             Tension_M = val.toFloat();  //phase 1 uniquement
@@ -161,7 +161,7 @@ void LectureLinky() {  //Lecture port série du LINKY .
           if (code.indexOf("IRMS1") == 0) {
             Intensite_M = val.toFloat();  //Phase 1 uniquement
           }
-          if (TempoEDFon == 0) {  // On prend tarif sur Linky
+          if (TempoRTEon == 0) {  // On prend tarif sur Linky
             if (code.indexOf("LTARF") == 0) {
               LTARF = val;  //Option Tarifaire
               LTARF.trim();
