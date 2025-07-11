@@ -1,4 +1,4 @@
-#define Version "14.23"
+#define Version "14.24"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -149,6 +149,9 @@
     Distintinction des ESP32U en version "ESP32-D0WD" et WT-ETH01 (Ethernet)
   - V14.23
     MQTT : envoi facteur de puissance sans unité et envoi STGE du Linky
+  - V14.24
+    Bug affichage ouverture action 2s
+    Bug affichage puissance HomeWizard. Modif ValJsonSG().
             
   
   Les détails sont disponibles sur / Details are available here:

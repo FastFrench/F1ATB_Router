@@ -41,7 +41,7 @@ void LectureHomeW() {
     PuissanceI_M_inst = 0;
   } else {
     PuissanceS_M_inst = 0;
-    PuissanceI_M_inst = PfloatMax(ValJsonSG("active_power_w", HomeW_Data));
+    PuissanceI_M_inst = -PfloatMax(ValJsonSG("active_power_w", HomeW_Data));
   }
   long EnergyDeliveredTariff1 = int(1000 * ValJsonSG("total_power_import_t1_kwh", HomeW_Data));
   long EnergyDeliveredTariff2 = int(1000 * ValJsonSG("total_power_import_t2_kwh", HomeW_Data));

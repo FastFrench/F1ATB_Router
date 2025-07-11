@@ -57,7 +57,8 @@ float ValJsonSG(String nom, String Json) {
   int p = Json.indexOf(nom);
   Json = Json.substring(p);
   p = Json.indexOf(":");
-  Json = Json.substring(p + 2);
+  Json = Json.substring(p + 1);
+  Json.trim();
   p = Json.indexOf(",");
   float val = 0;
   if (p > 0) {

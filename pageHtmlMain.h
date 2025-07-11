@@ -24,7 +24,7 @@ const char *MainHtml = R"====(
     .jaugeBack{background-color:aqua;width:208px;height:36px;position:relative;padding:4px;}
     .w100{width:100%;position:absolute;top:4px;left:4px;}
     .centrer{text-align:center;}
-    .dispT,#SVG_PW48hT,#SVG_PW2sT,.SVG_Temp48h,#SVG_Ouvertures{display:none;}
+    .dispT,#SVG_PW48hT,#SVG_PW2sT,.SVG_Temp48h,#SVG_Ouvertures,#SVG_Ouvertures_2s{display:none;}
     #donneeDistante{font-size:50%;color:white;text-align:center;margin-bottom:10px;display:none;}
     #info{position:absolute;border-left: 1px solid black;display:none;}
     #info_txt{position:absolute;background-color:rgba(120, 120, 120, 0.7);padding:4px;right:10px;border: 1px solid black;text-align: right;}
@@ -520,7 +520,6 @@ const char *MainJS = R"====(
       
     }
     function Plot_ouvertures_2s(){
-      GID("SVG_Ouvertures_2s").style.display="block";
       var label='mn';
       var pixelTic=90;
       var X0=0;
@@ -548,6 +547,7 @@ const char *MainJS = R"====(
       Y2=Y0-3;
       S +="<text x='980' y='" + Y2 + "' style='font-size:14px;fill:" + cT +";'>"+label+"</text>";
       for (var i=0;i<nomActions[0].length;i++){
+        GID("SVG_Ouvertures_2s").style.display="block";
         var idxAction=parseInt(nomActions[0][i][0]);  
         if (tabActOuvre[idxAction].length>0) tabActOuvre[idxAction].shift();
         tabActOuvre[idxAction].push(LastActOuvre[idxAction]);
@@ -650,7 +650,7 @@ const char *MainJS = R"====(
           GID('SVG_PW2sT').style.display="block";
           Plot('SVG_PW2sT',tabPW2sT,Koul[Coul_W][3],'Puissance Active '+GID("nomSondeFixe").innerHTML+' sur 10 mn en W',Koul[Coul_VA][3],'Puissance Apparente sur 10 mn en VA'); 
         }
-        Plot_ouvertures_2s();
+        if (tabActOuvre.length>0) Plot_ouvertures_2s();
      }
     }
     
