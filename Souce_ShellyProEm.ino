@@ -242,7 +242,7 @@ void LectureShellyProEm() {
 
     ShEm_dataBrute = "<strong>" + Shelly_Name + "</strong><br>" + Shelly_Data;
     Shelly_Data = Shelly_Data + ",";
-    if (Shelly_Data.indexOf("true") > 0)
+    if (Shelly_Data.indexOf("act_power") > 0)
     {                                                               // Donnée valide
       tmp = PrefiltreJson("em1:" + String(Voie), ":", Shelly_Data); // ADD PERSO
       Pw = ValJson("act_power", tmp);                               // ADD PERSO

@@ -1,4 +1,4 @@
-#define Version "14.03"
+#define Version "14.04"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -126,6 +126,9 @@
     Correction bug absence lecture état actions
   - V14.03
     Forcer l'affichage normal, non miroir sur l'écran
+  - V14.04
+    Modif pour Shelly Pro Em ligne  245
+    Retrait mode miroir pour les écrans
             
   
   Les détails sont disponibles sur / Details are available here:
