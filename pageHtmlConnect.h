@@ -60,7 +60,8 @@ const char *ConnectAP_Html = R"====(
                 S +="</div>";
               }
               S +="</div>";
-              S +="<div><span class='fsize10'>Ne sont visibles que les réseaux scannés à la mise sous tension de l'ESP32 ou apès un reset</span></div>";
+              S +="<div><span class='fsize10'>Ne sont visibles que les réseaux scannés à la mise sous tension de l'ESP32 ou après un reset</span></div>";
+              S +="<div><span class='fsize10'>Attention, l'adresse IP attribuée à l'ESP32 peut changer</span></div>";
              GH("ListeWifi", S);
           }         
         };
@@ -114,6 +115,7 @@ const char *ConnectAP_Html = R"====(
     }  
   }
   function AdaptationSource(){ };
+  function FinParaRouteur(){};
 </script>
 </body></html>
 )====";

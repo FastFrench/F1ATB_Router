@@ -33,10 +33,11 @@ const char *OtaHtml = R"====(
     </div>
     <div class="liste">
       <ul>
-        <li>1 - <a href='/Export' >Sauvegardez vos paramètres</a> sur le PC</li>
+        <li>1 - <a href='/Export' >Sauvegardez vos paramètres</a> sur le PC si la partie entière de la version change. Pas nécessaire si uniquement la partie décimale.</li>
         <li>2 - Téléchargez sur votre ordinateur, la version binaire du logiciel du routeur souhaitée <br>(Solar_Router_Vxx.xx.ino.bin) en cliquant dessus</li>
         <li>3 - Cliquez sur "Choisir un fichier" et sélectionnez ce binaire sur votre ordinateur</li>
         <li>4 - Cliquez sur "Mettre à jour"</li>
+        <li>5 - <a href='/Export' >Importez si besoin vos anciens paramètres</a> du PC </li>
       </ul>
     </div>
     <form method='POST' action='#' enctype='multipart/form-data' id='upload_form'>
@@ -81,6 +82,7 @@ const char *OtaHtml = R"====(
         function AdaptationSource(){
           setTimeout('GH("Version_actu", GID("version").innerHTML)',1000);
         };
+        function FinParaRouteur(){};
     </script>
     <br>
     <div id='pied'></div>

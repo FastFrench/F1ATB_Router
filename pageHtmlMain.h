@@ -27,7 +27,7 @@ const char *MainHtml = R"====(
     .jaugeBack{background-color:aqua;width:208px;height:36px;position:relative;padding:4px;}
     .w100{width:100%;position:absolute;top:4px;left:4px;}
     .centrer{text-align:center;}
-    .dispT,#SVG_PW48hT,#SVG_PW2sT,#SVG_Temp48h,#SVG_Ouvertures{display:none;}
+    .dispT,#SVG_PW48hT,#SVG_PW2sT,.SVG_Temp48h,#SVG_Ouvertures{display:none;}
     #donneeDistante{font-size:50%;color:white;text-align:center;margin-bottom:10px;display:none;}
     #info{position:absolute;border-left: 1px solid black;display:none;}
     #info_txt{position:absolute;background-color:rgba(120, 120, 120, 0.7);padding:4px;right:10px;border: 1px solid black;text-align: right;}
@@ -52,7 +52,7 @@ const char *MainHtml = R"====(
     <p id='SVG_PW2sT' ></p>
     <p id='SVG_PW48hM' ></p>
     <p id='SVG_PW48hT' ></p>
-    <p id='SVG_Temp48h'></p>
+    <p class='SVG_Temp48h' id='SVG_Temp48h0'></p><p class='SVG_Temp48h' id='SVG_Temp48h1'></p><p class='SVG_Temp48h' id='SVG_Temp48h2'></p><p class='SVG_Temp48h' id='SVG_Temp48h3'></p>
     <p id='SVG_Ouvertures' ></p>
     <p id='SVG_Wh1an' ></p>
     <div id='info'><div id='info_txt'></div></div>
@@ -211,13 +211,15 @@ const char *MainJS = R"====(
             Plot('SVG_PW48hT',tabPWT,'#f33','Puissance Active '+GID("nomSondeFixe").innerHTML+' sur 48h en W','',''); 
           }
           groupes.shift();groupes.shift();groupes.shift();
-          if (parseFloat(groupes[0])> -100) {
-            var tabTemperature=groupes[1].split(',');
-            tabTemperature.pop();
-            GID('SVG_Temp48h').style.display="block";
-            Plot('SVG_Temp48h',tabTemperature,'#3f3',nomTemperature+' sur 48h ','',''); 
+          var lesTemp=groupes[0].split("|");
+          for (var c=0;c<4;c++){
+            var tabTemperature=lesTemp[c].split(',');
+            if (parseFloat(tabTemperature[tabTemperature.length-1])> -100) {
+              tabTemperature.pop();
+              GID('SVG_Temp48h'+c).style.display="block";
+              Plot('SVG_Temp48h'+c,tabTemperature,'#3f3',nomTemperature[c]+' sur 48h ','',''); 
+            }
           }
-          groupes.shift();
           groupes.shift();
           if (groupes.length>0) {
             Plot_ouvertures(groupes);
@@ -245,6 +247,7 @@ const char *MainJS = R"====(
       xhttp.open('GET', 'ajax_histo1an', true);
       xhttp.send();
     }
+    function FinParaRouteur(){};
 )====";
 const char *MainJS2 = R"====(
     function Plot(SVG,Tab,couleur1,titre1,couleur2,titre2){
@@ -483,12 +486,14 @@ const char *MainJS3 = R"====(
         if (this.readyState == 4 && this.status == 200) {
           var retour=this.responseText;
           var message=retour.split(GS);
-          
+          var LesTemp=message[0].split("|");       
           Source_data=message[1];
           var T="";
-          if(message[0]>-100){
-               var Temper=parseFloat(message[0]).toFixed(1);
-               T="<tr class='temper'><td>" + nomTemperature +"</td><td class='centrer'>"+Temper+"°C</td><td colspan='3' style='visibility: hidden;'></td></tr>";
+          for (var c=0;c<4;c++){
+            if(LesTemp[c]>-100){
+                var Temper=parseFloat(LesTemp[c]).toFixed(1);
+                T +="<tr class='temper'><td>" + nomTemperature[c] +"</td><td class='centrer'>"+Temper+"°C</td><td colspan='3' style='visibility: hidden;'></td></tr>";
+            }
           }
           var S="";
           if (message[3]>0){ //Nb Actions 
@@ -503,7 +508,7 @@ const char *MainJS3 = R"====(
                 var W=1+1.99*data[2];
                 S+="<td><div class='jaugeBack'><div class='jauge' style='width:"+W+"px'></div><div class='centrer w100'>"+data[2]+"%</div></div></td>";
               }
-              S+="<td><div class='centrer'>"+data[4]+"</div></td>";
+              S+="<td><div class='centrer'>"+Hdeci2Hmn(data[4])+"</div></td>";
               var stOn=(ActionForce[i]>0) ? "style='background-color:#f66;'":"";
               var stOff=(ActionForce[i]<0) ? "style='background-color:#f66;'":"";
               var min=(ActionForce[i]==0) ? "&nbsp;&nbsp;":Math.abs(ActionForce[i]) +" min";

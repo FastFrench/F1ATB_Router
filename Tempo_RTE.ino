@@ -15,7 +15,28 @@ void Call_RTE_data() {
   int Hcour = HeureCouranteDeci / 2;  //Par pas de 72secondes pour faire 2 appels si un bug
   int LastH = LastHeureRTE / 2;
 
-  if ((DATEvalid) && ((LastH != Hcour) && (Hcour == 301 || Hcour == 310 || Hcour == 530 || Hcour == 560 || Hcour == 600 || Hcour == 900 || Hcour == 1150) || LastHeureRTE < 0)) {
+// il faut éviter de questionner l'URL tempo light si on a déjà les infos qui nous intéressent...
+  bool couleur_lendemain =  (STGE == "4" || STGE == "8" || STGE == "C" );              // true si couleur du lendemain connue
+  bool couleur_jour      =  (LTARF == "TEMPO_BLEU" || LTARF == "TEMPO_BLANC" || LTARF == "TEMPO_ROUGE"); // true si couleur du jour connu
+
+ // traitement du changement de couleur tempo à 6h00, avec ré-initialisation de la couleur du lendemain
+ if ( (Hcour==300) && (LTARF!="") && (STGE!="") )   // à 6h00 précises, la couleur tempo du lendemain devient la couleur du jour. Celle du lendemain n'est à priori pas encore connue
+                                                    // Cela permet de continuer à fonctionner de manière nominale même si le site RTE n'est pas encore renseigné
+                                                    // && (LTARF!="") pour ne pas passer dans cette boucle au reset si fait à 6h00 du matin...
+                                                    // && (STGE<>"")  pour éviter de passer plusieurs fois( 3 à 4 ) dans cette boucle à cause du Hcour/2
+    {  
+     if       (STGE == "4") LTARF = "TEMPO_BLEU";  
+     else if  (STGE == "8") LTARF = "TEMPO_BLANC"; 
+     else if  (STGE == "C") LTARF = "TEMPO_ROUGE";
+     STGE=""; 
+     couleur_lendemain=false; // on ne connait plus la couleur du lendemain. Cela forcera la lecture sur le site RTE 
+     if (LTARF!="") {  
+           StockMessage("Tempo depuis 6h00: " + LTARF + ",demain ? ");
+      }
+    }  
+
+
+  if ((DATEvalid) && (!(couleur_lendemain && couleur_jour ) ) && ((LastH != Hcour) && (Hcour == 302 || Hcour == 310 || Hcour == 530 || Hcour == 560 || Hcour == 600 || Hcour == 900 || Hcour == 1150) || LastHeureRTE < 0)) {
     if (TempoRTEon == 1) {
       // Use clientSecu class to create TCP connections
       clientSecuRTE.setInsecure();  //skip verification
@@ -61,23 +82,23 @@ void Call_RTE_data() {
         int q = RTEdata.indexOf("\"" + DateRTE2 + "\"");
         if (p > 0 || q > 0) {
           String LTARFrecu = StringJson(DateRTE, RTEdata);  //Remplace code du Linky
-          if (LTARFrecu == "BLUE") LTARF = "BLEU";
-          if (LTARFrecu == "WHITE") LTARF = "BLANC";
-          if (LTARFrecu == "RED") LTARF = "ROUGE";
+          if (LTARFrecu == "BLUE") LTARF = "TEMPO_BLEU";
+          if (LTARFrecu == "WHITE") LTARF = "TEMPO_BLANC";
+          if (LTARFrecu == "RED") LTARF = "TEMPO_ROUGE";
           line = "0";
           String lendemain = "NON_DEFINI";
           LTARFrecu = StringJson(DateRTE2, RTEdata);
           if (LTARFrecu.indexOf("BLUE") >= 0) {
             line = "4";
-            lendemain = "BLEU";
+            lendemain = "TEMPO_BLEU";
           }
           if (LTARFrecu.indexOf("WHITE") >= 0) {
             line = "8";
-            lendemain = "BLANC";
+            lendemain = "TEMPO_BLANC";
           }
           if (LTARFrecu.indexOf("RED") >= 0) {
             line = "C";
-            lendemain = "ROUGE";
+            lendemain = "TEMPO_ROUGE";
           }
           STGE = line;  //Valeur Hexa code du Linky
           StockMessage(DateRTE + " : " + LTARF + " | " + DateRTE2 + " : " + lendemain);

@@ -53,6 +53,7 @@ const char *ExportHtml = R"====(
               <div class='cell'><input type='file' name='fichier_para_' id="fichier_para_"  class='bouton' accept='.json'></div>
               <input type='submit' value='Mettre à jour'  class='bouton'>
             </div>
+            <div class="lds-dual-ring" id="attente"></div>
           </div>
         </form>
     </div>
@@ -65,12 +66,14 @@ const char *ExportHtml = R"====(
         }
         
         function submit_para(event){
+          GID("attente").style="visibility: visible;";
           event.preventDefault(); //Pour Firefox
           var xhttp = new XMLHttpRequest();
           xhttp.onreadystatechange = function() { 
             if (this.readyState == 4 && this.status == 200) {
               var retour=this.responseText;
               console.log(retour);
+              GID("attente").style="visibility: hidden;";
             }         
           };
           const fileInput = GID("fichier_para_");
@@ -87,9 +90,8 @@ const char *ExportHtml = R"====(
           var conf="/export_file?ip=" + GID("ip_load").checked + "&para=" + GID("para_load").checked + "&action=" + GID("action_load").checked
           GID("adr_export").href= conf;
         }
-        function AdaptationSource(){
-         
-        };
+        function AdaptationSource(){};
+        function FinParaRouteur(){};
     </script>
     <br>
     <div id='pied'></div>

@@ -79,7 +79,7 @@ void Lecture_JSY333() {
       PVAI_M_inst = abs(PVA_M_inst1 + PVA_M_inst2 + PVA_M_inst3);  // car la somme des puissances apparentes "signées" est négative puisqu'en "injection" au global
 
       // PhDV61 : on considère que cette puissance active "globale" a duré "delta_temps", et on l'intègre donc pour obtenir une énergie en Wh
-      Energie_jour_Injectee += ((float)delta_temps / 1000) * (PuissanceI_M_inst / 3600.0);
+      Energie_jour_Injectee += ((float)delta_temps / 1000.0) * (PuissanceI_M_inst / 3600.0);
 
     } else {  // soutirage
       PuissanceI_M_inst = 0;
@@ -88,7 +88,7 @@ void Lecture_JSY333() {
       PVAS_M_inst = PVA_M_inst1 + PVA_M_inst2 + PVA_M_inst3;
 
       // PhDV61 : on considère que cette puissance active "globale" a duré "delta_temps", et on l'intègre donc pour obtenir pour obtenir une énergie en Wh
-      Energie_jour_Soutiree += ((float)delta_temps / 1000) * (PuissanceS_M_inst / 3600.0);
+      Energie_jour_Soutiree += ((float)delta_temps / 1000.0) * (PuissanceS_M_inst / 3600.0);
     }
 
     Energie_M_Soutiree = ((float)((float)(Lecture333[119] * 16777216) + (float)(Lecture333[120] * 65536) + (float)(Lecture333[121] * 256) + (float)Lecture333[122])) * 10;

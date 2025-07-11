@@ -136,7 +136,7 @@ void LectureLinky() {  //Lecture port série du LINKY .
                   PowerFactor_M = COSphiS;
                 }
                 PuissanceS_M = PintMax(int(COSphiS * float(PVAS_M)));
-                Pva_valide=true;
+                Pva_valide = true;
               }
               if (code.indexOf("SINSTI") == 0) {  //Puissance apparente injectée
                 PVAI_M = PintMax(val.toInt());
@@ -148,12 +148,12 @@ void LectureLinky() {  //Lecture port série du LINKY .
                   PowerFactor_M = COSphiI;
                 }
                 PuissanceI_M = PintMax(int(COSphiI * float(PVAI_M)));
-                Pva_valide=true;
+                Pva_valide = true;
               }
             }
           }
           if (code.indexOf("DATE") == 0) {
-            PuissanceRecue=true;  //Reset du Watchdog à chaque trame du Linky reçue
+            PuissanceRecue = true;  //Reset du Watchdog à chaque trame du Linky reçue
           }
           if (code.indexOf("URMS1") == 0) {
             Tension_M = val.toFloat();  //phase 1 uniquement

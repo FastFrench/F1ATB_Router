@@ -31,7 +31,10 @@ void Init_Server() {
   server.on("/ajax_data", handleAjaxData);
   server.on("/ajax_data10mn", handleAjaxData10mn);
   server.on("/ajax_etatActions", handleAjax_etatActions);
+  server.on("/ajax_etatActionX", handleAjax_etatActionX);
   server.on("/ajax_Temperature", handleAjaxTemperature);
+  server.on("/ajax_Noms", handleAjaxNoms);
+  server.on("/ajaxRAZhisto",handleajaxRAZhisto);
   server.on("/SetGPIO", handleSetGpio);
   server.on("/Export", handleExport);
   server.on("/export_file", handleExport_file);
@@ -50,57 +53,57 @@ void Init_Server() {
   /*handling uploading firmware file */
   server.on(
     "/update", HTTP_POST, []() {
-      server.sendHeader("Connection", "close");
-      server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
-      ESP.restart();
+    server.sendHeader("Connection", "close");
+    server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
+    ESP.restart();
     },
     []() {
-      HTTPUpload& upload = server.upload();
-      if (upload.status == UPLOAD_FILE_START) {
-        Serial.printf("Update: %s\n", upload.filename.c_str());
-        if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {  //start with max available size
-          Update.printError(Serial);
-        }
-      } else if (upload.status == UPLOAD_FILE_WRITE) {
-        /* flashing firmware to ESP*/
-        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-          Update.printError(Serial);
-        }
-      } else if (upload.status == UPLOAD_FILE_END) {
-        if (Update.end(true)) {  //true to set the size to the current progress
-          Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
-        } else {
-          Update.printError(Serial);
-        }
+    HTTPUpload& upload = server.upload();
+    if (upload.status == UPLOAD_FILE_START) {
+      Serial.printf("Update: %s\n", upload.filename.c_str());
+      if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {  //start with max available size
+        Update.printError(Serial);
       }
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+      /* flashing firmware to ESP*/
+      if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+        Update.printError(Serial);
+      }
+    } else if (upload.status == UPLOAD_FILE_END) {
+      if (Update.end(true)) {  //true to set the size to the current progress
+        Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+      } else {
+        Update.printError(Serial);
+      }
+    }
     });
 
   /*handling uploading file */
   server.on(
     "/import", HTTP_POST, []() {
-      server.sendHeader("Connection", "close");
-      server.send(200, "text/plain", "OK");
+    server.sendHeader("Connection", "close");
+    server.send(200, "text/plain", "OK");
     },
     []() {
-      HTTPUpload& upload = server.upload();
-      if (opened == false) {
-        opened = true;
+    HTTPUpload& upload = server.upload();
+    if (opened == false) {
+      opened = true;
 
-        Serial.println("Debut Upload");
-        ConfImport="";
-      }
-      if (upload.status == UPLOAD_FILE_WRITE) {
-        for (int i = 0; i < upload.currentSize; i++) {
-         
-          ConfImport +=String(char(upload.buf[i]));
-        }
-      } else if (upload.status == UPLOAD_FILE_END) {
+      Serial.println("Debut Upload");
+      ConfImport = "";
+    }
+    if (upload.status == UPLOAD_FILE_WRITE) {
+      for (int i = 0; i < upload.currentSize; i++) {
 
-        Serial.println("UPLOAD_FILE_END");
-        Serial.println(ConfImport);
-        ImportParametres(ConfImport);
-        opened = false;
+        ConfImport += String(char(upload.buf[i]));
       }
+    } else if (upload.status == UPLOAD_FILE_END) {
+
+      Serial.println("UPLOAD_FILE_END");
+      Serial.println(ConfImport);
+      ImportParametres(ConfImport);
+      opened = false;
+    }
     });
 
 
@@ -110,41 +113,42 @@ void Init_Server() {
 }
 
 
-void handleRoot() {                  //Pages principales
-   server.sendHeader("Connection", "close");
+void handleRoot() {  //Pages principales
+
+  server.sendHeader("Connection", "close");
   if (WiFi.getMode() != WIFI_STA) {  // en AP et STA mode
-    server.send(200, "text/html", String(ConnectAP_Html));
+    server.send(200, "text/html", ConnectAP_Html);
   } else {  //Station Mode seul
-    server.send(200, "text/html", String(MainHtml));
+    server.send(200, "text/html", MainHtml);
   }
 }
 void handleChange_Wifi() {
   server.sendHeader("Connection", "close");
-  server.send(200, "text/html", String(ConnectAP_Html));
+  server.send(200, "text/html", ConnectAP_Html);
 }
-void handleMainJS() {                             //Code Javascript
-server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", String(MainJS));  // Javascript code
+void handleMainJS() {  //Code Javascript
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/javascript", MainJS);  // Javascript code
 }
-void handleMainJS2() {                             //Code Javascript
-server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", String(MainJS2));  // Javascript code
+void handleMainJS2() {  //Code Javascript
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/javascript", MainJS2);  // Javascript code
 }
-void handleMainJS3() {                             //Code Javascript
-server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", String(MainJS3));  // Javascript code
+void handleMainJS3() {  //Code Javascript
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/javascript", MainJS3);  // Javascript code
 }
 void handleBrute() {  //Page données brutes
-server.sendHeader("Connection", "close");
-  server.send(200, "text/html", String(PageBrute));
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/html", PageBrute);
 }
-void handleBruteJS() {                                 //Code Javascript
-server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", String(PageBruteJS));  // Javascript code
+void handleBruteJS() {  //Code Javascript
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/javascript", PageBruteJS);  // Javascript code
 }
-void handleBruteJS2() {                                 //Code Javascript
-server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", String(PageBruteJS2));  // Javascript code
+void handleBruteJS2() {  //Code Javascript
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/javascript", PageBruteJS2);  // Javascript code
 }
 
 void handleAjaxRMS() {  // Envoi des dernières données  brutes reçues du RMS
@@ -154,13 +158,7 @@ void handleAjaxRMS() {  // Envoi des dernières données  brutes reçues du RMS
   if (Source == "Ext") {
     // Use WiFiClient class to create TCP connections
     WiFiClient clientESP_RMS;
-    byte arr[4];
-    arr[0] = RMSextIP & 0xFF;          // 0x78
-    arr[1] = (RMSextIP >> 8) & 0xFF;   // 0x56
-    arr[2] = (RMSextIP >> 16) & 0xFF;  // 0x34
-    arr[3] = (RMSextIP >> 24) & 0xFF;  // 0x12
-
-    String host = String(arr[3]) + "." + String(arr[2]) + "." + String(arr[1]) + "." + String(arr[0]);
+    String host = IP2String(RMSextIP);
     if (!clientESP_RMS.connect(host.c_str(), 80)) {
       StockMessage("connection to ESP_RMS external failed (call from  handleAjaxRMS)");
       return;
@@ -170,7 +168,7 @@ void handleAjaxRMS() {  // Envoi des dernières données  brutes reçues du RMS
     unsigned long timeout = millis();
     while (clientESP_RMS.available() == 0) {
       if (millis() - timeout > 5000) {
-        StockMessage("client ESP_RMS Timeout !" + host);
+        StockMessage(">>> clientESP_RMS Timeout !");
         clientESP_RMS.stop();
         return;
       }
@@ -250,7 +248,7 @@ void handleAjaxRMS() {  // Envoi des dernières données  brutes reçues du RMS
       S += GS + P_MQTT_Brute;
     }
   }
-server.sendHeader("Connection", "close");
+  server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
 }
 void handleAjaxHisto48h() {  // Envoi Historique de 50h (600points) toutes les 5mn
@@ -262,8 +260,16 @@ void handleAjaxHisto48h() {  // Envoi Historique de 50h (600points) toutes les 5
   for (int i = 0; i < 600; i++) {
     S += String(tabPw_Maison_5mn[iS]) + ",";
     T += String(tabPw_Triac_5mn[iS]) + ",";
-    U += String(float(tabTemperature_5mn[iS]) * 0.1) + ",";
     iS = (1 + iS) % 600;
+  }
+
+  for (int canal = 0; canal < 4; canal++) {
+    iS = IdxStockPW;
+    for (int i = 0; i < 600; i++) {
+      U += String(float(tabTemperature_5mn[canal][iS]) * 0.1) + ",";
+      iS = (1 + iS) % 600;
+    }
+    U += String(temperature[canal]) + "|";
   }
   for (int i = 0; i < NbActions; i++) {
     if ((LesActions[i].Actif > 0) && (ITmode > 0 || i > 0)) {
@@ -278,19 +284,20 @@ void handleAjaxHisto48h() {  // Envoi Historique de 50h (600points) toutes les 5
       }
     }
   }
+
   server.sendHeader("Connection", "close");
-  server.send(200, "text/html", Source_data + GS + S + GS + T + GS + String(temperature) + GS + U + Ouverture);
+  server.send(200, "text/html", Source_data + GS + S + GS + T + GS + U + Ouverture);
 }
 void handleAjaxESP32() {  // Envoi des dernières infos sur l'ESP32
   IT10ms = 0;
   IT10ms_in = 0;
   String S = "";
-  float H = float(T_On_seconde) / 3600;
+  float H = float(T_On_seconde) / 3600.0;
   String coeur0 = String(int(previousTimeRMSMin)) + ", " + String(int(previousTimeRMSMoy)) + ", " + String(int(previousTimeRMSMax));
   String coeur1 = String(int(previousLoopMin)) + ", " + String(int(previousLoopMoy)) + ", " + String(int(previousLoopMax));
   S += String(H) + RS + WiFi.RSSI() + RS + WiFi.BSSIDstr() + RS + WiFi.macAddress() + RS + ssid + RS + WiFi.localIP().toString() + RS + WiFi.gatewayIP().toString() + RS + WiFi.subnetMask().toString();
   S += RS + coeur0 + RS + coeur1 + RS + String(P_cent_EEPROM) + RS;
-  S +=  String(esp_get_free_internal_heap_size()) + RS + String(esp_get_minimum_free_heap_size()) + RS;
+  S += String(esp_get_free_internal_heap_size()) + RS + String(esp_get_minimum_free_heap_size()) + RS;
   delay(15);  //Comptage interruptions
   if (IT10ms_in > 0) {
     S += String(IT10ms_in) + "/" + String(IT10ms);
@@ -302,6 +309,8 @@ void handleAjaxESP32() {  // Envoi des dernières infos sur l'ESP32
   } else {
     S += RS + "Horloge ESP";
   }
+  S += RS + String(Nbr_DS18B20);
+  S += RS + AllTemp;
   int j = idxMessage;
   for (int i = 0; i < 10; i++) {
     S += RS + MessageH[j];
@@ -311,7 +320,7 @@ void handleAjaxESP32() {  // Envoi des dernières infos sur l'ESP32
   server.send(200, "text/html", S);
 }
 void handleAjaxHisto1an() {  // Envoi Historique Energie quotiiienne sur 1 an 370 points
-server.sendHeader("Connection", "close");
+  server.sendHeader("Connection", "close");
   server.send(200, "text/html", HistoriqueEnergie1An());
 }
 void handleAjaxData() {  //Données page d'accueil
@@ -319,10 +328,11 @@ void handleAjaxData() {  //Données page d'accueil
   if (DATEvalid) {
     DateLast = DATE;
   }
-  String S = "Deb" + RS + DateLast + RS + Source_data + RS + LTARF + RS + STGE + RS + String(temperature) + RS + String(Pva_valide);
+  String S = LesTemperatures();
+  S = "Deb" + RS + DateLast + RS + Source_data + RS + LTARF + RS + STGE + RS + S + RS + String(Pva_valide);
   S += GS + String(PuissanceS_M) + RS + String(PuissanceI_M) + RS + String(PVAS_M) + RS + String(PVAI_M);
   S += RS + String(EnergieJour_M_Soutiree) + RS + String(EnergieJour_M_Injectee) + RS + String(Energie_M_Soutiree) + RS + String(Energie_M_Injectee);
-  if (Source_data == "UxIx2" || ((Source_data == "ShellyEm" || Source_data == "ShellyPro" )&& EnphaseSerial.toInt() < 3)) {  //UxIx2 ou Shelly monophasé avec 2 sondes
+  if (Source_data == "UxIx2" || ((Source_data == "ShellyEm" || Source_data == "ShellyPro") && EnphaseSerial.toInt() < 3)) {  //UxIx2 ou Shelly monophasé avec 2 sondes
     S += GS + String(PuissanceS_T) + RS + String(PuissanceI_T) + RS + String(PVAS_T) + RS + String(PVAI_T);
     S += RS + String(EnergieJour_T_Soutiree) + RS + String(EnergieJour_T_Injectee) + RS + String(Energie_T_Soutiree) + RS + String(Energie_T_Injectee);
   }
@@ -365,21 +375,37 @@ void handleAjax_etatActions() {
         S += String(100 - Retard[i]) + RS;
       }
       S += String(LesActions[i].tOnOff) + RS;
-      S += String(H_Ouvre[i]) + RS;
+      S += String(int(LesActions[i].H_Ouvre * 100.0)) + RS;
       S += GS;
       NbActifs++;
     }
   }
-  S = String(temperature) + GS + String(Source_data) + GS + String(RMSextIP) + GS + NbActifs + GS + S;
+  String LesTemp = LesTemperatures();
+  S = LesTemp + GS + String(Source_data) + GS + String(RMSextIP) + GS + NbActifs + GS + S;
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/html", S);
+}
+void handleAjax_etatActionX() {
+  int NumAction = server.arg("NumAction").toInt();
+  byte Actif = 0;
+  int Ouvre = 0;
+  int Hequiv = 0;
+  if (NumAction < NbActions) {
+    Actif = LesActions[NumAction].Actif;
+    Ouvre = 100 - Retard[NumAction];
+    Hequiv = int(100 * LesActions[NumAction].H_Ouvre);
+  }
+  String S = String(Actif) + GS + String(Ouvre) + GS + String(Hequiv);
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
 }
 void handleAjaxTemperature() {
+  String LesTemp = LesTemperatures();
   server.sendHeader("Connection", "close");
-  server.send(200, "text/html", GS + String(temperature) + RS);
+  server.send(200, "text/html", GS + LesTemp + RS);
 }
 void handleRestart() {  // Eventuellement Reseter l'ESP32 à distance
-server.sendHeader("Connection", "close");
+  server.sendHeader("Connection", "close");
   server.send(200, "text/plain", "OK Reset. Attendez.");
   delay(1000);
   ESP.restart();
@@ -398,21 +424,28 @@ void handleAjaxData10mn() {  // Envoi Historique de 10mn (300points)Energie Acti
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", Source_data + GS + S + GS + T);
 }
+void handleAjaxNoms() {
+  Liste_Noms(0);  // Les noms de ce routeur
+  String S = GS + RMS_Nom[0];
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/html", S);
+}
+
 void handleActions() {
   server.sendHeader("Connection", "close");
-  server.send(200, "text/html", String(ActionsHtml));
+  server.send(200, "text/html", ActionsHtml);
 }
 void handleActionsJS() {
   server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", String(ActionsJS));
+  server.send(200, "text/javascript", ActionsJS);
 }
 void handleActionsJS2() {
   server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", String(ActionsJS2));
+  server.send(200, "text/javascript", ActionsJS2);
 }
 void handleActionsJS3() {
   server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", String(ActionsJS3));
+  server.send(200, "text/javascript", ActionsJS3);
 }
 void handleActionsUpdate() {
   int adresse_max = 0;
@@ -430,9 +463,14 @@ void handleActionsUpdate() {
   server.sendHeader("Connection", "close");
   server.send(200, "text/plain", "OK" + String(adresse_max));
   InitGpioActions();
+  Liste_des_Noms();
 }
 void handleActionsAjax() {
-  String S = String(temperature) + RS + String(LTARFbin) + RS + String(pTriac) + GS;
+  String S = LesTemperatures() + RS;
+  for (int c = 0; c < 4; c++) {
+    S += nomTemperature[c] + US;
+  }
+  S = S + RS + String(LTARFbin) + RS + String(pTriac) + GS;
   for (int i = 0; i < NbActions; i++) {
     S += LesActions[i].Lire();
   }
@@ -441,13 +479,15 @@ void handleActionsAjax() {
 }
 
 void handlePara() {
-server.sendHeader("Connection", "close");
-  server.send(200, "text/html", String(ParaHtml));
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/html", ParaHtml);
+  previousTempMillis = millis() - 120000;
 }
 void handleParaUpdate() {
-  String Vp[32];
+  String Vp[62];
   String lesparas = server.arg("lesparas") + RS;
   int idx = 0;
+  Serial.println(lesparas);
   while (lesparas.length() > 0) {
     Vp[idx] = lesparas.substring(0, lesparas.indexOf(RS));
     lesparas = lesparas.substring(lesparas.indexOf(RS) + 1);
@@ -455,7 +495,7 @@ void handleParaUpdate() {
     Vp[idx].trim();
   }
   dhcpOn = byte(Vp[0].toInt());
-  IP_Fixe = strtoul(Vp[1].c_str(), NULL, 10);
+  RMS_IP[0] = strtoul(Vp[1].c_str(), NULL, 10);
   Gateway = strtoul(Vp[2].c_str(), NULL, 10);
   masque = strtoul(Vp[3].c_str(), NULL, 10);
   dns = strtoul(Vp[4].c_str(), NULL, 10);
@@ -476,16 +516,32 @@ void handleParaUpdate() {
   nomRouteur = Vp[19];
   nomSondeFixe = Vp[20];
   nomSondeMobile = Vp[21];
-  nomTemperature = Vp[22];
-  Source_Temp = Vp[23];
-  TopicT = Vp[24];
-  IPtemp = strtoul(Vp[25].c_str(), NULL, 10);
-  CalibU = Vp[26].toInt();  //2 bytes
-  CalibI = Vp[27].toInt();  //2 bytes
-  TempoRTEon = byte(Vp[28].toInt());
-  WifiSleep = byte(Vp[29].toInt());
-  pSerial = byte(Vp[30].toInt());
-  pTriac = byte(Vp[31].toInt());
+  CalibU = Vp[22].toInt();  //2 bytes
+  CalibI = Vp[23].toInt();  //2 bytes
+  TempoRTEon = byte(Vp[24].toInt());
+  WifiSleep = byte(Vp[25].toInt());
+  pSerial = byte(Vp[26].toInt());
+  pTriac = byte(Vp[27].toInt());
+  int canal = 0;
+  for (int c = 0; c < 4; c++) {
+    nomTemperature[c] = Vp[28 + 6 * c];
+    Source_Temp[c] = Vp[29 + 6 * c];
+    TopicT[c] = Vp[30 + 6 * c];
+    refTempIP[c] = byte(Vp[31 + 6 * c].toInt());
+    canalTempExterne[c] = byte(Vp[32 + 6 * c].toInt());
+    offsetTemp[c] = Vp[33 + 6 * c].toInt();
+  }
+  int j = 1;
+  for (int i = 1; i < LesRouteursMax; i++) {
+    RMS_IP[i] = 0;
+    unsigned long IP = strtoul(Vp[52 + i].c_str(), NULL, 10);
+    if (IP > 0) {
+      RMS_IP[j] = IP;
+      j++;
+    }
+  }
+
+  previousTempMillis = millis() - 120000;
   int adresse_max = EcritureEnROM();
   if (Source != "Ext") {
     Source_data = Source;
@@ -493,29 +549,58 @@ void handleParaUpdate() {
   server.sendHeader("Connection", "close");
   server.send(200, "text/plain", "OK" + String(adresse_max));
   LastHeureRTE = -1;
+  //Recherche des Noms (routeurs, températures,actions) des RMS partenaires
+  Liste_des_Noms();
 }
 void handleParaJS() {
   server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", String(ParaJS));
+  server.send(200, "text/javascript", ParaJS);
 }
 void handleParaRouteurJS() {
   server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", String(ParaRouteurJS));
+  server.send(200, "text/javascript", ParaRouteurJS);
 }
 void handleParaAjax() {
-  String S = String(dhcpOn) + RS + String(IP_Fixe) + RS + String(Gateway) + RS + String(masque) + RS + String(dns) + RS + Source + RS + String(RMSextIP) + RS;
+  String S = String(dhcpOn) + RS + String(RMS_IP[0]) + RS + String(Gateway) + RS + String(masque) + RS + String(dns) + RS + Source + RS + String(RMSextIP) + RS;
   S += EnphaseUser + RS + EnphasePwd + RS + EnphaseSerial + RS + TopicP;
   S += RS + String(MQTTRepet) + RS + String(MQTTIP) + RS + String(MQTTPort) + RS + MQTTUser + RS + MQTTPwd;
   S += RS + MQTTPrefix + RS + MQTTdeviceName + RS + String(subMQTT) + RS + nomRouteur + RS + nomSondeFixe + RS + nomSondeMobile;
-  S += RS + String(temperature) + RS + nomTemperature + RS + Source_Temp + RS + TopicT + RS + String(IPtemp);
   S += RS + String(CalibU) + RS + String(CalibI);
   S += RS + String(TempoRTEon) + RS + String(WifiSleep) + RS + String(pSerial) + RS + String(pTriac);
+  for (int c = 0; c < 4; c++) {
+    S += GS + nomTemperature[c] + RS + Source_Temp[c] + RS + TopicT[c] + RS + String(refTempIP[c]) + RS + String(canalTempExterne[c]) + RS + String(offsetTemp[c]);
+  }
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
 }
+void handleajaxRAZhisto() {
+  RAZ_Histo_Conso();
+  for (int i = 0; i < 600; i++) {
+    tabPw_Maison_5mn[i] = 0;  //Puissance Active:Soutiré-Injecté toutes les 5mn
+    tabPw_Triac_5mn[i] = 0;
+    for (int j = 0; j < 4; j++) {
+      tabTemperature_5mn[j][i] = 0;
+    }
+    for (int j = 0; j < LesActionsLength; j++) {
+      tab_histo_ouverture[j][i] = 0;
+    }
+  }
+  for (int i = 0; i < 300; i++) {
+    tabPw_Maison_2s[i] = 0;   //Puissance Active: toutes les 2s
+    tabPw_Triac_2s[i] = 0;    //Puissance Triac: toutes les 2s
+    tabPva_Maison_2s[i] = 0;  //Puissance Active: toutes les 2s
+    tabPva_Triac_2s[i] = 0;
+  }
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/html", "OK");
+}
 void handleParaRouteurAjax() {
-  String S = Source + RS + Source_data + RS + nomRouteur + RS + Version + RS + nomSondeFixe + RS + nomSondeMobile + RS + String(RMSextIP);
-  S += RS + nomTemperature;
+  String S = Source + GS + Source_data + GS + WiFi.localIP().toString() + GS + nomRouteur + GS + Version + GS + nomSondeFixe + GS + nomSondeMobile + GS + String(RMSextIP) + GS;
+  for (int i = 0; i < LesRouteursMax; i++) {  //index 0 pour ESP32 local
+    if (RMS_IP[i] > 0) {
+      S += RMS_IP[i] + US + RMS_Nom[i] + RS;
+    }
+  }
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
 }
@@ -533,10 +618,10 @@ void handleSetGpio() {
 }
 void handleExport() {
   server.sendHeader("Connection", "close");
-  server.send(200, "text/html", String(ExportHtml));
+  server.send(200, "text/html", ExportHtml);
 }
 void handleExport_file() {
-  String S = Fichier_parametres(server.arg("ip"),server.arg("para"),server.arg("action"));
+  String S = Fichier_parametres(server.arg("ip"), server.arg("para"), server.arg("action"));
   server.sendHeader("Connection", "close");
   server.send(200, "application/json", S);
 }
@@ -546,7 +631,7 @@ void handleAP_ScanWifi() {
 void Liste_WIFI() {  //Doit être fait avant toute connection WIFI depuis biblio ESP32 3.0.1
   WIFIbug = 0;
   esp_task_wdt_reset();
-  delay(1);  
+  delay(1);
   int n = 0;
   WiFi.disconnect();
   delay(100);
@@ -577,7 +662,7 @@ void Liste_WIFI() {  //Doit être fait avant toute connection WIFI depuis biblio
 void handleAP_SetWifi() {
   WIFIbug = 0;
   esp_task_wdt_reset();
-  delay(1);  
+  delay(1);
   Serial.println("Set Wifi");
   String NewSsid = server.arg("ssid");
   NewSsid.trim();
@@ -617,9 +702,9 @@ void handleAP_SetWifi() {
   ESP.restart();
 }
 
-void handleCommunCSS(){
+void handleCommunCSS() {
   server.sendHeader("Connection", "close");
-  server.send(200, "text/css", String(CommunCSS));
+  server.send(200, "text/css", CommunCSS);
 }
 
 

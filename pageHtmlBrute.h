@@ -209,9 +209,12 @@ const char *PageBruteJS = R"====(
               S+='<tr><td>Mémoire RAM libre minimum :</td><td>'+message[12]+' octet</td></tr>';
               S+="<tr><td>Nombre d'interruptions en 15ms du Gradateur (signal Zc) : Filtrés/Brutes :</td><td>"+message[13]+'</td></tr>';
               S+='<tr><td>Synchronisation 10ms au Secteur ou asynchrone horloge ESP32</td><td>'+message[14]+'</td></tr>';
+              var Stemp=message[15];
+              if (message[15]>0) Stemp +='<span class="fsize10">' + message[16] +'</span>';
+              S+="<tr><td>Nombre de capteurs de température DS18B20 :</td><td>"+Stemp+'</td></tr>';
               S +='<tr><td style="text-align:center;"><strong>Messages</strong></td><td></td></tr>';
               for (var i=0;i<10;i++){
-                S +='<tr><td>'+message[15+i]+'</td><td></td></tr>';
+                S +='<tr><td>'+message[17+i]+'</td><td></td></tr>';
               }
               S+='</table>';
               GH('DataESP32', S);             
@@ -221,6 +224,8 @@ const char *PageBruteJS = R"====(
         };
         xhttp.open('GET', 'ajax_dataESP32', true);
         xhttp.send();
+       }
+       function FinParaRouteur(){
        }
 )====";
 
