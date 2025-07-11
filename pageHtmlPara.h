@@ -17,7 +17,7 @@ const char *ParaHtml = R"====(
     label,.nomR{display: table-cell;margin: 5px;text-align:left;font-size:20px;height:25px;width:70%;}
     input{display: table-cell;margin: 5px;text-align:left;font-size:20px;height:25px;}
     select{display: table-cell;margin: 5px;text-align:left;}
-    .source label{display: table-cell;margin: 5px;text-align:left;font-size:16px;height:25px;width:initial;}
+    .source label{display: table-cell;margin: 5px;text-align:left;font-size:12px;height:21px;width:initial;}
     .boldT{text-align:left;font-weight:bold;padding:10px;}   
     .Bparametres{border:inset 10px azure;}
     .Bgeneraux{border:inset 4px azure;}
@@ -91,6 +91,8 @@ const char *ParaHtml = R"====(
             <input type='radio' name='pESP' id='ESP3' value="3"  onclick="checkDisabled();">
             <label for='ESP4' style='text-align:right;'>ESP32 Ecran 320*240</label>
             <input type='radio' name='pESP' id='ESP4' value="4"  onclick="checkDisabled();">
+            <label for='ESP10' style='text-align:right;'>ESP32/WT32-ETH01</label>
+            <input type='radio' name='pESP' id='ESP10' value="10"  onclick="checkDisabled();">
           </div>
         </div>
         <div class="form"  >
@@ -114,6 +116,8 @@ const char *ParaHtml = R"====(
             <input type='radio' name='pSerie' id='Serial2' value="2"  >
             <label for='Serial3' style='text-align:right;'>Port RX=gpio 18, TX=gpio 19</label>
             <input type='radio' name='pSerie' id='Serial3' value="3"  >
+            <label for='Serial4' style='text-align:right;'>Port RX=gpio 5, TX=gpio 17</label>
+            <input type='radio' name='pSerie' id='Serial4' value="4"  >
           </div>
           <div class="ligne source" id="Analog">
             <label for='pUxI0' style='text-align:right;'>Pas d'entrée Analogique</label>
@@ -124,6 +128,8 @@ const char *ParaHtml = R"====(
             <input type='radio' name='pUxI' id='pUxI2' value="2"  >
             <label for='pUxI3' style='text-align:right;'>Commun(34), U(32) , I(33)</label>
             <input type='radio' name='pUxI' id='pUxI3' value="3"  >
+            <label for='pUxI4' style='text-align:right;'>Commun(35), U(36) , I(39)</label>
+            <input type='radio' name='pUxI' id='pUxI4' value="4"  >
           </div>
           <div class="ligne source">
             <label for='Triac0' style='text-align:right;'>Pas de Triac</label>
@@ -134,6 +140,8 @@ const char *ParaHtml = R"====(
             <input type='radio' name='pTriac' id='Triac2' value="2"  >
             <label for='Triac3' style='text-align:right;'>Triac pulse=gpio 21, Zc=gpio 22</label>
             <input type='radio' name='pTriac' id='Triac3' value="3"  >
+            <label for='Triac4' style='text-align:right;'>Triac pulse=gpio 12, Zc=gpio 14</label>
+            <input type='radio' name='pTriac' id='Triac4' value="4"  >
           </div>
         </div>
         <div class="form"  >
@@ -142,9 +150,11 @@ const char *ParaHtml = R"====(
             <label for='LED0' style='text-align:right;'>Pas de LED</label>
             <input type='radio' name='pLED' id='LED0' value="0"  >
             <label for='LED1' style='text-align:right;'>LEDs  gpio 18, gpio 19</label>
-            <input type='radio' name='pLED' id='LED1' value="1"  >
+            <input type='radio' name='pLED' id='LED1' value="1"  checked>
             <label for='LED2' style='text-align:right;'>LEDs gpio 4, gpio 16</label>
-            <input type='radio' name='pLED' id='LED2' value="2" checked  >
+            <input type='radio' name='pLED' id='LED2' value="2"   >
+            <label for='LED3' style='text-align:right;'>LEDs gpio 2, gpio 4</label>
+            <input type='radio' name='pLED' id='LED3' value="3"  >
           </div>
           <div class="ligne source" id="pTemp">
             <label for='pTemp0' style='text-align:right;'>Pas de capteur de température</label>
@@ -153,6 +163,8 @@ const char *ParaHtml = R"====(
             <input type='radio' name='pTemp' id='pTemp1' value="1" checked   >
             <label for='pTemp2' style='text-align:right;'>DS18B20 gpio 27</label>
             <input type='radio' name='pTemp' id='pTemp2' value="2"  >
+            <label for='pTemp3' style='text-align:right;'>DS18B20 gpio 33</label>
+            <input type='radio' name='pTemp' id='pTemp3' value="3"  >
           </div>
         </div>
     </div>
@@ -492,7 +504,7 @@ const char *ParaJS = R"====(
     var Serial = document.querySelector('input[name="pSerie"]:checked').value;
     var pTriac = document.querySelector('input[name="pTriac"]:checked').value;
     ModePara = document.querySelector('input[name="ModeP"]:checked').value;
-    ModeWifi = document.querySelector('input[name="ModeW"]:checked').value;
+    ModeReseau = document.querySelector('input[name="ModeW"]:checked').value;
     Horloge = document.querySelector('input[name="Horlo"]:checked').value;
     var pESP  = document.querySelector('input[name="pESP"]:checked').value;
     var pLED  = document.querySelector('input[name="pLED"]:checked').value;
@@ -503,7 +515,7 @@ const char *ParaJS = R"====(
         subMQTT=0; WifiSleep=1;
     }
     var S=dhcp+RS+ ip2int(GID("adrIP").value)+RS+ ip2int(GID("gateway").value);
-    S +=RS+ip2int(GID("masque").value)+RS+ ip2int(GID("dns").value) +RS +ModePara + RS +ModeWifi+ RS +Horloge
+    S +=RS+ip2int(GID("masque").value)+RS+ ip2int(GID("dns").value) +RS +ModePara + RS +ModeReseau+ RS +Horloge
     S +=RS+Source_new+RS+ ip2int(GID("RMSextIP").value)+ RS+GID("EnphaseUser").value.trim()+RS+GID("EnphasePwd").value.trim()+RS+GID("EnphaseSerial").value.trim() +RS+GID("TopicP").value.trim();
     S +=RS+GID("MQTTRepete").value +RS+ip2int(GID("MQTTIP").value) +RS+GID("MQTTPort").value +RS+GID("MQTTUser").value.trim()+RS+GID("MQTTpwd").value.trim();
     S +=RS+GID("MQTTPrefix").value.trim()+RS+GID("MQTTPrefixEtat").value.trim()+RS+GID("MQTTdeviceName").value.trim() + RS + subMQTT;
@@ -548,33 +560,34 @@ const char *ParaJS = R"====(
   function checkDisabled(){ 
     GID("RMS_IP0").style.backgroundColor ="#888";
     GID("RMS_IP0").readOnly =true;
-    ModeWifi = document.querySelector('input[name="ModeW"]:checked').value;
+    ModeReseau = document.querySelector('input[name="ModeW"]:checked').value;
     ModePara = document.querySelector('input[name="ModeP"]:checked').value;
     Horloge = document.querySelector('input[name="Horlo"]:checked').value;
     var pESP = document.querySelector('input[name="pESP"]:checked').value;
     GID("Bheure").style.display= (Horloge>1) ? "inline-block": "none";
-    GID("infoIP").style.display = (GID("dhcp").checked || ModeWifi==2) ? "none" : "table";
-    GID("dhcp").style.visibility= (ModeWifi==2) ? "hidden" : "visible";
-    GID("ipreset").style.display= (ModeWifi==2) ? "none" : "inherit";
+    GID("Bwifi").style.display= (ESP32_Type<10) ? "inline-block": "none";
+    GID("infoIP").style.display = (GID("dhcp").checked || ModeReseau==2) ? "none" : "table";
+    GID("dhcp").style.visibility= (ModeReseau==2) ? "hidden" : "visible";
+    GID("ipreset").style.display= (ModeReseau==2) ? "none" : "inherit";
     GID("rotation").style.display= (pESP==4) ? "table-row" : "none";
-    GID("l_wifi_0").style.display= (ModeWifi==2) ? "none": "table-row";
-    GID("l_wifi_1").style.display= (ModeWifi==2 || ModePara==0) ? "none": "table-row";
-    GID("l_wifi_2").style.display= (ModeWifi==2 || ModePara==0) ? "none": "table-row";
+    GID("l_wifi_0").style.display= (ModeReseau==2) ? "none": "table-row";
+    GID("l_wifi_1").style.display= (ModeReseau==2 || ModePara==0) ? "none": "table-row";
+    GID("l_wifi_2").style.display= (ModeReseau==2 || ModePara==0 || ESP32_Type>=10) ? "none": "table-row";
     GID("Pmqtt").style.display= ( ModePara==0) ? "none": "table-cell";
     GID("PmqttL").style.display= ( ModePara==0) ? "none": "table-cell";
-    GID("listerouteurs").style.display= (ModeWifi==2  || ModePara==0) ? "none": "block";
-    GID("avec_wifi").style.visibility= (ModeWifi==2) ? "hidden" : "visible";
+    GID("listerouteurs").style.display= (ModeReseau==2  || ModePara==0) ? "none": "block";
+    GID("avec_wifi").style.visibility= (ModeReseau==2) ? "hidden" : "visible";
     for (var i=0;i<4;i++){
-        GID("siWifi"+i).style.visibility= (ModeWifi==2) ? "hidden" : "visible";
+        GID("siWifi"+i).style.visibility= (ModeReseau==2) ? "hidden" : "visible";
     }
-    GID("donEnv").style.display= (ModeWifi==2) ? "none": "inline-block;";
-    if (ModeWifi==2){
+    GID("donEnv").style.display= (ModeReseau==2) ? "none": "inline-block;";
+    if (ModeReseau==2){
       GH("localIP"," : 192.168.4.1");
     } else {
       GH("localIP","auto (DHCP) : " + LocalIP);
     }
-    GID("Hor0L").style.textDecoration=(ModeWifi>0) ? "line-through" :"none";
-    if (ModeWifi>0 && Horloge==0) {GID("Hor2").checked = true;Horloge=2;}
+    GID("Hor0L").style.textDecoration=(ModeReseau>0) ? "line-through" :"none";
+    if (ModeReseau>0 && Horloge==0) {GID("Hor2").checked = true;Horloge=2;}
     GID("Zmqtt").style.display = ((GID("MQTTRepete").value != 0  || GID("Pmqtt").checked ||  GID("subMQTT").checked) && ModePara>0) ? "block" : "none";
     GID("LesSourcesTemp").style.display= (ModePara==0) ? "none": "block";
     GID("pTemp").style.display= (ModePara==0) ? "none": "table-row";
@@ -685,10 +698,11 @@ const char *ParaRouteurJS = R"====(
   var IP_RMS=[];
   var nomTemperature=[];
   var nomActions=[];
-  var ModeWifi=0;
+  var ModeReseau=0;
   var ModePara=0;
   var Horloge=0;
   var LocalIP ="";
+  var ESP32_Type =0;
     
   function LoadParaRouteur() {
     var xhttp = new XMLHttpRequest();
@@ -707,10 +721,11 @@ const char *ParaRouteurJS = R"====(
              GH("nomSondeMobile",Para[6]); 
              nomSondeFixe=Para[5];
              nomSondeMobile=Para[6];
-             ModeWifi=Para[8];
+             ModeReseau=Para[8];
              ModePara=Para[9];
              Horloge=Para[10];
-             var IpNoms=Para[11].split(RS);
+             ESP32_Type=Para[11];
+             var IpNoms=Para[12].split(RS);
              nb_ESP=IpNoms.length - 1;
              for (var c=0;c<nb_ESP;c++){
               var ip_nom=IpNoms[c].split(US);
@@ -763,7 +778,7 @@ const char *ParaRouteurJS = R"====(
   }
   function SetHautBas(){
       var S="<div class='onglets'><div class='Bonglet Baccueil'><a href='/'>Accueil</a></div><div class='Bonglet Bbrut'><a href='/Brute'>Donn&eacute;es brutes</a></div><div class='Bonglet Bparametres'><a href='/Para'>Param&egrave;tres</a></div><div class='Bonglet Bactions'><a href='/Actions'>Actions</a></div></div>";
-      S +="<div id='onglets2'><div class='Bonglet2 Bgeneraux'><a href='/Para'>Généraux</a></div><div class='Bonglet2 Bexport'><a href='/Export'>Import / Export</a></div><div class='Bonglet2 Bota'><a href='/OTA'>Mise à jour par OTA</a></div><div class='Bonglet2 Bwifi'><a href='/Wifi'>WIFI</a></div>";
+      S +="<div id='onglets2'><div class='Bonglet2 Bgeneraux'><a href='/Para'>Généraux</a></div><div class='Bonglet2 Bexport'><a href='/Export'>Import / Export</a></div><div class='Bonglet2 Bota'><a href='/OTA'>Mise à jour par OTA</a></div><div id='Bwifi' class='Bonglet2 Bwifi'><a href='/Wifi'>WIFI</a></div>";
       S +="<div class='Bonglet2 Bheure' id='Bheure'><a href='/Heure'>Heure</a></div><div class='Bonglet2 Bcouleurs'><a href='/Couleurs'>Couleurs</a></div></div>";
       S +="<h2 id='nom_R'>Routeur Solaire - RMS</h2>";
       GH("lesOnglets",S);

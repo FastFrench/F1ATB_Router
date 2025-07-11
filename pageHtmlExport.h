@@ -94,6 +94,7 @@ const char *ExportHtml = R"====(
         function AdaptationSource(){};
         function FinParaRouteur(){
           GID("Bheure").style.display= (Horloge>1) ? "inline-block": "none";
+          GID("Bwifi").style.display= (ESP32_Type<10) ? "inline-block": "none";
           LoadCouleurs();
         };
         function Reset(){

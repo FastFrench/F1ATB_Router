@@ -30,14 +30,14 @@ void Call_RTE_data() {
      else if  (STGE == "C") LTARF = "TEMPO_ROUGE";
      STGE=""; 
      couleur_lendemain=false; // on ne connait plus la couleur du lendemain. Cela forcera la lecture sur le site RTE 
-     if (LTARF!="" && TempoRTEon == 1 && ModeWifi==0) {  
+     if (LTARF!="" && TempoRTEon == 1 && ModeReseau==0) {  
            StockMessage("Tempo depuis 6h00: " + LTARF + ",demain ? ");
       }
     }  
 
 
   if ((HeureValide) && (!(couleur_lendemain && couleur_jour ) ) && ((LastH != Hcour) && (Hcour == 302 || Hcour == 310 || Hcour == 530 || Hcour == 560 || Hcour == 600 || Hcour == 900 || Hcour == 1150) || LastHeureRTE < 0)) {
-    if (TempoRTEon == 1 && ModeWifi==0) {
+    if (TempoRTEon == 1 && ModeReseau==0) {
       // Use clientSecu class to create TCP connections
       clientSecuRTE.setInsecure();  //skip verification
       if (!clientSecuRTE.connect(adr_RTE_Host, 443)) {

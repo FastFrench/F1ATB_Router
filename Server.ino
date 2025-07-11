@@ -286,7 +286,19 @@ void handleAjaxESP32() {  // Envoi des dernières infos sur l'ESP32
   float H = float(T_On_seconde) / 3600.0;
   String coeur0 = String(int(previousTimeRMSMin)) + ", " + String(int(previousTimeRMSMoy)) + ", " + String(int(previousTimeRMSMax));
   String coeur1 = String(int(previousLoopMin)) + ", " + String(int(previousLoopMoy)) + ", " + String(int(previousLoopMax));
-  S += String(H) + RS + String(ESP32_Type) + RS + WiFi.RSSI() + RS + WiFi.BSSIDstr() + RS + WiFi.macAddress() + RS + ssid + RS + WiFi.localIP().toString() + RS + WiFi.gatewayIP().toString() + RS + WiFi.subnetMask().toString();
+  String acces = "";
+  String Mac = "";
+  String adr = "";
+  if (ESP32_Type >= 10) {
+    acces = " " + RS + " ";
+    Mac = Ethernet.macAddress();
+    adr = Ethernet.localIP().toString() + RS + Ethernet.gatewayIP().toString() + RS + Ethernet.subnetMask().toString();
+  } else {
+    acces = WiFi.RSSI() + RS + WiFi.BSSIDstr();
+    Mac = WiFi.macAddress();
+    adr = WiFi.localIP().toString() + RS + WiFi.gatewayIP().toString() + RS + WiFi.subnetMask().toString();
+  }
+  S += String(H) + RS + String(ESP32_Type) + RS + acces + RS + Mac + RS + ssid + RS + adr;
   S += RS + coeur0 + RS + coeur1 + RS + String(P_cent_EEPROM) + RS;
   S += String(esp_get_free_internal_heap_size()) + RS + String(esp_get_minimum_free_heap_size()) + RS;
   delay(15);  //Comptage interruptions
@@ -302,18 +314,18 @@ void handleAjaxESP32() {  // Envoi des dernières infos sur l'ESP32
   }
   S += RS + String(Nbr_DS18B20);
   S += RS + AllTemp;
-  S += RS + String(temperatureRead()) +GS;  //Temperature CPU
+  S += RS + String(temperatureRead()) + GS;  //Temperature CPU
   int j = idxMessage;
   for (int i = 0; i < 10; i++) {
     S += RS + MessageH[j];
     j = (j + 1) % 10;
   }
-  S +=GS;
+  S += GS;
   for (int i = 1; i < LesRouteursMax; i++) {
     if (RMS_IP[i] > 0) {
-      String nom="",after;
+      String nom = "", after;
       SplitS(RMS_NomEtat[i], nom, US, after);
-      S +=nom + " (" +IP2String(RMS_IP[i])+") "+ ES+String(RMS_Note[i])+"/"+String(RMS_NbCx[i]) + RS;
+      S += nom + " (" + IP2String(RMS_IP[i]) + ") " + ES + String(RMS_Note[i]) + "/" + String(RMS_NbCx[i]) + RS;
     }
   }
   server.sendHeader("Connection", "close");
@@ -326,7 +338,7 @@ void handleAjaxHisto1an() {  // Envoi Historique Energie quotiiienne sur 1 an 37
 void handleAjaxData() {  //Données page d'accueil
   String DateLast = "Attente d'une mise à l'heure par internet";
   if (Horloge == 1) DateLast = "Attente d'une mise à l'heure par le Linky";
-  if (ModeWifi == 0 && WiFi.getMode() != WIFI_STA) DateLast = "Sélectionnez un réseau <a href='/Wifi'>Wifi</a>";
+  if (ModeReseau == 0 && WiFi.getMode() != WIFI_STA) DateLast = "Sélectionnez un réseau <a href='/Wifi'>Wifi</a>";
   if (Horloge > 1) DateLast = "Attente d'une mise à l'heure  <a href='/Heure' >manuellement</a> ";
   if (HeureValide) {
     DateLast = DATE;
@@ -486,6 +498,7 @@ void handlePinsActionsJS() {  //Pins disponibles
   if (ESP32_Type == 1) S = "var Pins=[0,4,5,13,14,16,17,21,22,23,25,26,27,-1];";
   if (ESP32_Type == 2 || ESP32_Type == 3) S = "var Pins=[0,4,5,13,14,16,17,18,19,21,22,25,26,27,32,33,-1];";
   if (ESP32_Type == 4) S = "var Pins=[0,5,18,19,22,23,27,-1];";
+  if (ESP32_Type == 10) S = "var Pins=[0,5,12,14,17,32,33,-1];";
   server.sendHeader("Connection", "close");
   server.send(200, "text/javascript", S);
 }
@@ -512,7 +525,7 @@ void handleParaUpdate() {
   masque = strtoul(Vp[3].c_str(), NULL, 10);
   dns = strtoul(Vp[4].c_str(), NULL, 10);
   ModePara = byte(Vp[5].toInt());
-  ModeWifi = byte(Vp[6].toInt());
+  ModeReseau = byte(Vp[6].toInt());
   Horloge = byte(Vp[7].toInt());
   Source = Vp[8];
   RMSextIP = strtoul(Vp[9].c_str(), NULL, 10);
@@ -556,7 +569,7 @@ void handleParaUpdate() {
   for (int i = 1; i < LesRouteursMax; i++) {
     RMS_IP[i] = 0;
     unsigned long IP = strtoul(Vp[61 + i].c_str(), NULL, 10);
-    if (IP > 0 && ModeWifi < 2) {
+    if (IP > 0 && ModeReseau < 2) {
       RMS_IP[j] = IP;
       j++;
     }
@@ -593,7 +606,7 @@ void handleParaRouteurJS() {
 }
 void handleParaAjax() {
   String S = String(dhcpOn) + RS + String(RMS_IP[0]) + RS + String(Gateway) + RS + String(masque) + RS + String(dns) + RS;
-  S += String(ModePara) + RS + String(ModeWifi) + RS + String(Horloge) + RS + Source + RS + String(RMSextIP) + RS;
+  S += String(ModePara) + RS + String(ModeReseau) + RS + String(Horloge) + RS + Source + RS + String(RMSextIP) + RS;
   S += EnphaseUser + RS + EnphasePwd + RS + EnphaseSerial + RS + TopicP;
   S += RS + String(MQTTRepet) + RS + String(MQTTIP) + RS + String(MQTTPort) + RS + MQTTUser + RS + MQTTPwd;
   S += RS + MQTTPrefix + RS + MQTTPrefixEtat + RS + MQTTdeviceName + RS + String(subMQTT) + RS + nomRouteur + RS + nomSondeFixe + RS + nomSondeMobile;
@@ -630,9 +643,11 @@ void handleajaxRAZhisto() {
   server.send(200, "text/html", "OK");
 }
 void handleParaRouteurAjax() {
-  String S = Source + GS + Source_data + GS + WiFi.localIP().toString() + GS + nomRouteur + GS + Version + GS + nomSondeFixe + GS + nomSondeMobile + GS + String(RMSextIP) + GS + String(ModeWifi) + GS + String(ModePara) + GS + String(Horloge) + GS;
+  String localIP = WiFi.localIP().toString();
+  if (ESP32_Type == 10) localIP = Ethernet.localIP().toString();
+  String S = Source + GS + Source_data + GS + localIP + GS + nomRouteur + GS + Version + GS + nomSondeFixe + GS + nomSondeMobile + GS + String(RMSextIP) + GS + String(ModeReseau) + GS + String(ModePara) + GS + String(Horloge) + GS+ String(ESP32_Type) + GS;
   for (int i = 0; i < LesRouteursMax; i++) {  //index 0 pour ESP32 local
-    if (RMS_IP[i] > 0 && RMS_NomEtat[i]!="") {
+    if (RMS_IP[i] > 0 && RMS_NomEtat[i] != "") {
       S += RMS_IP[i] + US + RMS_NomEtat[i] + RS;
     }
   }
@@ -705,7 +720,7 @@ void handleAP_SetWifi() {
   Serial.println(NewPassword);
   ssid = NewSsid;
   password = NewPassword;
-  ModeWifi = 0;
+  ModeReseau = 0;
   StockMessage("Wifi Begin : " + ssid);
   WiFi.begin(ssid.c_str(), password.c_str());
   unsigned long newstartMillis = millis();
@@ -726,7 +741,7 @@ void handleAP_SetWifi() {
     S += "<br><br> Connectez vous au wifi : " + ssid;
     S += "<br><br> Cliquez sur l'adresse : <a href='http://" + IP + "' >http://" + IP + "</a>";
     dhcpOn = 1;
-    ModeWifi = 0;  //A priori
+    ModeReseau = 0;  //A priori
     EcritureEnROM();
   } else {
     S = "No" + RS + "ESP32 non connecté à :" + ssid + "<br>";

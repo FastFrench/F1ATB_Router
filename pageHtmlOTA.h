@@ -18,7 +18,7 @@ const char *OtaHtml = R"====(
   <body onload="Init();">
     <div id='lesOnglets'></div>
     <h2 >Web OTA</h2>
-    <h4>Mise à jour par Wifi</h4>
+    <h4>Mise à jour par Wifi ou Ethernet</h4>
     <div class="liste">
       Votre version actuelle du routeur : <span id ="Version_actu"></span>
     </div>
@@ -85,6 +85,7 @@ const char *OtaHtml = R"====(
         };
         function FinParaRouteur(){
           GID("Bheure").style.display= (Horloge>1) ? "inline-block": "none";
+          GID("Bwifi").style.display= (ESP32_Type<10) ? "inline-block": "none";
         };
     </script>
     <br>

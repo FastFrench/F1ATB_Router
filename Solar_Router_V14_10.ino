@@ -1,4 +1,4 @@
-#define Version "14.04"
+#define Version "14.10"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -125,10 +125,13 @@
     Re-introduction du Watchdog avec une table de partition personalisé fichier : partitions.csv
     Correction bug absence lecture état actions
   - V14.03
-    Forcer l'affichage normal, non miroir sur l'écran
+    Forcer l'affichage normal, non miroir sur l'écran. Selection automatique de l'écran
   - V14.04
     Modif pour Shelly Pro Em ligne  245
     Retrait mode miroir pour les écrans
+  - V14.10
+    Modif pour Shelly Pro Em de Dash
+    Introduction ESP32-ETH01 : Ethernet
             
   
   Les détails sont disponibles sur / Details are available here:
@@ -155,6 +158,7 @@
 #include <HardwareSerial.h>
 #include <Update.h>
 #include <esp_task_wdt.h>  //Pour deinitialiser le watchdog. Nécessaire pour les gros program en ROM. Mystère non élucidé
+#include <EthernetESP32.h>
 
 //Program routines
 #include "pageHtmlBrute.h"
@@ -198,12 +202,12 @@ String SerialIn = "";
 String hostname = "";
 byte dhcpOn = 1;
 byte ModePara = 0;    //0 = Minimal, 1= Expert
-byte ModeWifi = 0;    //0 = Internet, 1= LAN only, 2 =AP pas de réseau
+byte ModeReseau = 0;  //0 = Internet, 1= LAN only, 2 =AP pas de réseau
 byte Horloge = 0;     //0=Internet, 1=Linky, 2=Interne, 3=IT 10ms/triac, 4=IT 20ms
-byte ESP32_Type = 0;  //0=Inconnu,1=Wroom seul,2=Wroom 1 relais,3=Wroom 4 relais,5=Wroom+Ecran320*240
+byte ESP32_Type = 0;  //0=Inconnu,1=Wroom seul,2=Wroom 1 relais,3=Wroom 4 relais,4=Wroom+Ecran320*240,10=ESP32-ETH01
 byte LEDgroupe = 0;   //0:pas de LED,1=(18,19),2=(4,16)
-byte LEDyellow[] = { 0, 18, 4 };
-byte LEDgreen[] = { 0, 19, 16 };
+byte LEDyellow[] = { 0, 18, 4, 2 };
+byte LEDgreen[] = { 0, 19, 16, 4 };
 unsigned long Gateway = 0;
 unsigned long masque = 4294967040;
 unsigned long dns = 0;
@@ -287,8 +291,8 @@ bool Pva_valide = false;
 bool erreurTriac = false;
 byte pTriac = 0;  //Choix Pin Triac
 int8_t pulseTriac = 0, zeroCross = -1;
-int8_t PulseT[] = { 0, 4, 22, 21 };
-int8_t ZeroT[] = { -1, 5, 23, 22 };
+int8_t PulseT[] = { 0, 4, 22, 21, 12 };
+int8_t ZeroT[] = { -1, 5, 23, 22, 14 };
 
 //Parameters for UxI
 byte AnalogIn0 = 35;
@@ -297,9 +301,9 @@ byte AnalogIn2 = 33;
 unsigned int CalibU = 1000;  //Calibration Routeur UxI
 unsigned int CalibI = 1000;
 byte pUxI = 0;
-byte Analog0[] = { 0, 35, 35, 34 };
-byte Analog1[] = { 0, 32, 32, 32 };
-byte Analog2[] = { 0, 33, 34, 33 };
+byte Analog0[] = { 0, 35, 35, 34, 35 };
+byte Analog1[] = { 0, 32, 32, 32, 36 };
+byte Analog2[] = { 0, 33, 34, 33, 39 };
 int value0;
 int volt[100];
 int amp[100];
@@ -447,14 +451,15 @@ volatile int Gpio[LesActionsLength];
 volatile int OutOn[LesActionsLength];
 volatile int OutOff[LesActionsLength];
 
+EMACDriver driver(ETH_PHY_LAN8720, 23, 18, 16);
 WebServer server(80);  // Simple Web Server on port 80
 
 //Port Serie 2 - Remplace Serial2 qui bug
 HardwareSerial MySerial(2);
 byte pSerial = 0;             //Choix Pin port serie
 int8_t RXD2 = -1, TXD2 = -1;  //Port serie
-int8_t RX2_[] = { -1, 16, 26, 18 };
-int8_t TX2_[] = { -1, 17, 27, 19 };
+int8_t RX2_[] = { -1, 16, 26, 18, 5 };
+int8_t TX2_[] = { -1, 17, 27, 19, 17 };
 
 // Heure et Date
 #define MAX_SIZE_T 80
@@ -473,7 +478,7 @@ unsigned short Int_Last_10Millis = 0;
 
 //Température Capteur DS18B20
 byte pTemp = 0;
-byte pinTemp[] = { 0, 13, 27 };
+byte pinTemp[] = { 0, 13, 27, 33 };
 OneWire oneWire(17);  //Numero de pin bidon pour le constructor en attendant affectation reel à placer au debut du setup
 DallasTemperature ds18b20(&oneWire);
 float temperature[4];  // 4 canaux max de températurre
@@ -493,10 +498,13 @@ PubSubClient clientMQTT(MqttClient);
 bool Discovered = false;
 
 //WIFI
-int WIFIbug = 0;
+int16_t WIFIbug = 0;
 WiFiClientSecure clientSecu;
 WiFiClientSecure clientSecuRTE;
 String Liste_AP = "";
+
+//Ethernet
+int16_t EthernetBug = 0;
 
 // Routeurs du réseau
 unsigned long RMS_IP[LesRouteursMax];  //RMS_IP[0] = adresse IP de cet ESP32
@@ -650,32 +658,7 @@ void setup() {
   init_puissance();
   InitTemperature();
 
-  //Liste Wifi à faire avant connexion à un AP. Necessaire depuis biblio ESP32 3.0.1
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  Liste_WIFI();
 
-  Serial.print("Version : ");
-  Serial.println(Version);
-  // Configure WIFI
-  // **************
-  hostname = String(HOSTNAME);
-  uint32_t chipId = 0;
-  for (int i = 0; i < 17; i = i + 8) {
-    chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
-  }
-  hostname += String(chipId);  //Add chip ID to hostname
-  Serial.println(hostname);
-  WiFi.hostname(hostname);
-  ap_default_ssid = (const char *)hostname.c_str();
-  // Check WiFi connection
-  // ... check mode
-  if (WiFi.getMode() != WIFI_STA) {
-    WiFi.mode(WIFI_STA);
-    delay(10);
-  }
-  WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
-  WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
 
   INIT_EEPROM();
 
@@ -690,8 +673,88 @@ void setup() {
   } else {
     RAZ_Histo_Conso();
   }
+  Serial.printf("Chip Model: %s\n", ESP.getChipModel());
+  delay(100);
+  if (String(ESP.getChipModel()).indexOf("V3")<0) {
+     Serial.println("\nAncien modèle d'ESP32 que l'on trouve sur les cartes Ethernet  WT-ETH01");
+     Serial.println("Crash en Wifi. On force Ethernet.\n");
+     ESP32_Type = 10;//On force Ethernet
+  }
+  Serial.println("InitGPIO");
+  delay(500);
   InitGPIOs();
+  Serial.println("ESP32_Type:" + String(ESP32_Type));
+  delay(500);
   if (ESP32_Type == 4) Ecran_Init();
+
+  IP2String(RMS_IP[0]);
+  // Set youRMS_IP[0]c IP address
+  IPAddress local_IP(arrIP[3], arrIP[2], arrIP[1], arrIP[0]);
+  Serial.print("Adresse IP en mémoire : ");
+  Serial.println(local_IP);
+  // Set your Gateway IP address
+  IP2String(Gateway);
+  IPAddress gateway(arrIP[3], arrIP[2], arrIP[1], arrIP[0]);
+  // Set your masque/subnet IP address
+  IP2String(masque);
+  IPAddress subnet(arrIP[3], arrIP[2], arrIP[1], arrIP[0]);
+  // Set your DNS IP address
+  IP2String(dns);
+  IPAddress primaryDNS(arrIP[3], arrIP[2], arrIP[1], arrIP[0]);  //optional
+  IPAddress secondaryDNS(8, 8, 4, 4);
+  hostname = String(HOSTNAME);
+  uint32_t chipId = 0;
+  for (int i = 0; i < 17; i = i + 8) {
+    chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
+  }
+  hostname += String(chipId);  //Add chip ID to hostname
+  Serial.println(hostname);    //optional
+  if (ESP32_Type == 10) {
+    Serial.println("Lancement de la liaison Ethernet");  //Ethernet (avant Horloge)
+    Ethernet.init(driver);
+    //Ethernet.hostname(hostname);
+    if (dhcpOn == 0) {  //Static IP
+                        //optional
+                        //Adresse IP eventuelles
+                        //optional
+      Ethernet.begin(local_IP, primaryDNS, gateway, subnet);
+      delay(100);
+      Ethernet.begin(local_IP, primaryDNS, gateway, subnet); //On s'y prend 2 fois. Parfois ne reussi pas au premier coup
+      delay(100);
+      StockMessage("Adresse IP Ethernet fixe : : " + Ethernet.localIP().toString());
+    } else {
+      Serial.println("Initialisation Ethernet par DHCP:");
+      if (Ethernet.begin()) {
+        StockMessage("Adresse IP Ethernet assignée par DHCP : " + Ethernet.localIP().toString());
+      } else {
+        Serial.println("Failed to configure Ethernet using DHCP");
+        delay(1);
+      }
+    }
+
+  } else {  //ESP32 en WIFI
+    Serial.println("Lancement du Wifi");
+    //Liste Wifi à faire avant connexion à un AP. Necessaire depuis biblio ESP32 3.0.1
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+    WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+    Liste_WIFI();
+    Serial.print("Version : ");
+    Serial.println(Version);
+    // Configure WIFI
+    // **************
+
+    WiFi.hostname(hostname);
+    ap_default_ssid = (const char *)hostname.c_str();
+    // Check WiFi connection
+    // ... check mode
+    if (WiFi.getMode() != WIFI_STA) {
+      WiFi.mode(WIFI_STA);
+      delay(10);
+    }
+    
+  }
 
 
   if (Horloge == 0) {  //heure par Internet}
@@ -705,61 +768,44 @@ void setup() {
   }
 
   //WIFI
-  if (ModeWifi < 2) {
-    Serial.println("ssid:" + ssid);
-    Serial.println("password:" + password);
-    if (ssid.length() > 0) {
-      if (dhcpOn == 0) {  //Static IP
-        IP2String(RMS_IP[0]);
-        // Set youRMS_IP[0]c IP address
-        IPAddress local_IP(arrIP[3], arrIP[2], arrIP[1], arrIP[0]);
-        // Set your Gateway IP address
-        IP2String(Gateway);
-        IPAddress gateway(arrIP[3], arrIP[2], arrIP[1], arrIP[0]);
-        // Set your masque/subnet IP address
-        IP2String(masque);
-        IPAddress subnet(arrIP[3], arrIP[2], arrIP[1], arrIP[0]);
-        // Set your DNS IP address
-        IP2String(dns);
-        IPAddress primaryDNS(arrIP[3], arrIP[2], arrIP[1], arrIP[0]);  //optional
-        IPAddress secondaryDNS(8, 8, 4, 4);                            //optional
-        if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
-          Serial.println("WIFI STA Failed to configure");
+  if (ESP32_Type < 10) {
+    if (ModeReseau < 2) {
+      Serial.println("ssid:" + ssid);
+      Serial.println("password:" + password);
+      if (ssid.length() > 0) {
+        if (dhcpOn == 0) {  //Static IP
+                            //Adresse IP eventuelles
+                            //optional
+          if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+            Serial.println("WIFI STA Failed to configure");
+          }
         }
+        StockMessage("Wifi Begin : " + ssid);
+        WiFi.begin(ssid.c_str(), password.c_str());
+        WiFi.setSleep(WifiSleep);
+        while (WiFi.status() != WL_CONNECTED && (millis() - startMillis < 20000)) {  // Attente connexion au Wifi
+          Serial.write('.');
+          Gestion_LEDs();
+          Serial.print(WiFi.status());
+          delay(300);
+        }
+        Serial.println();
       }
-      StockMessage("Wifi Begin : " + ssid);
-      WiFi.begin(ssid.c_str(), password.c_str());
-      WiFi.setSleep(WifiSleep);
-      while (WiFi.status() != WL_CONNECTED && (millis() - startMillis < 20000)) {  // Attente connexion au Wifi
-        Serial.write('.');
-        Gestion_LEDs();
-        Serial.print(WiFi.status());
-        delay(300);
-      }
-      Serial.println();
+    }
+    if (WiFi.status() == WL_CONNECTED && ModeReseau < 2) {
+      RMS_IP[0] = String2IP(WiFi.localIP().toString());
+      StockMessage("Connecté par WiFi, addresse IP : " + WiFi.localIP().toString() + " or <a href='http://" + hostname + ".local' >" + hostname + ".local</a>");
+    } else {
+      StockMessage("Pas de connexion WIFI. ESP32 en mode AP et STA.");
+      // Go into software AP and STA modes.
+      //WiFi.disconnect();
+      delay(100);
+      WiFi.mode(WIFI_AP_STA);
+      delay(10);
+      WiFi.softAP(ap_default_ssid, ap_default_psk);
+      infoSerie();
     }
   }
-  if (WiFi.status() == WL_CONNECTED && ModeWifi < 2) {
-    RMS_IP[0] = String2IP(WiFi.localIP().toString());
-    StockMessage("Connecté, addresse IP : " + WiFi.localIP().toString() + " or <a href='http://" + hostname + ".local' >" + hostname + ".local</a>");
-  } else {
-    StockMessage("Pas de connexion WIFI. ESP32 en mode AP et STA.");
-    // Go into software AP and STA modes.
-    //WiFi.disconnect();
-    delay(100);
-    WiFi.mode(WIFI_AP_STA);
-    delay(10);
-    WiFi.softAP(ap_default_ssid, ap_default_psk);
-    Serial.println("Access Point Mode : " + hostname);
-    Serial.print("IP address: ");
-    Serial.println(WiFi.softAPIP());
-    Serial.println("Par le port série vous pouvez définir le WIFI à utiliser par l'ESP32 en tapant les 3 commandes ci-dessous en remplaçant xxx par la bonne valeur :");
-    Serial.println("ssid:xxx");
-    Serial.println("password:xxx");
-    Serial.println("restart");
-  }
-
-
 
   Init_Server();
   Liste_des_Noms();
@@ -846,7 +892,7 @@ void setup() {
   previousActionMillis = millis();
   previousTempMillis = millis() - 110000;
   if (Nbr_DS18B20 > 0) LectureTemperature();
-   esp_task_wdt_reset();
+  esp_task_wdt_reset();
   delay(1);  //VERY VERY IMPORTANT for Watchdog Reset
 }
 
@@ -1045,53 +1091,54 @@ void loop() {
     }
     InfoActionExterne();
   }
-  //Vérification du WIFI et de la puissance
+  //Vérification Ethernet, WIFI et de la puissance
   //********************
   if (tps - previousWifiMillis > 30000) {  //Test présence WIFI toutes les 30s et autres
     previousWifiMillis = tps;
     JourHeureChange();
     Serial.println("\nDate : " + DATE);
-    if (WiFi.getMode() == WIFI_STA) {
-      if (WiFi.waitForConnectResult(10000) != WL_CONNECTED) {
-        StockMessage("WIFI Connection Failed! #" + String(WIFIbug));
-        WIFIbug++;
-      } else {
-        WIFIbug = 0;
-      }
-      Serial.print("Niveau Signal WIFI :");
-      Serial.println(WiFi.RSSI());
-      Serial.print("IP address_: ");
-      Serial.println(WiFi.localIP());
-      Serial.print("WIFIbug : #");
-      Serial.println(WIFIbug);
-      if (WIFIbug > 2880) {  //24h sans WIFI Reset
-        delay(5000);
-        ESP.restart();
-      }
-
-      Call_RTE_data();
-      int Ltarf = 0;  //Code binaire Tarif
-      if (LTARF.indexOf("PLEINE") >= 0) Ltarf += 1;
-      if (LTARF.indexOf("CREUSE") >= 0) Ltarf += 2;
-      if (LTARF.indexOf("BLEU") >= 0) Ltarf += 4;
-      if (LTARF.indexOf("BLANC") >= 0) Ltarf += 8;
-      if (LTARF.indexOf("ROUGE") >= 0) Ltarf += 16;
-      LTARFbin = Ltarf;
-
-    } else {
-      if (ModeWifi < 2) { //Normalement connecté au réseau
-        WIFIbug++;
-        if (WIFIbug > 120) {  // 24h en mode AP Reset
+    if (ESP32_Type < 10) {  //ESP32 en WIFI
+      if (WiFi.getMode() == WIFI_STA) {
+        if (WiFi.waitForConnectResult(10000) != WL_CONNECTED) {
+          StockMessage("WIFI Connection Failed! #" + String(WIFIbug));
+          WIFIbug++;
+        } else {
+          WIFIbug = 0;
+        }
+        Serial.print("Niveau Signal WIFI :");
+        Serial.println(WiFi.RSSI());
+        Serial.print("Addresse IP WiFi : ");
+        Serial.println(WiFi.localIP());
+        Serial.print("WIFIbug : #");
+        Serial.println(WIFIbug);
+        if (WIFIbug > 2880) {  //24h sans WIFI Reset
+          delay(5000);
           ESP.restart();
         }
+
+
+
+      } else {
+        if (ModeReseau < 2) {  //Normalement connecté au réseau
+          WIFIbug++;
+          if (WIFIbug > 120) {  // 1h en mode AP Reset
+            ESP.restart();
+          }
+        }
+        infoSerie();
       }
-      Serial.println("Access Point Mode : " + hostname);
-      Serial.print("IP address: ");
-      Serial.println(WiFi.softAPIP());
-      Serial.println("Par le port série vous pouvez définir le WIFI à utiliser par l'ESP32 en tapant les 3 commandes ci-dessous en remplaçant xxx par la bonne valeur :");
-      Serial.println("ssid:xxx");
-      Serial.println("password:xxx");
-      Serial.println("restart");
+    } else {  //ESP32 Ethernet
+      Serial.print("Adresse IP Ethernet : ");
+      Serial.println(Ethernet.localIP());
+      if (Ethernet.linkStatus() == LinkOFF) {
+        Serial.println("Câble Ethernet non connecté.");
+        EthernetBug++;
+      } else {
+        EthernetBug = 0;
+      }
+      if (EthernetBug > 1200) {  // 10h sans réseau
+        ESP.restart();
+      }
     }
     //Verification puissance reçue
     String OK = "Non";
@@ -1108,13 +1155,24 @@ void loop() {
       delay(5000);
       ESP.restart();
     }
-    Serial.println("Puissance reçue : "+ OK);
+    Serial.println("Puissance reçue : " + OK);
     Serial.println("Charge Lecture RMS (coeur 0) en ms - Min : " + String(int(previousTimeRMSMin)) + " Moy : " + String(int(previousTimeRMSMoy)) + "  Max : " + String(int(previousTimeRMSMax)));
     Serial.println("Charge Boucle générale (coeur 1) en ms - Min : " + String(int(previousLoopMin)) + " Moy : " + String(int(previousLoopMoy)) + "  Max : " + String(int(previousLoopMax)));
     Serial.println("Mémoire RAM libre actuellement: " + String(esp_get_free_internal_heap_size()) + " byte");
     Serial.println("Mémoire RAM libre minimum: " + String(esp_get_minimum_free_heap_size()) + " byte");
     float DureeOn = float(T_On_seconde) / 3600.0;
     Serial.println("ESP32 ON depuis : " + String(DureeOn) + " heures");
+    //RTE
+    if (ModeReseau == 0) {  //Valabe pour Ethernet également
+      Call_RTE_data();
+      int Ltarf = 0;  //Code binaire Tarif
+      if (LTARF.indexOf("PLEINE") >= 0) Ltarf += 1;
+      if (LTARF.indexOf("CREUSE") >= 0) Ltarf += 2;
+      if (LTARF.indexOf("BLEU") >= 0) Ltarf += 4;
+      if (LTARF.indexOf("BLANC") >= 0) Ltarf += 8;
+      if (LTARF.indexOf("ROUGE") >= 0) Ltarf += 16;
+      LTARFbin = Ltarf;
+    }
     //Test pulse Zc Triac
     if (ITmode < 0 && pTriac > 0) {
       if (!erreurTriac) StockMessage("Erreur : pas de signal Zc du gradateur/Triac");  //Pour ne pas répéter sans cesse
@@ -1122,8 +1180,8 @@ void loop() {
     } else {
       erreurTriac = false;
     }
-    if (ESP32_Type==0) StockMessage("Attention, modèle carte ESP32 non défini dans les paramètres !");
-    if (pSerial ==0 && (Source == "UxIx2" || Source == "UxIx3" || Source == "Linky") ) StockMessage("Attention, port série non défini dans les paramètres !");       
+    if (ESP32_Type == 0) StockMessage("Attention, modèle carte ESP32 non défini dans les paramètres !");
+    if (pSerial == 0 && (Source == "UxIx2" || Source == "UxIx3" || Source == "Linky")) StockMessage("Attention, port série non défini dans les paramètres !");
   }
 
 
@@ -1215,8 +1273,6 @@ void GestionOverproduction() {
 }
 
 void InitGPIOs() {
-  //byte ESP32_Type = 0; //0=Inconnu,1=Wroom seul,2=Wroom 1relais,3=Wroom 4 relais,5=Wroom+Ecran320*240
-
   if (ESP32_Type > 0) {
     //En premier pour affecter le GPIO au constructeur OneWire
     for (int i = 1; i < NbActions; i++) {
@@ -1229,6 +1285,7 @@ void InitGPIOs() {
   //Triac init
   if (pTriac > 0) {
     if (ESP32_Type == 2 || ESP32_Type == 3) pTriac = 1;  //Obligatoire carte avec relais)
+    if (ESP32_Type == 10) pTriac = 4;                    //Obligatoire carte ETH01)
     pulseTriac = PulseT[pTriac];
     zeroCross = ZeroT[pTriac];
     pinMode(zeroCross, INPUT_PULLUP);
@@ -1265,6 +1322,19 @@ void InitGPIOs() {
   AnalogIn0 = Analog0[pUxI];
   AnalogIn1 = Analog1[pUxI];
   AnalogIn2 = Analog2[pUxI];
+}
+
+void infoSerie() {
+  Serial.println("Access Point Mode : " + hostname);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.softAPIP());
+  Serial.println("\nPar le port série vous pouvez définir le WIFI à utiliser par l'ESP32 en tapant les 3 commandes ci-dessous en remplaçant xxx par la bonne valeur :");
+  Serial.println("ssid:xxx");
+  Serial.println("password:xxx");
+  Serial.println("restart");
+  Serial.println("\nSi vous utilisez la carte ESP32-ETH01, forcez le mode Ethernet en tapant les 2 commandes ci dessous via le port série :");
+  Serial.println("ETH01");
+  Serial.println("restart\n");
 }
 // ***********************************
 // * Calage Zéro Energie quotidienne * -
@@ -1325,7 +1395,7 @@ void Gestion_LEDs() {
   int retard_min = 100;
   int retardI;
   cptLEDyellow++;
-  if (WiFi.status() != WL_CONNECTED) {  // Attente connexion au Wifi
+  if ((WiFi.status() != WL_CONNECTED  && ESP32_Type <10 ) || (EthernetBug>0 && ESP32_Type >=10) ) {  // Attente connexion au Wifi ou ethernet
     if (WiFi.getMode() == WIFI_STA) {   // en  Station mode
       cptLEDyellow = (cptLEDyellow + 6) % 10;
       cptLEDgreen = cptLEDyellow;

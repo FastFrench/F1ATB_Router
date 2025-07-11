@@ -1,6 +1,9 @@
 //*********************************************************************
 // Variante Shelly Pro Em proposé par Raphael591 (Juillet 2024)       *
-//  + Correction Octobre 2024  et Janvier 2025                                       *
+//  + Correction Octobre 2024  et Janvier 2025                        *
+// ********************************************************************
+// dash (février 2025) - Adaptation à l'utilisation du Pro 3EM en     *
+// monophasé tout en ayant conservé le profile du matériel en triphasé*
 // ********************************************************************
 // * Paramétrage de la voie pour le shelly pro 3 em :                 *
 // *   - 3 sur le triphasé.                                           *
@@ -11,6 +14,9 @@ void LectureShellyProEm() {
   String S = "";
   String Shelly_Data = "";
   String Shelly_Name = "";
+  String Shelly_Profile = "";
+  String Shelly_Triphase_As_Monophase = "";
+  String Shelly_Phase = "";
   float Pw = 0;
   float voltage = 0;
   float pf = 0;
@@ -55,9 +61,16 @@ void LectureShellyProEm() {
   Shelly_Name = StringJson("id", Shelly_Data);
   int p = Shelly_Name.indexOf("-");
   Shelly_Name = Shelly_Name.substring(0,p);
+  Shelly_Profile = StringJson("profile", Shelly_Data);
   Shelly_Data = "";
   // Modèle shelly FIN ******
  
+  // Protocole monophasé ou triphasé DÉBUT
+  if (Shelly_Profile == "triphase" && voie != 3) {
+    Shelly_Triphase_As_Monophase = "yes";
+  }
+  // Protocole monophasé ou triphasé FIN
+
   if (!clientESP_RMS.connect(host.c_str(), 80))
   {
     StockMessage("connection to Shelly Em failed : " + host);
@@ -86,7 +99,7 @@ void LectureShellyProEm() {
   }
   p = Shelly_Data.indexOf("{");
   Shelly_Data = Shelly_Data.substring(p);
-  if (Shelly_Name == "shellypro3em" && voie == 3) {
+  if  (Shelly_Name == "shellypro3em" && voie == 3) {
     // 3 em Triphasé
     ShEm_dataBrute = "<strong>"+Shelly_Name+"</strong><br>" + Shelly_Data;
 
@@ -135,6 +148,47 @@ void LectureShellyProEm() {
     tmp = PrefiltreJson("emdata:0", ":", Shelly_Data); // ADD PERSO
     Energie_M_Soutiree = myLongJson("total_act", tmp);         // ADD PERSO
     Energie_M_Injectee = myLongJson("total_act_ret", tmp);     // ADD PERSO
+    PowerFactor_M = pf;
+    Tension_M = voltage;
+    Pva_valide = true;
+  }
+  else if (Shelly_Name == "shellypro3em" && Shelly_Triphase_As_Monophase == "yes")
+  {
+    // on utilise le code ASCII de a (97) pour obtenir le prefix de la phase. Voie 0=a 1=b 2=c
+    Shelly_Phase=char(voie + 97);
+
+    // 3 em Monophasé : Voie != 3 et profile Triphase actif
+    ShEm_dataBrute = "<strong>"+Shelly_Name+" "+"Phase "+Shelly_Phase+"</strong><br>" + Shelly_Data;
+
+    tmp = PrefiltreJson("em:0", ":", Shelly_Data);
+
+    Pw = ValJson(Shelly_Phase + "_act_power", tmp);
+    voltage = ValJson(Shelly_Phase + "_voltage", tmp);
+    pf = abs(ValJson(Shelly_Phase + "_pf", tmp));
+
+    if (pf > 1) pf = 1;
+    if (Pw >= 0) {
+      PuissanceS_M_inst = Pw;
+      PuissanceI_M_inst = 0;
+      if (pf > 0.01) {
+        PVAS_M_inst = PfloatMax(Pw / pf);
+      } else {
+        PVAS_M_inst = 0;
+      }
+      PVAI_M_inst = 0;
+    } else {
+      PuissanceS_M_inst = 0;
+      PuissanceI_M_inst = -Pw;
+      if (pf > 0.01) {
+        PVAI_M_inst = PfloatMax(-Pw / pf);
+      } else {
+        PVAI_M_inst = 0;
+      }
+      PVAS_M_inst = 0;
+    }
+    tmp = PrefiltreJson("emdata:0", ":", Shelly_Data); // ADD PERSO
+    Energie_M_Soutiree = myLongJson(Shelly_Phase + "_total_act_energy", tmp);         // ADD PERSO
+    Energie_M_Injectee = myLongJson(Shelly_Phase + "_total_act_ret_energy", tmp);     // ADD PERSO
     PowerFactor_M = pf;
     Tension_M = voltage;
     Pva_valide = true;

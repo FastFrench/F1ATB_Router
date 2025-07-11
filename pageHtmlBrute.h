@@ -190,15 +190,17 @@ const char *PageBruteJS = R"====(
               H=H.replace(".", "h ")+"mn";
               var LaSource=Source;
               if (LaSource=='Ext') LaSource="Externe ("+Source_data+")<br>" +int2ip(RMSextIP);
-              var typeESP32=["Non défini","Wroom seul","Carte 1 relais","Carte 4 relais","Ecran320*240"];
+              var typeESP32=["Non défini","Wroom seul","Carte 1 relais","Carte 4 relais","Ecran320*240","","","","","","ESP32-ETH01"];
               S+='<tr><td>ESP32 On depuis :</td><td>'+H+'</td></tr>';
               S+='<tr><td>ESP32 modèle :</td><td>'+typeESP32[message[1]]+'</td></tr>';
               S+='<tr><td>Source des mesures :</td><td>'+LaSource+'</td></tr>';
-              if (ModeWifi<2){
-                S+='<tr><td>Niveau WiFi :</td><td>'+message[2]+' dBm</td></tr>';
-                S+="<tr><td>Point d'acc&egrave;s WiFi :</td><td>"+message[3]+'</td></tr>';
-                S+='<tr><td>Adresse MAC ESP32 :</td><td>'+message[4]+'</td></tr>';
-                S+='<tr><td>R&eacute;seau WiFi :</td><td>'+message[5]+'</td></tr>';
+              if (ModeReseau<2){
+                if (message[1]<10){ //WIFI
+                  S+='<tr><td>Niveau WiFi :</td><td>'+message[2]+' dBm</td></tr>';
+                  S+="<tr><td>Point d'acc&egrave;s WiFi :</td><td>"+message[3]+'</td></tr>';
+                  S+='<tr><td>R&eacute;seau WiFi :</td><td>'+message[5]+'</td></tr>';
+                }
+                S+='<tr><td>Adresse MAC ESP32 :</td><td>'+message[4]+'</td></tr>';                
                 S+='<tr><td>Adresse IP ESP32 :</td><td>'+message[6]+'</td></tr>';
                 S+='<tr><td>Adresse passerelle :</td><td>'+message[7]+'</td></tr>';
                 S+='<tr><td>Masque du r&eacute;seau :</td><td>'+message[8]+'</td></tr>';

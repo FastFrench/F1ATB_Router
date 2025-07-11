@@ -194,7 +194,7 @@ void LectureEnROM() {
     address += Couleurs.length() + 1;
     ModePara = EEPROM.readByte(address);
     address += sizeof(byte);
-    ModeWifi = EEPROM.readByte(address);
+    ModeReseau = EEPROM.readByte(address);
     address += sizeof(byte);
     Horloge = EEPROM.readByte(address);
     address += sizeof(byte);
@@ -369,7 +369,7 @@ int EcritureEnROM() {
   address += Couleurs.length() + 1;
   EEPROM.writeByte(address, ModePara);
   address += sizeof(byte);
-  EEPROM.writeByte(address, ModeWifi);
+  EEPROM.writeByte(address, ModeReseau);
   address += sizeof(byte);
   EEPROM.writeByte(address, Horloge);
   address += sizeof(byte);
@@ -629,11 +629,18 @@ void LireSerial() {
       }
       if (sw.indexOf("ssid") >= 0) {
         ssid = valeur;
-        ModeWifi = 0;  // A priori
+        ModeReseau = 0;  // A priori
+        if (ESP32_Type>=10){ //Carte Ethernet
+          ESP32_Type=0;
+        }
         EcritureEnROM();
       }
       if (sw.indexOf("password") >= 0) {
         password = valeur;
+        EcritureEnROM();
+      }
+      if (sw.indexOf("ETH01") >= 0) {
+        ESP32_Type=10;
         EcritureEnROM();
       }
 
@@ -658,7 +665,7 @@ String Fichier_parametres(String ip, String para, String action) {
   }
   if (para == "true") {
     S += AddStr("CleAccesRef", CleAccesRef) + AddStr("Couleurs", Couleurs);
-    S += AddByte("ModePara", ModePara) + AddByte("ModeWifi", ModeWifi) + AddByte("Horloge", Horloge);
+    S += AddByte("ModePara", ModePara) + AddByte("ModeReseau", ModeReseau) + AddByte("Horloge", Horloge);
     S += AddByte("ESP32_Type", ESP32_Type) + AddByte("LEDgroupe", LEDgroupe) + AddByte("rotation", rotation);
     for (int i = 0; i < 8; i++) {
       S += AddUshort("Calibre" + String(i), Calibre[i]);
@@ -742,7 +749,7 @@ void ImportParametres(String Conf) {
     CleAccesRef = StringJson("CleAccesRef", Conf);
     Couleurs = StringJson("Couleurs", Conf);
     ModePara = ByteJson("ModePara", Conf);
-    ModeWifi = ByteJson("ModeWifi", Conf);
+    ModeReseau = ByteJson("ModeReseau", Conf);
     Horloge = ByteJson("Horloge", Conf);
     ESP32_Type = ByteJson("ESP32_Type", Conf);
     LEDgroupe = ByteJson("LEDgroupe", Conf);

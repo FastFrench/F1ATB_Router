@@ -20,7 +20,7 @@ const char *TXT = "text";
 void GestionMQTT() {
 
   bool Temper = false;
-  if (ModeWifi < 2) {
+  if (ModeReseau < 2) {
     for (int C = 0; C < 4; C++) {
       if (Source_Temp[C] == "tempMqtt") Temper = true;
     }
@@ -75,11 +75,16 @@ bool testMQTTconnected() {
       }
       sprintf(StateTopic, "%s%s_state", PrefixMQTTEtat, MQTTdeviceName.c_str());
       byte mac[6];  // the MAC address of your Wifi shield
-      WiFi.macAddress(mac);
+      String cu = "http://" + WiFi.localIP().toString();
+      if (ESP32_Type < 10) {
+        WiFi.macAddress(mac);
+      } else {
+        Ethernet.macAddress(mac);
+        cu = "http://" + Ethernet.localIP().toString();
+      }
       sprintf(ESP_ID, "%02x%02x%02x", mac[2], mac[1], mac[0]);  // ID de l'entité pour HA
       sprintf(mdl, "%s%s", "ESP32 - ", ESP_ID);                 // ID de l'entité pour HA
       String mf = "F1ATB - https://f1atb.fr";
-      String cu = "http://" + WiFi.localIP().toString();
       String hw = String(ESP.getChipModel()) + " rev." + String(ESP.getChipRevision());
       String sw = Version;
       sprintf(DEVICE, "{\"ids\":\"%s\",\"name\":\"%s\",\"mdl\":\"%s\",\"mf\":\"%s\",\"hw\":\"%s\",\"sw\":\"%s\",\"cu\":\"%s\"}", ESP_ID, nomRouteur.c_str(), mdl, mf.c_str(), hw.c_str(), sw.c_str(), cu.c_str());
@@ -163,7 +168,7 @@ void sendMQTTDiscoveryMsg_global() {
   for (int canal = 0; canal < 4; canal++) {
     if (Source_Temp[canal] != "tempNo") DeviceToDiscover("Temperature_" + String(canal), nomTemperature[canal], "°C", "temperature", "1");
   }
-  DeviceToDiscover("Temperature_CPU" , "Température CPU ESP32", "°C", "temperature", "1");
+  DeviceToDiscover("Temperature_CPU", "Température CPU ESP32", "°C", "temperature", "1");
 
   if (Source == "Linky" || TempoRTEon == 1) {
     DeviceTextToDiscover("LTARF", "Option Tarifaire");
@@ -306,7 +311,7 @@ void SendDataToHomeAssistant() {
       sprintf(value, "%s,\"Temperature_%s\": %.1f", value, String(canal), temperature[canal]);
     }
   }
-  sprintf(value, "%s,\"Temperature_CPU\": %.1f", value,  temperatureRead());
+  sprintf(value, "%s,\"Temperature_CPU\": %.1f", value, temperatureRead());
   if (Source == "Linky" || TempoRTEon == 1) {
     int code = 0;
     if (LTARF.indexOf("HEURE  CREUSE") >= 0) code = 1;  //Code Linky
