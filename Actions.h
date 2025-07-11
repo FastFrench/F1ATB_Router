@@ -7,6 +7,7 @@ private:
   void CallExterne(String host, String url, int port);
   int T_LastAction = 0;
   int tempoTimer = 0;
+  int16_t Tseuil = 2000;
 
 
 
@@ -21,12 +22,13 @@ public:
   void RelaisOn();
   void Prioritaire();
 
-
-  byte TypeEnCours(int Heure, float Temperature, int Ltarfbin,int Retard);
+  int16_t CanalTempEnCours(int Heure);
+  byte TypeEnCours(int Heure, float Temperature, int Ltarfbin, int Retard);
+  byte SelActEnCours(int Heure);
   int Valmin(int Heure);
   int Valmax(int Heure);
   void InitGpio();
-  byte Actif; //0=Inactif,1=Decoupe ou On/Off, 2=Multi, 3= Train
+  byte Actif;  //0=Inactif,1=Decoupe ou On/Off, 2=Multi, 3= Train
   int Port;
   int Repet;
   int Tempo;
@@ -40,24 +42,26 @@ public:
   int tOnOff;
   byte Reactivite;
   byte NbPeriode;
-  byte SelectAct; //Ref ESP/Action. 255=pas exploité
-  int ExtValide; //Condition Action externe
-  int ExtHequiv; //Duree heure *100 action externe
-  int ExtOuvert; //Pourcent ouverture
-  int CanalT;
+  byte ExtSelAct;  //Selection Action en cours
+  int ExtValide;   //Condition Action externe
+  int ExtHequiv;   //Duree heure *100 action externe
+  int ExtOuvert;   //Pourcent ouverture
+
   bool On;
   float H_Ouvre;
-  byte Type[8]; //0=NO(pas utilisé),1=OFF,2=ON,3=PW,4=Triac
-  int Hdeb[8];
-  int Hfin[8];
-  int Vmin[8]; //Seuil Pw On ou decoupe
-  int Vmax[8]; //Seuil Pw Off ou ouverture max triac
-  int Tinf[8]; //Temperarure
-  int Tsup[8];
-  int Hmin[8]; //Heure deci *100 Min pour actif. 0=non utilisé
-  int Hmax[8]; //Heure deci *100 Max pour actif
-  byte Ooff[8]; //Ouvre Min Action pour Actif. 0 non utilisé
-  byte O_on[8]; 
+  byte Type[8];  //0=NO(pas utilisé),1=OFF,2=ON,3=PW,4=Triac
+  int16_t Hdeb[8];
+  int16_t Hfin[8];
+  int16_t Vmin[8];  //Seuil Pw On ou decoupe
+  int16_t Vmax[8];  //Seuil Pw Off ou ouverture max triac
+  int16_t Tinf[8];  //Temperarure * 10
+  int16_t Tsup[8];
+  int16_t Hmin[8];  //Heure deci *100 Min pour actif. 0=non utilisé
+  int16_t Hmax[8];  //Heure deci *100 Max pour actif
+  int16_t CanalTemp[8];
+  byte SelAct[8];  //Ref ESP/Action. 255=pas exploité
+  byte Ooff[8];    //Ouvre Min Action pour Actif. 0 non utilisé
+  byte O_on[8];
   byte Tarif[8];
 };
 

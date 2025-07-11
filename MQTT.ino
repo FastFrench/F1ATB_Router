@@ -6,6 +6,7 @@ char ESP_ID[15];
 char mdl[30];
 char StateTopic[50];
 char PrefixMQTT[25];
+char PrefixMQTTEtat[25];
 char AvailableTopic[60];
 
 
@@ -17,14 +18,17 @@ const char *BINS = "binary_sensor";
 const char *SWTC = "switch";
 const char *TXT = "text";
 void GestionMQTT() {
+
   bool Temper = false;
-  for (int C = 0; C < 4; C++) {
-    if (Source_Temp[C] == "tempMqtt") Temper = true;
-  }
-  if (MQTTRepet > 0 || Temper || Source == "Pmqtt" || subMQTT == 1) {
-    if (testMQTTconnected()) {
-      clientMQTT.loop();
-      envoiVersMQTT();
+  if (ModeWifi < 2) {
+    for (int C = 0; C < 4; C++) {
+      if (Source_Temp[C] == "tempMqtt") Temper = true;
+    }
+    if (MQTTRepet > 0 || Temper || Source == "Pmqtt" || subMQTT == 1) {
+      if (testMQTTconnected()) {
+        clientMQTT.loop();
+        envoiVersMQTT();
+      }
     }
   }
 }
@@ -34,11 +38,14 @@ bool testMQTTconnected() {
   if (!clientMQTT.connected()) {  // si le mqtt n'est pas connecté (utile aussi lors de la 1ere connexion)
     Serial.println("Connection au serveur MQTT ...");
     String host = IP2String(MQTTIP);
+    String S = "";
+    if (MQTTPrefix != "") S = MQTTPrefix + "/";
+    sprintf(PrefixMQTT, "%s", S.c_str());
+    S = "";
+    if (MQTTPrefixEtat != "") S = MQTTPrefixEtat + "/";
+    sprintf(PrefixMQTTEtat, "%s", S.c_str());
     String TopicA = "Available";
-    sprintf(AvailableTopic, "%s/%s", MQTTdeviceName.c_str(), TopicA.c_str());
-    String S ="";
-    if (MQTTPrefix !="") S=MQTTPrefix + "/";
-    sprintf(PrefixMQTT,"%s",S.c_str());
+    sprintf(AvailableTopic, "%s%s/%s", PrefixMQTTEtat, MQTTdeviceName.c_str(), TopicA.c_str());
     clientMQTT.setServer(host.c_str(), MQTTPort);
     clientMQTT.setCallback(callback);  //Déclaration de la fonction de souscription
     // if (clientMQTT.connect(MQTTdeviceName.c_str(), MQTTUser.c_str(), MQTTPwd.c_str())) {  // si l'utilisateur est connecté au mqtt
@@ -66,7 +73,7 @@ bool testMQTTconnected() {
           }
         }
       }
-      sprintf(StateTopic, "%s%s_state", PrefixMQTT, MQTTdeviceName.c_str());
+      sprintf(StateTopic, "%s%s_state", PrefixMQTTEtat, MQTTdeviceName.c_str());
       byte mac[6];  // the MAC address of your Wifi shield
       WiFi.macAddress(mac);
       sprintf(ESP_ID, "%02x%02x%02x", mac[2], mac[1], mac[0]);  // ID de l'entité pour HA
@@ -81,7 +88,7 @@ bool testMQTTconnected() {
       StockMessage("Echec connexion MQTT : " + host);
       connecte = false;
       delay(1);
-      PeriodeMQTTMillis = 30000;  //Penalisé 30s 
+      PeriodeMQTTMillis = 30000;  //Penalisé 30s
       previousMQTTMillis = millis();
     }
   }
@@ -161,6 +168,19 @@ void sendMQTTDiscoveryMsg_global() {
   if (Source == "Linky" || TempoRTEon == 1) {
     DeviceTextToDiscover("LTARF", "Option Tarifaire");
     DeviceToDiscoverWithoutUnit("Code_Tarifaire", "Code Tarifaire", "0");
+  }
+  if (Source == "Linky") {
+    DeviceTextToDiscover("NGTF", "Calendrier Tarifaire");
+    DeviceToDiscover("EASF01", "EASF01", "Wh", "energy", "0");
+    DeviceToDiscover("EASF02", "EASF02", "Wh", "energy", "0");
+    DeviceToDiscover("EASF03", "EASF03", "Wh", "energy", "0");
+    DeviceToDiscover("EASF04", "EASF04", "Wh", "energy", "0");
+    DeviceToDiscover("EASF05", "EASF05", "Wh", "energy", "0");
+    DeviceToDiscover("EASF06", "EASF06", "Wh", "energy", "0");
+    DeviceToDiscover("EASF07", "EASF07", "Wh", "energy", "0");
+    DeviceToDiscover("EASF08", "EASF08", "Wh", "energy", "0");
+    DeviceToDiscover("EASF09", "EASF09", "Wh", "energy", "0");
+    DeviceToDiscover("EASF10", "EASF10", "Wh", "energy", "0");
   }
   if (Source == "Enphase") {
     DeviceToDiscover("PactProd", "Puissance produite", "W", "power", "0");
@@ -300,7 +320,11 @@ void SendDataToHomeAssistant() {
     if (LTARF.indexOf("TEMPO_BLEU") >= 0) code = 17;  // Code RTE
     if (LTARF.indexOf("TEMPO_BLANC") >= 0) code = 18;
     if (LTARF.indexOf("TEMPO_ROUGE") >= 0) code = 19;
-    sprintf(value, "%s,\"LTARF\":\"%s\", \"Code_Tarifaire\":%d", value, LTARF, code);
+    sprintf(value, "%s,\"LTARF\":\"%s\", \"Code_Tarifaire\":%d", value, LTARF.c_str(), code);
+  }
+  if (Source == "Linky") {
+    sprintf(value, "%s,\"NGTF\":\"%s\"", value, NGTF.c_str());
+    sprintf(value, "%s,\"EASF01\":%d, \"EASF02\":%d, \"EASF03\":%d, \"EASF04\":%d, \"EASF05\":%d, \"EASF06\":%d,\"EASF07\":%d, \"EASF08\":%d, \"EASF09\":%d, \"EASF10\":%d", value, EASF01, EASF02, EASF03, EASF04, EASF05, EASF06, EASF07, EASF08, EASF09, EASF10);
   }
   if (Source == "Enphase") {
     sprintf(value, "%s,\"PactProd\":%d, \"PactConso_M\":%d", value, PactProd, PactConso_M);

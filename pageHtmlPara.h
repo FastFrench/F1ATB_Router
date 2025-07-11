@@ -6,10 +6,10 @@ const char *ParaHtml = R"====(
   <html><head><meta charset="UTF-8">
   <link rel="stylesheet" href="commun.css">
   <style>    
-    body{color:white;}
     .form {margin:auto;padding:10px;display: table;text-align:left;width:100%;}
     .form2 {margin:2px;padding:2px;display: block;width:100%;}
     .ligne {display: table-row;padding:10px;}
+    .ligne3 {display:flex;justify-content: center;padding:0px;margin: 0px;}
     .cadre {border-top:1px solid azure;}
     .canalT {display: table;}
     .canalTr {display: table-row;width:100%;}
@@ -23,19 +23,29 @@ const char *ParaHtml = R"====(
     .Bgeneraux{border:inset 4px azure;}
     #BoutonsBas{text-align:center;}    
     #ligneFixe,.ligneTemperature,#ligneExt,#ligneEnphaseUser,#ligneEnphasePwd,#ligneEnphaseSerial,#infoIP,#ligneTopicP,#ligneTopicT{display:none;}
-    .Zone{width:100%;border 1px solid grey;border-radius:10px;margin-top:10px;background-color:rgba(30,30,30,0.3);} 
+    .Zone,.generaux{width:100%;border 1px solid grey;border-radius:10px;margin-top:10px;background-color:rgba(30,30,30,0.3);} 
     #onglets2{display:block;} 
     .don{height:50px;display:block;text-align:center;} 
-    .donEnv{display:inline-block;text-align:center;border:azure 3px outset; border-radius:18px;background-color:white;} 
+    #donEnv{display:inline-block;text-align:center;border:azure 3px outset; border-radius:18px;background-color:white;} 
     .donNone{display:none;} 
+    .generaux{width:50%;text-align:center;margin:auto;}
+    .generaux label{width:30%;}
+    .fsize150{font-size:140%;}
+    .topG{display:flex;justify-content: center;}
   </style>
-  <script src="/ParaJS"></script>
-  <script src="/ParaRouteurJS"></script>
+  
   </head>
   <body onLoad="Init();">
     <div id="lesOnglets"></div>
-    <h4>Param&egrave;tres généraux</h4>
-
+    <div class="generaux">
+      <div class="fsize150">Paramètres généraux</div>
+      <div class="topG">
+              <label for='ModeP0' style='text-align:right;'>Mode standard</label>
+              <input type='radio' name='ModeP' id='ModeP0' value="0" checked onclick="checkDisabled();">
+              <label for='ModeP1' style='text-align:right;'>Mode expert</label>
+              <input type='radio' name='ModeP' id='ModeP1' value="1"  onclick="checkDisabled();">
+      </div>
+    </div>
     <div class="Zone">
         <div class="boldT">Routeur</div>
         <div class="form"  >
@@ -50,18 +60,18 @@ const char *ParaHtml = R"====(
           <div class='ligne' id='ligneFixe'>
             <label for='nomSondeFixe' >Nom Données courant seconde sonde : </label>
             <input type='text' name='nomSondeFixe' id='nomSondeFixe' >
-          </div>         
-          <div class='ligne'>
+          </div>       
+          <div class='ligne' id="l_wifi_0">
             <label for='TempoRTEon'>Affichage couleur Tempo RTE : </label>
-            <input type='checkbox' name='TempoRTEon' id='TempoRTEon' style='width:25px;' >
+            <input type='checkbox' name='TempoRTEon' id='TempoRTEon' style='width:25px;' ><span class='fsize10'>Nécessite un Reset de l'ESP32</span>
           </div>
-          <div class='ligne'>
+          <div class='ligne' id="l_wifi_1">
             <label for='MQTTRepete'>Puissances et température envoyées au serveur MQTT<br>Période (s) répétition  (0= pas d'envoi) : </label>
             <input type='number' name='MQTTRepete' id='MQTTRepete'  onclick="checkDisabled();" >
           </div>
-          <div class='ligne'>
-             <label for='WifiSleep'>Wifi Sleep/veille <small>(réduit la consommation mais ralenti la communication)</small>: </label>
-             <input type='checkbox' name='WifiSleep' id='WifiSleep' style='width:25px;' ><span class='fsize10'>Nécessite un Reset de l'ESP32</span>
+          <div class='ligne' id="l_wifi_2">
+            <label for='WifiSleep'>Wifi Sleep/veille <small>(réduit la consommation mais ralenti la communication)</small>: </label>
+            <input type='checkbox' name='WifiSleep' id='WifiSleep' style='width:25px;' ><span class='fsize10'>Nécessite un Reset de l'ESP32</span>
           </div>
           <div class='ligne'>
              <label for='RAZdata'>Remise à zéro historique des mesures</label>
@@ -90,11 +100,18 @@ const char *ParaHtml = R"====(
         </div>
     </div>
     <div class="Zone">
-        <div class="boldT">Adresse IP de l'ESP32 du Routeur</div>
+        <div class="boldT">Accès réseau et adresse IP de l'ESP32 du Routeur</div>
+        <div class="form"  >
+          <div class="ligne source">           
+              <label for='ModeW0' style='text-align:right;'>Accès Internet</label><input type='radio' name='ModeW' id='ModeW0' value="0"  checked onclick="checkDisabled();" >
+              <label for='ModeW1' style='text-align:right;'>Accès réseau local uniquement</label><input type='radio' name='ModeW' id='ModeW1' value="1" onclick="checkDisabled();"  >
+              <label for='ModeW2' style='text-align:right;'>Point d'Accès isolé</label><input type='radio' name='ModeW' id='ModeW2' value="2" onclick="checkDisabled();"  >
+          </div>
+        </div>
         <div class="form"  >
           <div class='ligne'>
-            <label for='dhcp'>Adresse IP auto (DHCP) <span id='localIP'><span> : </label>
-            <input type='checkbox' name='dhcp' id='dhcp' style='width:25px;' onclick="checkDisabled();"><span class='fsize10'>Nécessite un Reset de l'ESP32</span>
+            <label for='dhcp'>Adresse IP <span id='localIP'><span> : </label>
+            <input type='checkbox' name='dhcp' id='dhcp' style='width:25px;' onclick="checkDisabled();"><span id="ipreset" class='fsize10'>Nécessite un Reset de l'ESP32</span>
           </div>
         </div>
         <div class="form"  id="infoIP">
@@ -117,6 +134,18 @@ const char *ParaHtml = R"====(
         </div>
     </div>
     <div class="Zone">
+      <div class="boldT">Horloge du Routeur</div>
+      <div class="form"  >
+        <div class="ligne source">        
+            <label for='Hor0' style='text-align:right;' id='Hor0L'>Internet</label><input type='radio' name='Horlo' id='Hor0' value="0" onclick="checkDisabled();"  >
+            <label for='Hor1' style='text-align:right;'>Linky</label><input type='radio' name='Horlo' id='Hor1' value="1" onclick="checkDisabled();"  >
+            <label for='Hor2' style='text-align:right;'>Interne</label><input type='radio' name='Horlo' id='Hor2' value="2" onclick="checkDisabled();"  >
+            <label for='Hor3' style='text-align:right;'>IT 10ms/100Hz (Triac)</label><input type='radio' name='Horlo' id='Hor3' value="3" onclick="checkDisabled();"  >
+            <label for='Hor4' style='text-align:right;'>IT 20ms/50Hz</label><input type='radio' name='Horlo' id='Hor4' value="4" onclick="checkDisabled();"  >                 
+        </div>
+      </div>
+    </div>
+    <div class="Zone" id="listerouteurs">
         <div class="boldT">Liste des Routeurs en réseau <span class="fsize10">Même version de routeur recommandée</span></div>
         <div class="form" id="Routeurs"></div>
     </div>
@@ -132,18 +161,20 @@ const char *ParaHtml = R"====(
             <input type='radio' name='sources' id='UxIx3' value="UxIx3"  onclick="checkDisabled();">       
             <label for='Linky' style='text-align:right;'>Linky</label>
             <input type='radio' name='sources' id='Linky' value="Linky"  onclick="checkDisabled();">
-            <label for='Enphase' style='text-align:right;'>Enphase-Envoy</label>
-            <input type='radio' name='sources' id='Enphase' value="Enphase"  onclick="checkDisabled();">
-            <label for='SmartG' style='text-align:right;'>SmartGateways</label>
-            <input type='radio' name='sources' id='SmartG' value="SmartG"  onclick="checkDisabled();">
-            <label for='ShellyEm' style='text-align:right;'>Shelly Em</label>
-            <input type='radio' name='sources' id='ShellyEm' value="ShellyEm"  onclick="checkDisabled();">
-            <label for='ShellyPro' style='text-align:right;'>Shelly Pro Em</label>
-            <input type='radio' name='sources' id='ShellyPro' value="ShellyPro"  onclick="checkDisabled();">
-            <label for='Ext' style='text-align:right;'>ESP Externe</label>
-            <input type='radio' name='sources' id='Ext' value="Ext"  onclick="checkDisabled();">
-            <label for='Pmqtt' style='text-align:right;'>MQTT</label>
-            <input type='radio' name='sources' id='Pmqtt' value="Pmqtt"  onclick="checkDisabled();">
+            <span id="avec_wifi">
+              <label for='Enphase' style='text-align:right;'>Enphase-Envoy</label>
+              <input type='radio' name='sources' id='Enphase' value="Enphase"  onclick="checkDisabled();">
+              <label for='SmartG' style='text-align:right;'>SmartGateways</label>
+              <input type='radio' name='sources' id='SmartG' value="SmartG"  onclick="checkDisabled();">
+              <label for='ShellyEm' style='text-align:right;'>Shelly Em</label>
+              <input type='radio' name='sources' id='ShellyEm' value="ShellyEm"  onclick="checkDisabled();">
+              <label for='ShellyPro' style='text-align:right;'>Shelly Pro Em</label>
+              <input type='radio' name='sources' id='ShellyPro' value="ShellyPro"  onclick="checkDisabled();">
+              <label for='Ext' style='text-align:right;'>ESP Externe</label>
+              <input type='radio' name='sources' id='Ext' value="Ext"  onclick="checkDisabled();">
+              <label for='Pmqtt' style='text-align:right;' id='PmqttL'>MQTT</label>
+              <input type='radio' name='sources' id='Pmqtt' value="Pmqtt"  onclick="checkDisabled();">
+            </span>
           </div>
         </div>
         <div class="form"  >
@@ -170,12 +201,11 @@ const char *ParaHtml = R"====(
           <div><span class='fsize10'>Nécessite un Reset de l'ESP32</span></div>
         </div> 
     </div>
-    <div class="Zone" >
+    <div class="Zone" id="LesSourcesTemp">
         <div class="boldT">Source des mesures de température</div>
         <div class="form"  >
           <div id="Sources_Temp"></div>
-        </div>
-        
+        </div>        
     </div>
     
     <div class="Zone" id="Zmqtt">
@@ -198,11 +228,15 @@ const char *ParaHtml = R"====(
             <input type='password' name='MQTTpwd' id='MQTTpwd' >
           </div>
           <div class='ligne'>
-            <label for='MQTTPrefix'>MQTT Prefix (1 seul mot ex : homeassistant ) : </label>
+            <label for='MQTTPrefix'>MQTT Préfixe de découverte (1 seul mot ex : homeassistant ) : </label>
             <input type='text' name='MQTTPrefix' id='MQTTPrefix' >
           </div>
           <div class='ligne'>
-            <label for='MQTTdeviceName'>MQTT Device Name (1 seul mot ex : routeur_rms ) : </label>
+            <label for='MQTTPrefixEtat'>MQTT Préfixe de publication (1 seul mot ex : homeassistant ) : </label>
+            <input type='text' name='MQTTPrefixEtat' id='MQTTPrefixEtat' >
+          </div>
+          <div class='ligne'>
+            <label for='MQTTdeviceName'>MQTT Device Name / Nom routeur (1 seul mot ex : routeur_rms ) : </label>
             <input type='text' name='MQTTdeviceName' id='MQTTdeviceName' >
           </div>
           <div class='ligne'>
@@ -224,6 +258,15 @@ const char *ParaHtml = R"====(
           </div>
         </div>
     </div>
+    <div class="Zone" >
+        <div class="boldT" >Sécurité d'accès aux paramètres et Actions</div>
+        <div class="form"  >    
+          <div class='ligne'>
+            <label for='CleAcces'>Définissez un mot de passe d'accès <span class='fsize10'>Pas de ";" Ne rien mettre si accès libre</span> : </label>
+            <input type='text' name='CleAcces' id='CleAcces'>
+          </div>
+        </div>
+    </div>
     <div  id='BoutonsBas'>        
         <br><input  class='bouton' type='button' onclick="SendValues();" value='Sauvegarder' >
         <div class="lds-dual-ring" id="attente"></div>
@@ -232,7 +275,7 @@ const char *ParaHtml = R"====(
     <br>
     <div id='pied'></div>
     <br>
-    <div class="donEnv" >
+    <div id="donEnv" >
       <form action="https://www.paypal.com/donate" method="post" target="_top">
         <input type="hidden" name="hosted_button_id" value="Z35E9D5D9N9DN" />
         <input class="don" type="image" src="https://pics.paypal.com/00/s/MGY1NzdhY2YtYTRkNi00YzIwLWI2YzQtNWI3YjM3ZmFiNWUx/file.PNG" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Bouton Faites un don avec PayPal" />
@@ -240,10 +283,14 @@ const char *ParaHtml = R"====(
       </form>
 
     </div>
+    <script src="/ParaRouteurJS"></script>
+    <script src="/ParaJS"></script>
+    <script src="/CommunCouleurJS"></script>
   </body></html>
 )====";
 const char *ParaJS = R"====(
   var refTempIP=[];
+   var BordsInverse=[".Bparametres",".Bgeneraux"];
   function Init(){
     var S="";
     for (var i=0;i<4;i++){
@@ -254,11 +301,13 @@ const char *ParaJS = R"====(
             S +="<label for='tempNo" + i + "' style='text-align:right;'>Pas de mesure</label>";
             S +="<input type='radio' name='srcTemp" + i + "' id='tempNo" + i + "' value='tempNo'  onclick='checkDisabled();'>";
             S +="<label for='tempInt" + i + "' style='text-align:right;'>Capteur DS18B20 Interne</label>";
-            S +="<input type='radio' name='srcTemp" + i + "' id='tempInt" + i + "' value='tempInt'  onclick='checkDisabled();'>  "; 
-            S +="<label for='tempExt" + i + "' style='text-align:right;'>Capteur DS18B20 ESP Externe</label>";
-            S +="<input type='radio' name='srcTemp" + i + "' id='tempExt" + i + "' value='tempExt'  onclick='checkDisabled();'>";       
-            S +="<label for='tempMqtt" + i + "' style='text-align:right;'>MQTT</label>";
-            S +="<input type='radio' name='srcTemp" + i + "' id='tempMqtt" + i + "' value='tempMqtt'  onclick='checkDisabled();'>";
+            S +="<input type='radio' name='srcTemp" + i + "' id='tempInt" + i + "' value='tempInt'  onclick='checkDisabled();'>  ";
+            S +="<span id='siWifi"+i+"'>";
+              S +="<label for='tempExt" + i + "' style='text-align:right;'>Capteur DS18B20 ESP Externe</label>";
+              S +="<input type='radio' name='srcTemp" + i + "' id='tempExt" + i + "' value='tempExt'  onclick='checkDisabled();'>";       
+              S +="<label for='tempMqtt" + i + "' style='text-align:right;'>MQTT</label>";
+              S +="<input type='radio' name='srcTemp" + i + "' id='tempMqtt" + i + "' value='tempMqtt'  onclick='checkDisabled();'>";
+            S +="</span>";
           S +="</div>";
         S +="</div>";
         S +="<div class='form ligneTemperature' id='ligneTemperature" + i + "' >";
@@ -290,7 +339,9 @@ const char *ParaJS = R"====(
     S="<div class='ligne'><div class='nomR'><strong>Nom</strong></div><div class='nomR'><strong>Adresse IP</strong></div></div>";
     for (var i=0;i<8;i++){
         S +="<div class='ligne' id='Routeur_" + i + "' style='display:none;' >";
-          S +="<div id='RMS_Nom" + i +"'  class='nomR'></div><input type='text' id='RMS_IP" + i +"'>";
+        var bg="";
+        if (i==0) bg="style='background-color:#bbb;'";
+          S +="<div id='RMS_Nom" + i +"'  class='nomR'></div><input type='text' id='RMS_IP" + i +"' " + bg + ">";
         S +="</div>";
     }
     GH("Routeurs",S);
@@ -298,8 +349,22 @@ const char *ParaJS = R"====(
     SetHautBas();
     LoadParametres();
     LoadParaRouteur();
+    LoadCouleurs();
   }
   function LoadParametres() {
+    //Cookie clé d'accès
+    var name="CleAcces=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for(var i = 0; i < ca.length; i++) {
+      var c = ca[i];
+      while (c.charAt(0) == ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) == 0)       GID("CleAcces").value = c.substring(name.length, c.length);
+    }
+
+
     var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() { 
           if (this.readyState == 4 && this.status == 200) {
@@ -311,29 +376,34 @@ const char *ParaJS = R"====(
              GID("gateway").value=int2ip(Para[2]);
              GID("masque").value=int2ip(Para[3]);
              GID("dns").value=int2ip(Para[4]);
-             GID(Para[5]).checked = true;
-             GID("RMSextIP").value=int2ip(Para[6]);
-             GID("EnphaseUser").value=Para[7];
-             GID("EnphasePwd").value=Para[8];
-             GID("EnphaseSerial").value=Para[9];
-             GID("TopicP").value=Para[10]; 
-             GID("MQTTRepete").value = Para[11];
-             GID("MQTTIP").value=int2ip(Para[12]);
-             GID("MQTTPort").value=Para[13];
-             GID("MQTTUser").value=Para[14];
-             GID("MQTTpwd").value=Para[15];
-             GID("MQTTPrefix").value=Para[16];
-             GID("MQTTdeviceName").value=Para[17];
-             GID("subMQTT").checked = Para[18]==1  ? true:false; 
-             GID("nomRouteur").value=Para[19];
-             GID("nomSondeFixe").value=Para[20];
-             GID("nomSondeMobile").value=Para[21];
-             GID("CalibU").value=Para[22];
-             GID("CalibI").value=Para[23];
-             GID("TempoRTEon").checked = Para[24]==1  ? true:false;
-             GID("WifiSleep").checked = Para[25]==1  ? true:false;
-             GID("Serial" + Para[26]).checked = true;
-             GID("Triac" + Para[27]).checked = true;
+             GID("ModeP"+Para[5]).checked = true;
+             ModePara = Para[5];
+             GID("ModeW"+Para[6]).checked = true;
+             GID("Hor"+Para[7]).checked = true;
+             GID(Para[8]).checked = true;
+             GID("RMSextIP").value=int2ip(Para[9]); 
+             GID("EnphaseUser").value=Para[10];
+             GID("EnphasePwd").value=Para[11];
+             GID("EnphaseSerial").value=Para[12];
+             GID("TopicP").value=Para[13]; 
+             GID("MQTTRepete").value = Para[14];
+             GID("MQTTIP").value=int2ip(Para[15]);
+             GID("MQTTPort").value=Para[16];
+             GID("MQTTUser").value=Para[17];
+             GID("MQTTpwd").value=Para[18];
+             GID("MQTTPrefix").value=Para[19];
+             GID("MQTTPrefixEtat").value=Para[20];
+             GID("MQTTdeviceName").value=Para[21];
+             GID("subMQTT").checked = Para[22]==1  ? true:false; 
+             GID("nomRouteur").value=Para[23];
+             GID("nomSondeFixe").value=Para[24];
+             GID("nomSondeMobile").value=Para[25];
+             GID("CalibU").value=Para[26];
+             GID("CalibI").value=Para[27];
+             GID("TempoRTEon").checked = Para[28]==1  ? true:false;
+             GID("WifiSleep").checked = Para[29]==1  ? true:false;
+             GID("Serial" + Para[30]).checked = true;
+             GID("Triac" + Para[31]).checked = true;
              for (var c=0;c<4;c++){
                 var ParaT=LesParas[c+1].split(RS);
                 GID("nomTemperature"+c).value=ParaT[0];
@@ -359,23 +429,30 @@ const char *ParaJS = R"====(
     var WifiSleep = GID("WifiSleep").checked ? 1:0;
     var Serial = document.querySelector('input[name="pSerie"]:checked').value;
     var pTriac = document.querySelector('input[name="pTriac"]:checked').value;
+    ModePara = document.querySelector('input[name="ModeP"]:checked').value;
+    ModeWifi = document.querySelector('input[name="ModeW"]:checked').value;
+    Horloge = document.querySelector('input[name="Horlo"]:checked').value;
+    if (ModePara==0) { //Non Expert
+        subMQTT=0; WifiSleep=1;
+    }
     var S=dhcp+RS+ ip2int(GID("adrIP").value)+RS+ ip2int(GID("gateway").value);
-    S +=RS+ip2int(GID("masque").value)+RS+ ip2int(GID("dns").value)
+    S +=RS+ip2int(GID("masque").value)+RS+ ip2int(GID("dns").value) +RS +ModePara + RS +ModeWifi+ RS +Horloge
     S +=RS+Source_new+RS+ ip2int(GID("RMSextIP").value)+ RS+GID("EnphaseUser").value.trim()+RS+GID("EnphasePwd").value.trim()+RS+GID("EnphaseSerial").value.trim() +RS+GID("TopicP").value.trim();
     S +=RS+GID("MQTTRepete").value +RS+ip2int(GID("MQTTIP").value) +RS+GID("MQTTPort").value +RS+GID("MQTTUser").value.trim()+RS+GID("MQTTpwd").value.trim();
-    S +=RS+GID("MQTTPrefix").value.trim()+RS+GID("MQTTdeviceName").value.trim() + RS + subMQTT;
+    S +=RS+GID("MQTTPrefix").value.trim()+RS+GID("MQTTPrefixEtat").value.trim()+RS+GID("MQTTdeviceName").value.trim() + RS + subMQTT;
     S +=RS+GID("nomRouteur").value.trim()+RS+GID("nomSondeFixe").value.trim()+RS+GID("nomSondeMobile").value.trim();
     S +=RS+GID("CalibU").value+RS+GID("CalibI").value + RS + TempoRTEon + RS + WifiSleep + RS + Serial + RS + pTriac;
     for (var c=0;c<4;c++){
       var QS='input[name="srcTemp' + c + '"]:checked';
-      var Source_Temp = document.querySelector(QS).value;
+      var Source_Temp = (ModePara==0) ? "tempNo":document.querySelector(QS).value;
       S +=RS+GID("nomTemperature"+c).value.trim() + RS + Source_Temp  +RS + GID("TopicT"+c).value.trim() + RS + GID("refTempIP"+c).value + RS + GID("canalEXT"+c).value + RS + GID("offsetTemp"+c).value*100;
     }
     for (var i=0;i<8;i++){
-        S +=RS+ip2int(GID("RMS_IP"+i).value.trim());
+        var Vip =(ModePara==0) ? 0:ip2int(GID("RMS_IP"+i).value.trim());
+        S +=RS+ Vip;
     }
     S="?lesparas="+clean(S);
-    console.log(S);
+    document.cookie="CleAcces=" + GID("CleAcces").value.trim() ;
     if ((GID("dhcp").checked ||  checkIP("adrIP")&&checkIP("gateway"))   && (!GID("MQTTRepete").checked ||  checkIP("MQTTIP"))){
       var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() { 
@@ -401,8 +478,35 @@ const char *ParaJS = R"====(
     } 
   }
   function checkDisabled(){ 
-    GID("infoIP").style.display = GID("dhcp").checked ? "none" : "table";
-    GID("Zmqtt").style.display = (GID("MQTTRepete").value != 0  || GID("Pmqtt").checked ||  GID("subMQTT").checked) ? "table" : "none";
+    GID("RMS_IP0").style.backgroundColor ="#888";
+    GID("RMS_IP0").readOnly =true;
+    ModeWifi = document.querySelector('input[name="ModeW"]:checked').value;
+    ModePara = document.querySelector('input[name="ModeP"]:checked').value;
+    Horloge = document.querySelector('input[name="Horlo"]:checked').value;
+    GID("Bheure").style.display= (Horloge>1) ? "inline-block": "none";
+    GID("infoIP").style.display = (GID("dhcp").checked || ModeWifi==2) ? "none" : "table";
+    GID("dhcp").style.visibility= (ModeWifi==2) ? "hidden" : "visible";
+    GID("ipreset").style.display= (ModeWifi==2) ? "none" : "inherit";
+    GID("l_wifi_0").style.display= (ModeWifi==2) ? "none": "table-row";
+    GID("l_wifi_1").style.display= (ModeWifi==2 || ModePara==0) ? "none": "table-row";
+    GID("l_wifi_2").style.display= (ModeWifi==2 || ModePara==0) ? "none": "table-row";
+    GID("Pmqtt").style.display= ( ModePara==0) ? "none": "table-cell";
+    GID("PmqttL").style.display= ( ModePara==0) ? "none": "table-cell";
+    GID("listerouteurs").style.display= (ModeWifi==2  || ModePara==0) ? "none": "block";
+    GID("avec_wifi").style.visibility= (ModeWifi==2) ? "hidden" : "visible";
+    for (var i=0;i<4;i++){
+        GID("siWifi"+i).style.visibility= (ModeWifi==2) ? "hidden" : "visible";
+    }
+    GID("donEnv").style.display= (ModeWifi==2) ? "none": "inline-block;";
+    if (ModeWifi==2){
+      GH("localIP"," : 192.168.4.1");
+    } else {
+      GH("localIP","auto (DHCP) : " + LocalIP);
+    }
+    GID("Hor0L").style.textDecoration=(ModeWifi>0) ? "line-through" :"none";
+    if (ModeWifi>0 && Horloge==0) {GID("Hor2").checked = true;Horloge=2;}
+    GID("Zmqtt").style.display = ((GID("MQTTRepete").value != 0  || GID("Pmqtt").checked ||  GID("subMQTT").checked) && ModePara>0) ? "block" : "none";
+    GID("LesSourcesTemp").style.display= (ModePara==0) ? "none": "block";
     for (var c=0;c<4;c++){
       GID('ligneTemperature'+c).style.display = (GID("tempNo"+c).checked) ? "none" : "table";
       GID('ligneTopicT'+c).style.display = (GID("tempMqtt"+c).checked) ? "table-row" : "none";
@@ -480,11 +584,12 @@ const char *ParaJS = R"====(
         GID("Routeur_"+d).style="display: table-row";
       }
     }
-    GID("RMS_IP0").readOnly =true;
+    
     for (var i=0;i<4;i++){      
       GH("refTempIP"+i,Soptions);
       GID("refTempIP"+i).value = refTempIP[i];
     }
+     setTimeout('checkDisabled();',500);
                 
   }
 )====";
@@ -506,7 +611,11 @@ const char *ParaRouteurJS = R"====(
   var IP_RMS=[];
   var nomTemperature=[];
   var nomActions=[];
- 
+  var ModeWifi=0;
+  var ModePara=0;
+  var Horloge=0;
+  var LocalIP ="";
+    
   function LoadParaRouteur() {
     var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() { 
@@ -515,16 +624,19 @@ const char *ParaRouteurJS = R"====(
              var Para=LesParas.split(GS);
              Source=Para[0];
              Source_data=Para[1];
+             LocalIP=Para[2];
              RMSextIP= Para[7]; 
              AdaptationSource();  
-             GH("localIP",Para[2]);
              GH("nom_R",Para[3]);
              GH("version",Para[4]);
              GH("nomSondeFixe",Para[5]);
              GH("nomSondeMobile",Para[6]); 
              nomSondeFixe=Para[5];
              nomSondeMobile=Para[6];
-             var IpNoms=Para[8].split(RS);
+             ModeWifi=Para[8];
+             ModePara=Para[9];
+             Horloge=Para[10];
+             var IpNoms=Para[11].split(RS);
              nb_ESP=IpNoms.length - 1;
              for (var c=0;c<nb_ESP;c++){
               var ip_nom=IpNoms[c].split(US);
@@ -547,6 +659,7 @@ const char *ParaRouteurJS = R"====(
              IP_RMS[0] = Para[2]; 
              nomRMS[0] = nomRMS[0] +" (local)";
              FinParaRouteur();
+          
           }         
         };
         xhttp.open('GET', 'ParaRouteurAjax', true);
@@ -575,8 +688,9 @@ const char *ParaRouteurJS = R"====(
     return ip.split('.').reduce(function(ipInt, octet) { return (ipInt<<8) + parseInt(octet, 10)}, 0) >>> 0;
   }
   function SetHautBas(){
-      var S="<div class='onglets'><div class='Baccueil'><a href='/'>Accueil</a></div><div class='Bbrut'><a href='/Brute'>Donn&eacute;es brutes</a></div><div class='Bparametres'><a href='/Para'>Param&egrave;tres</a></div><div class='Bactions'><a href='/Actions'>Actions</a></div></div>";
-      S +="<div id='onglets2'><div class='Bgeneraux'><a href='/Para'>Généraux</a></div><div class='Bexport'><a href='/Export'>Import / Export</a></div><div class='Bota'><a href='/OTA'>Mise à jour par OTA</a></div><div class='Bwifi'><a href='/Change_Wifi'>Modif. Wifi</a></div></div>";
+      var S="<div class='onglets'><div class='Bonglet Baccueil'><a href='/'>Accueil</a></div><div class='Bonglet Bbrut'><a href='/Brute'>Donn&eacute;es brutes</a></div><div class='Bonglet Bparametres'><a href='/Para'>Param&egrave;tres</a></div><div class='Bonglet Bactions'><a href='/Actions'>Actions</a></div></div>";
+      S +="<div id='onglets2'><div class='Bonglet2 Bgeneraux'><a href='/Para'>Généraux</a></div><div class='Bonglet2 Bexport'><a href='/Export'>Import / Export</a></div><div class='Bonglet2 Bota'><a href='/OTA'>Mise à jour par OTA</a></div><div class='Bonglet2 Bwifi'><a href='/Wifi'>WIFI</a></div>";
+      S +="<div class='Bonglet2 Bheure' id='Bheure'><a href='/Heure'>Heure</a></div><div class='Bonglet2 Bcouleurs'><a href='/Couleurs'>Couleurs</a></div></div>";
       S +="<h2 id='nom_R'>Routeur Solaire - RMS</h2>";
       GH("lesOnglets",S);
       GH("pied","<div>Routeur Version : <span id='version'></span></div><div><a href='https:F1ATB.fr/fr' >F1ATB.fr</a></div>");
@@ -592,29 +706,94 @@ const char *ParaRouteurJS = R"====(
     var val=H.split(separ);
     var h = Math.floor(100*parseInt(val[0]) + 0.4 + 100*parseInt(val[1])/60);
     h=Math.max(0,h);h=Math.min(2400,h);
-    return h;
-   
+    return h;  
   }
-  
+
 )====";
 const char *CommunCSS = R"====(
-  * {box-sizing: border-box;}
-    body {font-size:150%;text-align:center;width:100%;max-width:1000px;margin:auto;background: linear-gradient(#003,#77b5fe,#003);background-attachment:fixed;padding:10px;}
-    h2{text-align:center;color:white;}
-    h3,h4,h5{color:white;}
     a:link {color:#aaf;text-decoration: none;}
     a:visited {color:#ccf;text-decoration: none;}
     .onglets{margin-top:4px;left:0px;font-size:130%;}
     #onglets2{margin-top:10px;left:0px;font-size:80%;display:none;}
-    .Baccueil,.Bbrut,.Bparametres,.Bactions{margin-left:20px;border:outset 4px grey;background-color:#333;border-radius:6px;padding-left:20px;padding-right:20px;display:inline-block;}
-    .Bgeneraux,.Bexport,.Bota,.Bwifi{margin-left:20px;border:outset 2px grey;background-color:#333;border-radius:4px;padding-left:20px;padding-right:20px;display:inline-block;}
-    #pied{display:flex;justify-content:space-between;font-size:14px;color:white;}
+    .Bonglet{margin-left:20px;border:outset 4px grey;background-color:#333;border-radius:6px;padding-left:20px;padding-right:20px;display:inline-block;}
+    .Bonglet2{margin-left:20px;border:outset 2px grey;background-color:#333;border-radius:4px;padding-left:20px;padding-right:20px;display:inline-block;}
+    #pied{display:flex;justify-content:space-between;font-size:14px;}
+    .fsize12{font-size:12px;height:16px;}
     .fsize10{font-size:10px;height:14px;}
     .fsize8{font-size:8px;}
+    .tableau { background-color:white;display:inline-block;margin:auto;padding:4px;color:black;border:10px inset azure;}
+    table{border-collapse:collapse;}
     .lds-dual-ring {color: #cccc5b;visibility: hidden;}
     .lds-dual-ring,.lds-dual-ring:after {box-sizing: border-box;}
     .lds-dual-ring {display: inline-block;width: 80px;height: 80px;}
     .lds-dual-ring:after {content: " ";display: block;width: 64px;height: 64px;margin: 8px;border-radius: 50%;border: 6.4px solid currentColor;border-color: currentColor transparent currentColor transparent;animation: lds-dual-ring 1.2s linear infinite;}
     @keyframes lds-dual-ring {0% {transform: rotate(0deg);} 100% {transform: rotate(360deg);}}
     .bouton,input[type=file]::file-selector-button{margin: 5px;text-align:left;font-size:20px;height:28px;border:3px grey outset;border-radius:7px;}
+)====";
+const char *ParaCleHtml = R"====(
+  <!doctype html>
+  <html><head><meta charset="UTF-8">
+  <link rel="stylesheet" href="commun.css">  
+  <style>    
+    body{color:white;}
+    .form {margin:auto;padding:10px;display: table;text-align:left;width:100%;}
+    .ligne {display: table-row;padding:10px;}
+    .cadre {border-top:1px solid azure;}
+    label,.nomR{display: table-cell;margin: 5px;text-align:left;font-size:20px;height:25px;width:70%;}
+    input{display: table-cell;margin: 5px;text-align:left;font-size:20px;height:25px;}
+    .boldT{text-align:left;font-weight:bold;padding:10px;}   
+    .Bparametres{border:inset 10px azure;}
+    .Bgeneraux{border:inset 4px azure;}
+    #BoutonsBas{text-align:center;}    
+    .Zone{width:100%;border 1px solid grey;border-radius:10px;margin-top:10px;background-color:rgba(30,30,30,0.3);} 
+    #onglets2{display:none;} 
+  </style>
+  <script>
+    var BordsInverse=[".Bparametres"];
+    function SendCle(){
+        document.cookie="CleAcces=" + GID("CleAcces").value.trim() ;
+        
+        GID("attente").style="visibility: visible;";
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() { 
+          if (this.readyState == 4 && this.status == 200) {
+            var retour=this.responseText;
+            location.reload();
+          }         
+        };
+        xhttp.open('GET', 'CleUpdate', true);
+        xhttp.send(); 
+    }
+    function init(){
+      SetHautBas();
+      LoadParaRouteur();
+      LoadCouleurs();
+      document.cookie="CleAcces=" + GID("CleAcces").value.trim() ;
+    }
+    function   AdaptationSource(){}  ;
+    function FinParaRouteur(){};
+  </script>
+  
+  </head>
+  <body onload="init()";>
+    <div id="lesOnglets"></div>
+    <h4>Mot de passe d'accès</h4>
+    <div class="Zone" >
+        <div class="boldT" >Sécurité d'accès aux paramètres et Actions</div>
+        <div class="form"  >    
+          <div class='ligne'>
+            <label for='CleAcces'>Entrez le mot de passe d'accès : </label>
+            <input type='text' name='CleAcces' id='CleAcces'>
+          </div>
+        </div>
+    </div>
+    <div  id='BoutonsBas'>        
+        <br><input  class='bouton' type='button' onclick="SendCle();" value='Envoyer' >
+        <div class="lds-dual-ring" id="attente"></div>
+    </div>
+    <br>
+    <div id='pied'></div>
+    <script src="/ParaRouteurJS"></script>
+    <script src="/CommunCouleurJS"></script>
+   </body></html>
 )====";

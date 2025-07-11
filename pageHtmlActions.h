@@ -6,19 +6,21 @@ const char *ActionsHtml = R"====(
    <!doctype html>
   <html><head><meta charset="UTF-8">
   <link rel="stylesheet" href="commun.css">
+  
   <style>
-    body{color:white;}
+   
     .Bactions{border:inset 8px azure;}
     .cadre{width:100%;max-width:1200px;margin:auto;}
     .form{width:100%;text-align:left;}
-    .titre{display:flex;justify-content:center;cursor:pointer;color:black;}
+    .titre{display:flex;justify-content:center;cursor:pointer;color:black;font-weight:bold;font-size:110%;}
     .slideTriac{width:100%;position:relative;margin:4px;padding:4px;border:2px inset grey;background-color:#fff8f8;color:black;font-size:14px;}
     .slideTriacIn{display:flex;justify-content:center;width:100%;}
     .planning{width:100%;position:relative;margin:4px;padding:2px;border:2px inset grey;background-color:white;color:black;border-radius:8px;}
     .periode{position:absolute;height:100%;border:outset 4px;border-radius:10px;display:flex;justify-content:space-between;align-items: center;color:white;cursor:ew-resize;}
     .curseur{position:relative;width:100%;height:30px;}
-    .infoAction{position:relative;width:100%;height:40px;font-size:20px;}
-    .infoZone{position:absolute;height:100%;display:flex;justify-content: space-around;border:2px inset;align-items: center;text-align:center;background-color:#aaa;cursor:pointer;}
+    .infoAction{position:relative;display:flex;width:100%;min-height:40px;font-size:20px;}
+    .infoZone{position:relative;display:flex;justify-content: space-around;border:2px inset;align-items: center;text-align:center;background-color:#aaa;cursor:pointer;}
+    .infoZone div{display:inline-block;}
     .infoZ{position:absolute;bottom:10px;left:10px;display:none;border:8px inset #555;border-radius:8px;background-color:#ddd;z-index:1000;font-size:16px;}
     .infoZ input{width:70px;}
     .radioC{border:3px outset grey;border-radius:6px;display:inline-block;text-align:left;width:220px;background-color:rgba(50,50,50,0.3);}
@@ -45,7 +47,6 @@ const char *ActionsHtml = R"====(
     #mode,#option,.bouton_curseur,.les_select{display:flex;justify-content: space-between;font-size:20px;text-align:center;}
     #mode,#option,.les_select{background-color:#ddd;border-radius:4px;margin:4px;padding:3px;}
     .boutons{display:inline-flex;}
-    #plannings h4,#planning0 h4{color:black};{color:black}
     .TitZone{font-size:12px;font-style: italic;font-weight: bold;}
     .minmax{display: flex;  justify-content: center;align-items: center;}
     .minmax div{margin-right:5px;margin-left:5px;}
@@ -70,10 +71,9 @@ const char *ActionsHtml = R"====(
     </div>
     <div id="message"></div><br>
     <div id='pied'></div> 
-    <script src="ActionsJS"></script>
-    <script src="ActionsJS2"></script>
-    <script src="ActionsJS3"></script>
     <script src="/ParaRouteurJS"></script>
+    <script src="ActionsJS"></script>
+    <script src="/CommunCouleurJS"></script>
   </body></html>
 )====";
 const char *ActionsJS = R"====(
@@ -83,15 +83,17 @@ const char *ActionsJS = R"====(
   var LesTemperatures = [];
   var NomTemperatures = [];
   var ListeActions=[];
+  var SelectActions="";
   var LTARFbin=0;
   var pTriac=0;
   var IS="|"; //Input Separator
+  var BordsInverse=[".Bactions"];
   function Init() {
       LoadActions();
       DispTimer();
-      
+      LoadCouleurs();      
   }
-  function creerAction(aActif, aTitre, aHost, aPort, aOrdreOn, aOrdreOff, aRepet,aTempo,aReactivite,aCanalT,aSelectAct, aPeriodes) {
+  function creerAction(aActif, aTitre, aHost, aPort, aOrdreOn, aOrdreOff, aRepet,aTempo,aReactivite, aPeriodes) {
       var S = {
           Actif: aActif,
           Titre: aTitre,
@@ -102,8 +104,6 @@ const char *ActionsJS = R"====(
           Repet: aRepet,
           Tempo: aTempo,
           Reactivite: aReactivite,
-          CanalT: aCanalT,
-          SelectAct: aSelectAct,
           Periodes: aPeriodes     
       }
       return S;
@@ -124,18 +124,10 @@ const char *ActionsJS = R"====(
       }
       SelectPin +="</select></div>";
       var SelectOut="<div id='SelectOut" + iAct +"'>Sortie 'On' <select id='selectOut"+iAct +"' onmousemove='Disp(this)'><option value=0>0V</option><option value=1 selected>3.3V</option></select></div>";
-      var SelectT="<div>Canal de Température <select id='selectT"+iAct +"' onmousemove='Disp(this)' onchange='selecTemperAct(" + iAct +")' ><option value=-1 selected>Non exploité</option>";
-      for (var c=0;c<4;c++){
-        if (LesTemperatures[c]>-100){
-          var Temper=parseFloat(LesTemperatures[c]).toFixed(1);
-          SelectT +="<option value=" + c + " >" + NomTemperatures[c] + " (" +Temper + "°)" + "</option>";
-        }
-      }
-      SelectT +="</select></div>";
-      var S = "<div class='titre'><h4 id ='titre" + iAct + "' onmousemove='Disp(this)' onclick='editTitre(" + iAct + ")'>Titre</h4></div>";
+      
+      var S = "<div class='titre'><span id ='titre" + iAct + "' onmousemove='Disp(this)' onclick='editTitre(" + iAct + ")'>Titre</span></div>";
       S +="<div  id='mode' onmousemove='Disp(this)'><div class='TitZone'>Mode</div>" +Radio0 + Radio1 + "</div>";
       S +="<div id='blocPlanning"+iAct+"' >";
-        S +="<div  id='option' onmousemove='Disp(this)'><div class='TitZone'>Paramètres optionnels</div>" + SelectT + "<div>Etat d'une Action <select id='SelectAct" + iAct + "' onchange='selecTemperAct(" + iAct +")' ></select></div></div>";
         S += "<div class='les_select' id='sortie" +iAct +"'>";      
           S +=  "<div class='TitZone'>Sortie</div>" + SelectPin+SelectOut;
           S += "<div><span id='Tempo" + iAct + "'>Temporisation(s) <input type='number' class='tm' id='tempo" + iAct + "' onmousemove='Disp(this)'></span></div>";
@@ -170,7 +162,6 @@ const char *ActionsJS = R"====(
       GV("tempo" + iAct, LesActions[iAct].Tempo);
       GV("slider" + iAct ,LesActions[iAct].Reactivite); 
       GH("sensi" + iAct ,LesActions[iAct].Reactivite);
-      GID("selectT" + iAct).value=LesActions[iAct].CanalT;
       if(LesActions[iAct].OrdreOn.indexOf(IS)>0){
         var vals=LesActions[iAct].OrdreOn.split(IS);
         GID("selectPin"+iAct).value=vals[0];
@@ -183,10 +174,7 @@ const char *ActionsJS = R"====(
       TracePeriodes(iAct);
       
   }
-  function selecTemperAct(iAct){
-      LesActions[iAct].CanalT = GID("selectT"+iAct).value;
-      LesActions[iAct].SelectAct = GID("SelectAct"+iAct).value;
-  }
+  
   function TracePeriodes(iAct) {
       var S = "";
       var Sinfo = "";
@@ -202,8 +190,8 @@ const char *ActionsJS = R"====(
         var Type = LesActions[iAct].Periodes[i].Type;
         var color = colors[Type];
         var temperature="";
-        if(LesActions[iAct].CanalT>=0){
-          if (LesTemperatures[LesActions[iAct].CanalT]>-100) { // La sonde de température fonctionne          
+        if(LesActions[iAct].Periodes[i].CanalTemp>=0){
+          if (LesTemperatures[LesActions[iAct].Periodes[i].CanalTemp]>-100) { // La sonde de température fonctionne          
             var Tsup=LesActions[iAct].Periodes[i].Tsup;
             if (Tsup>=0 && Tsup <=1000) temperature +="<div>T &ge;" + Tsup/10 + "°</div>";
             var Tinf=LesActions[iAct].Periodes[i].Tinf;
@@ -211,7 +199,7 @@ const char *ActionsJS = R"====(
           }  
         }
         var H_Ouvert="";
-        if(LesActions[iAct].SelectAct!=255){
+        if(LesActions[iAct].Periodes[i].SelAct!=255){
           if (LesActions[iAct].Periodes[i].Hmin>0 ) H_Ouvert +="<div>H<span class='fsize8'>ouverture</span> &ge;" + Hdeci2Hmn(LesActions[iAct].Periodes[i].Hmin) + "</div>";
           if (LesActions[iAct].Periodes[i].Hmax>0 ) H_Ouvert +="<div>H<span class='fsize8'>ouverture</span> &le;" + Hdeci2Hmn(LesActions[iAct].Periodes[i].Hmax) + "</div>";
           if (LesActions[iAct].Periodes[i].Ooff>0 ) H_Ouvert +="<div>On à Off si &le;" + LesActions[iAct].Periodes[i].Ooff + "%</div>";
@@ -246,7 +234,7 @@ const char *ActionsJS = R"====(
         S += "<div class='periode' style='width:" + w + "%;left:" + left + "%;background-color:" + color + ";'   ><div>&lArr;</div><div>&rArr;</div></div>";
         Hmn = Hdeci2Hmn(H0);
         fs = Math.max(8, Math.min(16, w/2)) + "px";
-        Sinfo += "<div class='infoZone' style='width:" + w + "%;left:" + left + "%;border-color:" + color + ";font-size:" + fs + "'  onclick='infoZclicK(" + i + "," + iAct + ")'  >"
+        Sinfo += "<div class='infoZone' style='width:" + w + "%;border-color:" + color + ";font-size:" + fs + "'  onclick='infoZclicK(" + i + "," + iAct + ")'  >"
         Sinfo += "<div class='Hfin'>" + Hmn + "</div>" + para + "</div>";
         SinfoClick +="<div id='info" + iAct + "Z" + i + "' class='infoZ' ></div>"
       }
@@ -290,10 +278,7 @@ const char *ActionsJS = R"====(
 
   }
   
-)====";
 
-
-const char *ActionsJS2 = R"====(
   function AddSub(v, iAct) {
       if (v == 1) {
           if (LesActions[iAct].Periodes.length<8){
@@ -302,10 +287,12 @@ const char *ActionsJS2 = R"====(
                 Type: 1,
                 Vmin:0,
                 Vmax:100,
-                Tinf:1500,
-                Tsup:1500,
+                Tinf:1600,
+                Tsup:1600,
                 Hmin:0,
                 Hmax:0,
+                CanalTemp:-1,
+                SelAct:255,
                 Ooff:0,
                 O_on:0,
                 Tarif:31
@@ -329,6 +316,7 @@ const char *ActionsJS2 = R"====(
       
   }
   function infoZclicK(i, iAct) {
+      var capteurT=false;
       if (!blockEvent) {
           blockEvent = true;
           var Type = LesActions[iAct].Periodes[i].Type;
@@ -363,7 +351,7 @@ const char *ActionsJS2 = R"====(
                   } else {
                     S += "<div><small>Seuil Pw : &nbsp;</small><input id='Pw_min_"+idZ+"' onmousemove='Disp(this)' type='number' value='"+Vmin+"' onchange='NewVal(this)' >W</div>";
                     S += "<div><small>Puissance active en entrée de maison</small></div>";
-                    S += "<div><small>Ouvre Max : </small><input id='Pw_max_"+idZ+"' onmousemove='Disp(this)' type='number' value='"+Vmax+"' onchange='NewVal(this)'>%</div></div>";
+                    S += "<div><small>Ouvre Max : </small><input id='Pw_max_"+idZ+"'  onmousemove='Disp(\"mxTr\")' type='number' value='"+Vmax+"' onchange='NewVal(this)'>%</div></div>";
                   }
                   
               } else {
@@ -374,41 +362,53 @@ const char *ActionsJS2 = R"====(
                   S += "<div>Ouvre Max <input id='Pw_max_"+idZ+"' onmousemove='Disp(\"mxTr\")' type='number' value='"+Vmax+"' onchange='NewVal(this)'>%</div></div>";
               }
             S += "</div>";
-            S += "<div>";
-              if (LesActions[iAct].CanalT>=0){
-                if (LesTemperatures[LesActions[iAct].CanalT]>-100) { //On a un capteur de temperature
-                  S += "<div  class='bord1px' onmousemove='Disp(\"tmpr\")'>";
-                  S += "<div >Actif si température : " +NomTemperatures[LesActions[iAct].CanalT] + "</div>";
-                    S += "<div class='minmax'><div>T &ge;<input id='T_sup_"+idZ+"'  type='number' value='" + TsupC +"' onchange='NewVal(this)' >°</div>";
-                    S += "<div>T &le;<input id='T_inf_"+idZ+"'  type='number' value='" + TinfC +"' onchange='NewVal(this)' >°</div></div>";
-                  S += "<div><small>T en degré (-50.0 à 150.0) ou laisser vide</small></div>";
-                  S += "</div>";
-                }
+            var SelectT="<div>Canal de Température <select id='CanalTemp"+idZ +"' onmousemove='Disp(this)' onchange='NewVal(this)'><option value=-1 selected>Non exploité</option>";
+            for (var c=0;c<4;c++){
+              if (LesTemperatures[c]>-100){
+                var Temper=parseFloat(LesTemperatures[c]).toFixed(1);
+                SelectT +="<option value=" + c + " >" + NomTemperatures[c] + " (" +Temper + "°)" + "</option>";
+                capteurT=true;
               }
-              if (LesActions[iAct].SelectAct<255){ 
-                  S += "<div  class='bord1px' onmousemove='Disp(\"sAct\")'>";
-                  S += "<div>Suivi Ouverture Action : " + ListeActions[LesActions[iAct].SelectAct] + "</div>";
+            }
+            SelectT +="</select></div>";
+              var style=(ModePara==0) ? "none":"block";
+              style ="style='display:" + style +"';";
+              S += "<div>"; 
+                  S +="<div class='TitZone' " + style + ">&nbsp;&nbsp;&nbsp;Conditions optionnelles pour activer</div>";
+                  if (capteurT) {
+                    S += "<div  class='bord1px' " + style + " onmousemove='Disp(\"tmpr\")'>";
+                      S += SelectT;
+                      S += "<div class='minmax'><div>T &ge;<input id='T_sup_"+idZ+"'  type='number' value='" + TsupC +"' onchange='NewVal(this)' >°</div>";
+                      S += "<div>T &le;<input id='T_inf_"+idZ+"'  type='number' value='" + TinfC +"' onchange='NewVal(this)' >°</div></div>";
+                      S += "<div><small>T en degré (-50.0 à 150.0) ou laisser vide</small></div>";
+                    S += "</div>";
+                  }
+                  S += "<div  class='bord1px' " + style + " onmousemove='Disp(\"sAct\")'>";
+                    S += "<div>Etat d'une Action <select id='SelAct" + idZ + "' onchange='NewVal(this)' >" + SelectActions + "</select></div>";
                     S += "<div class='minmax'><div>Durée : </div><div>H &ge;<input id='H_min_"+idZ+"'  type='text' value='" + Hmin +"' onchange='NewVal(this)' >h:mn</div>";
                     S += "<div>H &le;<input id='H_max_"+idZ+"'  type='text' value='" + Hmax +"' onchange='NewVal(this)' >h:mn</div></div>";
                     S += "<div class='minmax'><div>Seuil : </div><div>On à Off si &le;<input id='O_min_"+idZ+"'  type='number' value='" + Ooff +"' onchange='NewVal(this)' >%</div>";
                     S += "<div>Off à On si &ge;<input id='O_max_"+idZ+"'  type='number' value='" + O_on +"' onchange='NewVal(this)' >%</div></div>";
-                  S += "<div><small>h:mn ou % ou laisser vide</small></div>";
+                    S += "<div><small>h:mn ou % ou laisser vide</small></div>";
                   S += "</div>";
-              }
               
-              if (LTARFbin>0)  {   
-                S += "<div  class='bord1px' onmousemove='Disp(\"tarif\")'>";
-                  S += "<div>Actif si tarif :</div>";
-                  if (LTARFbin<=3) {
-                    S += "<div id='PleineCreuse'><span style='color:red;'>Heure Pleine</span><input type='checkbox' checked id='TarifPl_"+idZ+"' onchange='NewVal(this)'> <span style='color:green;'>Heure Creuse</span><input type='checkbox' checked id='TarifCr_"+idZ+"' onchange='NewVal(this)'></div>";
-                  } else {
-                    S += "<div id='Tempo'>Tempo <span style='color:blue;'>Bleu</span><input type='checkbox' checked id='TarifBe_"+idZ+"' onchange='NewVal(this)'><span style='color:white;'> Blanc</span><input type='checkbox' checked id='TarifBa_"+idZ+"' onchange='NewVal(this)'><span style='color:red;'> Rouge</span><input type='checkbox' checked id='TarifRo_"+idZ+"' onchange='NewVal(this)'></div>";
-                  } 
-                S += "</div>";
-              }
-            S += "</div>";
+                
+                if (LTARFbin>0)  {   
+                  S += "<div  class='bord1px' onmousemove='Disp(\"tarif\")'>";
+                    S += "<div>Actif si tarif :</div>";
+                    if (LTARFbin<=3) {
+                      S += "<div id='PleineCreuse'><span style='color:red;'>Heure Pleine</span><input type='checkbox' checked id='TarifPl_"+idZ+"' onchange='NewVal(this)'> <span style='color:green;'>Heure Creuse</span><input type='checkbox' checked id='TarifCr_"+idZ+"' onchange='NewVal(this)'></div>";
+                    } else {
+                      S += "<div id='Tempo'>Tempo <span style='color:blue;'>Bleu</span><input type='checkbox' checked id='TarifBe_"+idZ+"' onchange='NewVal(this)'><span style='color:white;'> Blanc</span><input type='checkbox' checked id='TarifBa_"+idZ+"' onchange='NewVal(this)'><span style='color:red;'> Rouge</span><input type='checkbox' checked id='TarifRo_"+idZ+"' onchange='NewVal(this)'></div>";
+                    } 
+                  S += "</div>";
+                }
+              S += "</div>";
+            
           S += "</div>";
           GH(idZ, S);
+          if (capteurT) GID("CanalTemp"+idZ ).value=LesActions[iAct].Periodes[i].CanalTemp;
+          GID("SelAct"+idZ ).value=LesActions[iAct].Periodes[i].SelAct;
           var Tarif_=LesActions[iAct].Periodes[i].Tarif;
           if (LTARFbin>0)  {
             if (LTARFbin<=3) {
@@ -488,6 +488,12 @@ const char *ActionsJS2 = R"====(
         }
         LesActions[idx[0]].Periodes[idx[1]].Tarif=Tarif_;
       }	
+      if (champs[0].indexOf("CanalTemp")>=0) {
+          LesActions[idx[0]].Periodes[idx[1]].CanalTemp=GID(t.id).value;
+      }
+      if (champs[0].indexOf("SelAct")>=0) {
+          LesActions[idx[0]].Periodes[idx[1]].SelAct=GID(t.id).value;
+      }
   }
   function editTitre(iAct) {
       if (GID("titre" + iAct).innerHTML.indexOf("<input") == -1) {
@@ -529,10 +535,6 @@ const char *ActionsJS2 = R"====(
     }
   }
 
-)====";
-
-
-const char *ActionsJS3 = R"====(
   function LoadActions() {
       var xhttp = new XMLHttpRequest();
       xhttp.onreadystatechange = function () {
@@ -547,32 +549,34 @@ const char *ActionsJS3 = R"====(
               LesActions.splice(0,LesActions.length);
               for (var iAct=1;iAct<Les_ACTIONS.length-1;iAct++){
                 var champs=Les_ACTIONS[iAct].split(RS);
-                var NbPeriodes=champs[11];
+                var NbPeriodes=champs[9];
                 var Periodes=[];
-                var j=12;
+                var j=10;
                 for (var i=0;i<NbPeriodes;i++){
-                  Periodes[i]={Type:champs[j],Hfin:champs[j+1],Vmin:champs[j+2],Vmax:champs[j+3],Tinf:champs[j+4],Tsup:champs[j+5],Hmin:champs[j+6],Hmax:champs[j+7],Ooff:champs[j+8],O_on:champs[j+9],Tarif:champs[j+10]};
-                  j=j+11;
+                  Periodes[i]={Type:champs[j],Hfin:champs[j+1],Vmin:champs[j+2],Vmax:champs[j+3],Tinf:champs[j+4],Tsup:champs[j+5],Hmin:champs[j+6],Hmax:champs[j+7],CanalTemp:champs[j+8],SelAct:champs[j+9],Ooff:champs[j+10],O_on:champs[j+11],Tarif:champs[j+12]};
+                  j=j+13;
                 }
-                LesActions[iAct-1]=creerAction(champs[0], champs[1], champs[2], champs[3], champs[4], champs[5], champs[6],champs[7],champs[8],champs[9],champs[10], Periodes);
+                LesActions[iAct-1]=creerAction(champs[0], champs[1], champs[2], champs[3], champs[4], champs[5], champs[6],champs[7],champs[8], Periodes);
               }    
               if (LesActions.length==0){  //Action Triac
-                  LesActions.push( creerAction(0, "Titre Triac", "", 50, "", "","", 0,10,-1,255, [{
+                  LesActions.push( creerAction(0, "Titre Triac", "", 50, "", "","", 0,10, [{
                           Hfin: 2400,
                           Type: 4,
                           Vmin:0,
                           Vmax:100,
-                          Tinf:1500,
-                          Tsup:1500,
+                          Tinf:1600,
+                          Tsup:1600,
                           Hmin:0,
                           Hmax:0,
+                          CanalTemp:-1,
+                          SelAct:255,
                           Ooff:0,
                           O_on:0,
                           Tarif:31
                       }
                   ]));
               }
-              LesActions.push( creerAction(0, "Titre Relais " + LesActions.length, "", 80, "", "", 240,0,10,-1,255, [{
+              LesActions.push( creerAction(0, "Titre Relais " + LesActions.length, "", 80, "", "", 240,0,10, [{
                       Hfin: 2400,
                       Type: 3,
                       Vmin:0,
@@ -581,6 +585,8 @@ const char *ActionsJS3 = R"====(
                       Tsup:1600,
                       Hmin:0,
                       Hmax:0,
+                      CanalTemp:-1,
+                      SelAct:255,
                       Ooff:0,
                       O_on:0,
                       Tarif:31
@@ -617,7 +623,6 @@ const char *ActionsJS3 = R"====(
         LesActions[iAct].Repet = GID("repet" + iAct).value;
         LesActions[iAct].Tempo = GID("tempo" + iAct).value;
         LesActions[iAct].Reactivite = GID("slider" + iAct).value;
-        selecTemperAct(iAct);
         if (GID("selectPin"+iAct).value>=0) LesActions[iAct].OrdreOn=GID("selectPin"+iAct).value +IS + GID("selectOut"+iAct).value;
         if (iAct>0 && (GID("selectPin"+iAct).value==0 || LesActions[iAct].Titre=="")) LesActions[iAct].Actif=-1; //Action à effacer
       }
@@ -627,12 +632,17 @@ const char *ActionsJS3 = R"====(
             S +=LesActions[iAct].Actif+RS+LesActions[iAct].Titre+RS;
             S +=LesActions[iAct].Host+RS+LesActions[iAct].Port+RS;
             S +=LesActions[iAct].OrdreOn+RS+LesActions[iAct].OrdreOff+RS+LesActions[iAct].Repet+RS+LesActions[iAct].Tempo+RS;
-            S +=LesActions[iAct].Reactivite + RS + LesActions[iAct].CanalT + RS + LesActions[iAct].SelectAct + RS + LesActions[iAct].Periodes.length+RS;
+            S +=LesActions[iAct].Reactivite + RS + LesActions[iAct].Periodes.length+RS;
             for (var i=0;i<LesActions[iAct].Periodes.length;i++){
+              if(ModePara==0){ //Standard
+                LesActions[iAct].Periodes[i].CanalTemp=-1;
+                LesActions[iAct].Periodes[i].SelAct =255;
+              }
               S +=LesActions[iAct].Periodes[i].Type+RS+Math.floor(LesActions[iAct].Periodes[i].Hfin)+RS;
               S +=Math.floor(LesActions[iAct].Periodes[i].Vmin)+RS+Math.floor(LesActions[iAct].Periodes[i].Vmax)+RS;  
               S +=Math.floor(LesActions[iAct].Periodes[i].Tinf)+RS+Math.floor(LesActions[iAct].Periodes[i].Tsup)+RS;
               S +=Math.floor(LesActions[iAct].Periodes[i].Hmin)+RS+Math.floor(LesActions[iAct].Periodes[i].Hmax)+RS;
+              S +=Math.floor(LesActions[iAct].Periodes[i].CanalTemp)+RS+Math.floor(LesActions[iAct].Periodes[i].SelAct)+RS;
               S +=Math.floor(LesActions[iAct].Periodes[i].Ooff)+RS+Math.floor(LesActions[iAct].Periodes[i].O_on)+RS;  
               S +=LesActions[iAct].Periodes[i].Tarif + RS;  
             }
@@ -655,18 +665,14 @@ const char *ActionsJS3 = R"====(
   }
 
   function FinParaRouteur(){
-    var S="<option value=255>Non exploité</option>";
+    SelectActions="<option value=255>Non exploité</option>";
     for (esp=0;esp<nomRMS.length;esp++){ //Liste des actions par routeur
       for (var iAct = 0; iAct < nomActions[esp].length; iAct++){
         var v= esp*10 + parseInt(nomActions[esp][iAct][0]); //Nombre refletant la référence esp et action
-        var T =  (esp==0  ) ? "" :  nomRMS[esp] + "/";
-        S += "<option value=" + v + ">" + T +nomActions[esp][iAct][1] + "</option>"; 
+        var T =  (esp==0  ) ? "" :  nomRMS[esp] + " / ";
+        SelectActions += "<option value=" + v + ">" + T +nomActions[esp][iAct][1] + "</option>"; 
         ListeActions[v]= T +nomActions[esp][iAct][1];    
       }
-    }
-    for (var iAct = 0; iAct < LesActions.length; iAct++) { //Pour chaque Action de ce routeur
-        GH("SelectAct" + iAct,S);
-        GID("SelectAct" + iAct).value=LesActions[iAct].SelectAct; // l'info est arrivée par LoadActions
     }
   }
   
@@ -709,24 +715,24 @@ const char *ActionsJS3 = R"====(
       case "adds":
           var m = "Ajout ou retrait d'une p&eacute;riode horaire."
               break;
-      case "Pw":
-          var m = "Seuil inf&eacute;rieur  de puissance mesur&eacute;e Pw &lt; pour d&eacute;marrer le routage  et seuil sup&eacute;rieur de puissance  &gt; pour l'arr&ecirc;ter.<br> ";
-      m +="Attention, la diff&eacute;rence, seuil sup&eacute;rieur moins  seuil inf&eacute;rieur doit &ecirc;tre sup&eacute;rieure &agrave; la consommation du dipositif pour &eacute;viter l'oscillation du relais de commande."
+      case "Pw_m":
+          var m = "Seuil de puissance pour activer ou désactiver le routage.";
+      m +="Attention, en cas de mode On/Off la diff&eacute;rence, seuil sup&eacute;rieur moins  seuil inf&eacute;rieur doit &ecirc;tre sup&eacute;rieure &agrave; la consommation du dipositif pour &eacute;viter l'oscillation du relais de commande."
           break;
       case "pwTr":
           var m = "Seuil en W de r&eacute;gulation par le Triac de la puissance mesur&eacute;e Pw en entrée de la maison. Valeur typique : 0.";
           break;
       case "mxTr":
-          var m = "Ouverture maximum du triac entre 5 et 100%. Valeur typique : 100%";
+          var m = "Ouverture maximum du triac ou du SSR entre 5 et 100%. Valeur typique : 100%";
           break;
       case "zOff":
             var m = "Off forcé";
             break;
       case "zOn":
-            var m = "On forcé (si règle température valide)";
+            var m = "On forcé (si conditions optionnelles valides)";
             break;
       case "tmpr":
-            var m = "Définir la ou les températures qui permettent l'activation de la fonction On ou Routage.<br>Sinon ordre Off envoyé ou Triac se ferme.<br>Ne rien mettre si pas d'activation en fonction de la température.";
+            var m = "Définir la ou les températures qui permettent l'activation de la fonction On ou Routage.<br>Si condition non rempli ordre Off envoyé ou Triac se ferme.<br><br> Si seuil T>= est supérieur à seuil T<=,<br>activation de la fonction pour les valeurs inférieures de température<br>avec creation d'une hysteresis entre ces 2 seuils.<br><br>Ne rien mettre si pas d'activation en fonction de la température.";
             break;
       case "tarif":
             var m = "Condition d'activation suivant la tarification.<br>Sinon ordre Off envoyé ou Triac se ferme.";

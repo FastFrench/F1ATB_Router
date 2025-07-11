@@ -7,23 +7,19 @@ void Init_Server() {
   //Init Web Server on port 80
   server.on("/", handleRoot);
   server.on("/MainJS", handleMainJS);
-  server.on("/MainJS2", handleMainJS2);
-  server.on("/MainJS3", handleMainJS3);
   server.on("/Para", handlePara);
   server.on("/ParaJS", handleParaJS);
   server.on("/ParaRouteurJS", handleParaRouteurJS);
   server.on("/ParaAjax", handleParaAjax);
   server.on("/ParaRouteurAjax", handleParaRouteurAjax);
   server.on("/ParaUpdate", handleParaUpdate);
+  server.on("/CleUpdate", handleCleUpdate);
   server.on("/Actions", handleActions);
   server.on("/ActionsJS", handleActionsJS);
-  server.on("/ActionsJS2", handleActionsJS2);
-  server.on("/ActionsJS3", handleActionsJS3);
   server.on("/ActionsUpdate", handleActionsUpdate);
   server.on("/ActionsAjax", handleActionsAjax);
   server.on("/Brute", handleBrute);
   server.on("/BruteJS", handleBruteJS);
-  server.on("/BruteJS2", handleBruteJS2);
   server.on("/ajax_histo48h", handleAjaxHisto48h);
   server.on("/ajax_histo1an", handleAjaxHisto1an);
   server.on("/ajax_dataRMS", handleAjaxRMS);
@@ -34,79 +30,88 @@ void Init_Server() {
   server.on("/ajax_etatActionX", handleAjax_etatActionX);
   server.on("/ajax_Temperature", handleAjaxTemperature);
   server.on("/ajax_Noms", handleAjaxNoms);
-  server.on("/ajaxRAZhisto",handleajaxRAZhisto);
+  server.on("/ajaxRAZhisto", handleajaxRAZhisto);
   server.on("/SetGPIO", handleSetGpio);
   server.on("/Export", handleExport);
   server.on("/export_file", handleExport_file);
   server.on("/restart", handleRestart);
-  server.on("/Change_Wifi", handleChange_Wifi);
+  server.on("/Wifi", handleWifi);
   server.on("/AP_ScanWifi", handleAP_ScanWifi);
   server.on("/AP_SetWifi", handleAP_SetWifi);
+  server.on("/Heure", handleHeure);
+  server.on("/HourUpdate", handleHourUpdate);
+  server.on("/Couleurs", handleCouleurs);
+  server.on("/CommunCouleurJS", handleCommunCouleurJS);
+  server.on("/CouleursAjax", handleCouleursAjax);
+  server.on("/CouleurUpdate", handleCouleurUpdate);
   server.on("/commun.css", handleCommunCSS);
   server.onNotFound(handleNotFound);
 
   //SERVER OTA
   server.on("/OTA", HTTP_GET, []() {
-    server.sendHeader("Connection", "close");
-    server.send(200, "text/html", OtaHtml);
+    lectureCookie(OtaHtml);
   });
   /*handling uploading firmware file */
   server.on(
     "/update", HTTP_POST, []() {
-    server.sendHeader("Connection", "close");
-    server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
-    ESP.restart();
+      server.sendHeader("Connection", "close");
+      server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
+      ESP.restart();
     },
     []() {
-    HTTPUpload& upload = server.upload();
-    if (upload.status == UPLOAD_FILE_START) {
-      Serial.printf("Update: %s\n", upload.filename.c_str());
-      if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {  //start with max available size
-        Update.printError(Serial);
+      HTTPUpload& upload = server.upload();
+      if (upload.status == UPLOAD_FILE_START) {
+        Serial.printf("Update: %s\n", upload.filename.c_str());
+        if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {  //start with max available size
+          Update.printError(Serial);
+        }
+      } else if (upload.status == UPLOAD_FILE_WRITE) {
+        /* flashing firmware to ESP*/
+        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+          Update.printError(Serial);
+        }
+      } else if (upload.status == UPLOAD_FILE_END) {
+        if (Update.end(true)) {  //true to set the size to the current progress
+          Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+        } else {
+          Update.printError(Serial);
+        }
       }
-    } else if (upload.status == UPLOAD_FILE_WRITE) {
-      /* flashing firmware to ESP*/
-      if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-        Update.printError(Serial);
-      }
-    } else if (upload.status == UPLOAD_FILE_END) {
-      if (Update.end(true)) {  //true to set the size to the current progress
-        Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
-      } else {
-        Update.printError(Serial);
-      }
-    }
     });
 
   /*handling uploading file */
   server.on(
     "/import", HTTP_POST, []() {
-    server.sendHeader("Connection", "close");
-    server.send(200, "text/plain", "OK");
+      server.sendHeader("Connection", "close");
+      server.send(200, "text/plain", "OK");
     },
     []() {
-    HTTPUpload& upload = server.upload();
-    if (opened == false) {
-      opened = true;
+      HTTPUpload& upload = server.upload();
+      if (opened == false) {
+        opened = true;
 
-      Serial.println("Debut Upload");
-      ConfImport = "";
-    }
-    if (upload.status == UPLOAD_FILE_WRITE) {
-      for (int i = 0; i < upload.currentSize; i++) {
-
-        ConfImport += String(char(upload.buf[i]));
+        Serial.println("Debut Upload");
+        ConfImport = "";
       }
-    } else if (upload.status == UPLOAD_FILE_END) {
+      if (upload.status == UPLOAD_FILE_WRITE) {
+        for (int i = 0; i < upload.currentSize; i++) {
 
-      Serial.println("UPLOAD_FILE_END");
-      Serial.println(ConfImport);
-      ImportParametres(ConfImport);
-      opened = false;
-    }
+          ConfImport += String(char(upload.buf[i]));
+        }
+      } else if (upload.status == UPLOAD_FILE_END) {
+
+        Serial.println("UPLOAD_FILE_END");
+        Serial.println(ConfImport);
+        ImportParametres(ConfImport);
+        opened = false;
+      }
     });
 
-
+  //here the list of headers to be recorded
+  const char* headerkeys[] = { "User-Agent", "Cookie" };
+  size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
+  //ask server to track these headers
+  server.collectHeaders(headerkeys, headerkeyssize);
 
 
   server.begin();
@@ -114,42 +119,26 @@ void Init_Server() {
 
 
 void handleRoot() {  //Pages principales
-
   server.sendHeader("Connection", "close");
-  if (WiFi.getMode() != WIFI_STA) {  // en AP et STA mode
-    server.send(200, "text/html", ConnectAP_Html);
-  } else {  //Station Mode seul
-    server.send(200, "text/html", MainHtml);
-  }
+  server.send(200, "text/html", MainHtml);
 }
-void handleChange_Wifi() {
-  server.sendHeader("Connection", "close");
-  server.send(200, "text/html", ConnectAP_Html);
+void handleWifi() {
+  lectureCookie(ConnectAP_Html);
 }
 void handleMainJS() {  //Code Javascript
-  server.sendHeader("Connection", "close");
+  CacheEtClose(300);
   server.send(200, "text/javascript", MainJS);  // Javascript code
 }
-void handleMainJS2() {  //Code Javascript
-  server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", MainJS2);  // Javascript code
-}
-void handleMainJS3() {  //Code Javascript
-  server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", MainJS3);  // Javascript code
-}
+
 void handleBrute() {  //Page données brutes
-  server.sendHeader("Connection", "close");
+  CacheEtClose(300);
   server.send(200, "text/html", PageBrute);
 }
 void handleBruteJS() {  //Code Javascript
-  server.sendHeader("Connection", "close");
+  CacheEtClose(300);
   server.send(200, "text/javascript", PageBruteJS);  // Javascript code
 }
-void handleBruteJS2() {  //Code Javascript
-  server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", PageBruteJS2);  // Javascript code
-}
+
 
 void handleAjaxRMS() {  // Envoi des dernières données  brutes reçues du RMS
   String S = "";
@@ -324,8 +313,11 @@ void handleAjaxHisto1an() {  // Envoi Historique Energie quotiiienne sur 1 an 37
   server.send(200, "text/html", HistoriqueEnergie1An());
 }
 void handleAjaxData() {  //Données page d'accueil
-  String DateLast = "Attente de l'heure par Internet";
-  if (DATEvalid) {
+  String DateLast = "Attente d'une mise à l'heure par internet";
+  if (Horloge==1) DateLast = "Attente d'une mise à l'heure par le Linky";
+  if (ModeWifi == 0 && WiFi.getMode() != WIFI_STA) DateLast = "Sélectionnez un réseau <a href='/Wifi'>Wifi</a>";
+  if (Horloge>1) DateLast = "Attente d'une mise à l'heure  <a href='/Heure' >manuellement</a> ";
+  if (HeureValide) {
     DateLast = DATE;
   }
   String S = LesTemperatures();
@@ -432,21 +424,13 @@ void handleAjaxNoms() {
 }
 
 void handleActions() {
-  server.sendHeader("Connection", "close");
-  server.send(200, "text/html", ActionsHtml);
+  lectureCookie(ActionsHtml);
 }
 void handleActionsJS() {
-  server.sendHeader("Connection", "close");
+  CacheEtClose(300);
   server.send(200, "text/javascript", ActionsJS);
 }
-void handleActionsJS2() {
-  server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", ActionsJS2);
-}
-void handleActionsJS3() {
-  server.sendHeader("Connection", "close");
-  server.send(200, "text/javascript", ActionsJS3);
-}
+
 void handleActionsUpdate() {
   int adresse_max = 0;
   String s = server.arg("actions");
@@ -479,12 +463,13 @@ void handleActionsAjax() {
 }
 
 void handlePara() {
-  server.sendHeader("Connection", "close");
-  server.send(200, "text/html", ParaHtml);
+  lectureCookie(ParaHtml);
   previousTempMillis = millis() - 120000;
 }
 void handleParaUpdate() {
-  String Vp[62];
+  lectureCookie("");
+  CleAccesRef = CleAcces;  //Nouvelle cle d'accès ou mise à jour
+  String Vp[64];
   String lesparas = server.arg("lesparas") + RS;
   int idx = 0;
   Serial.println(lesparas);
@@ -499,49 +484,53 @@ void handleParaUpdate() {
   Gateway = strtoul(Vp[2].c_str(), NULL, 10);
   masque = strtoul(Vp[3].c_str(), NULL, 10);
   dns = strtoul(Vp[4].c_str(), NULL, 10);
-  Source = Vp[5];
-  RMSextIP = strtoul(Vp[6].c_str(), NULL, 10);
-  EnphaseUser = Vp[7];
-  EnphasePwd = Vp[8];
-  EnphaseSerial = Vp[9];
-  TopicP = Vp[10];
-  MQTTRepet = Vp[11].toInt();
-  MQTTIP = strtoul(Vp[12].c_str(), NULL, 10);
-  MQTTPort = Vp[13].toInt();  //2 bytes
-  MQTTUser = Vp[14];
-  MQTTPwd = Vp[15];
-  MQTTPrefix = Vp[16];
-  MQTTdeviceName = Vp[17];
-  subMQTT = byte(Vp[18].toInt());
-  nomRouteur = Vp[19];
-  nomSondeFixe = Vp[20];
-  nomSondeMobile = Vp[21];
-  CalibU = Vp[22].toInt();  //2 bytes
-  CalibI = Vp[23].toInt();  //2 bytes
-  TempoRTEon = byte(Vp[24].toInt());
-  WifiSleep = byte(Vp[25].toInt());
-  pSerial = byte(Vp[26].toInt());
-  pTriac = byte(Vp[27].toInt());
+  ModePara = byte(Vp[5].toInt());
+  ModeWifi = byte(Vp[6].toInt());
+  Horloge = byte(Vp[7].toInt());
+  Source = Vp[8];
+  RMSextIP = strtoul(Vp[9].c_str(), NULL, 10);
+  EnphaseUser = Vp[10];
+  EnphasePwd = Vp[11];
+  EnphaseSerial = Vp[12];
+  TopicP = Vp[13];
+  MQTTRepet = Vp[14].toInt();
+  MQTTIP = strtoul(Vp[15].c_str(), NULL, 10);
+  MQTTPort = Vp[16].toInt();  //2 bytes
+  MQTTUser = Vp[17];
+  MQTTPwd = Vp[18];
+  MQTTPrefix = Vp[19];
+  MQTTPrefixEtat = Vp[20];
+  MQTTdeviceName = Vp[21];
+  subMQTT = byte(Vp[22].toInt());
+  nomRouteur = Vp[23];
+  nomSondeFixe = Vp[24];
+  nomSondeMobile = Vp[25];
+  CalibU = Vp[26].toInt();  //2 bytes
+  CalibI = Vp[27].toInt();  //2 bytes
+  TempoRTEon = byte(Vp[28].toInt());
+  WifiSleep = byte(Vp[29].toInt());
+  pSerial = byte(Vp[30].toInt());
+  pTriac = byte(Vp[31].toInt());
   int canal = 0;
   for (int c = 0; c < 4; c++) {
-    nomTemperature[c] = Vp[28 + 6 * c];
-    Source_Temp[c] = Vp[29 + 6 * c];
-    TopicT[c] = Vp[30 + 6 * c];
-    refTempIP[c] = byte(Vp[31 + 6 * c].toInt());
-    canalTempExterne[c] = byte(Vp[32 + 6 * c].toInt());
-    offsetTemp[c] = Vp[33 + 6 * c].toInt();
+    nomTemperature[c] = Vp[32 + 6 * c];
+    Source_Temp[c] = Vp[33 + 6 * c];
+    TopicT[c] = Vp[34 + 6 * c];
+    refTempIP[c] = byte(Vp[35 + 6 * c].toInt());
+    canalTempExterne[c] = byte(Vp[36 + 6 * c].toInt());
+    offsetTemp[c] = Vp[37 + 6 * c].toInt();
   }
   int j = 1;
   for (int i = 1; i < LesRouteursMax; i++) {
     RMS_IP[i] = 0;
-    unsigned long IP = strtoul(Vp[52 + i].c_str(), NULL, 10);
-    if (IP > 0) {
+    unsigned long IP = strtoul(Vp[56 + i].c_str(), NULL, 10);
+    if (IP > 0 && ModeWifi < 2) {
       RMS_IP[j] = IP;
       j++;
     }
   }
 
-  previousTempMillis = millis() - 120000;
+  previousTempMillis = millis() - 60000;
   int adresse_max = EcritureEnROM();
   if (Source != "Ext") {
     Source_data = Source;
@@ -552,19 +541,25 @@ void handleParaUpdate() {
   //Recherche des Noms (routeurs, températures,actions) des RMS partenaires
   Liste_des_Noms();
 }
-void handleParaJS() {
+void handleCleUpdate() {
+  lectureCookie("");
   server.sendHeader("Connection", "close");
+  server.send(200, "text/plain", "OKcle");
+}
+void handleParaJS() {
+  CacheEtClose(300);
   server.send(200, "text/javascript", ParaJS);
 }
 void handleParaRouteurJS() {
-  server.sendHeader("Connection", "close");
+  CacheEtClose(300);
   server.send(200, "text/javascript", ParaRouteurJS);
 }
 void handleParaAjax() {
-  String S = String(dhcpOn) + RS + String(RMS_IP[0]) + RS + String(Gateway) + RS + String(masque) + RS + String(dns) + RS + Source + RS + String(RMSextIP) + RS;
+  String S = String(dhcpOn) + RS + String(RMS_IP[0]) + RS + String(Gateway) + RS + String(masque) + RS + String(dns) + RS;
+  S += String(ModePara) + RS + String(ModeWifi) + RS + String(Horloge) + RS + Source + RS + String(RMSextIP) + RS;
   S += EnphaseUser + RS + EnphasePwd + RS + EnphaseSerial + RS + TopicP;
   S += RS + String(MQTTRepet) + RS + String(MQTTIP) + RS + String(MQTTPort) + RS + MQTTUser + RS + MQTTPwd;
-  S += RS + MQTTPrefix + RS + MQTTdeviceName + RS + String(subMQTT) + RS + nomRouteur + RS + nomSondeFixe + RS + nomSondeMobile;
+  S += RS + MQTTPrefix + RS + MQTTPrefixEtat + RS + MQTTdeviceName + RS + String(subMQTT) + RS + nomRouteur + RS + nomSondeFixe + RS + nomSondeMobile;
   S += RS + String(CalibU) + RS + String(CalibI);
   S += RS + String(TempoRTEon) + RS + String(WifiSleep) + RS + String(pSerial) + RS + String(pTriac);
   for (int c = 0; c < 4; c++) {
@@ -591,11 +586,12 @@ void handleajaxRAZhisto() {
     tabPva_Maison_2s[i] = 0;  //Puissance Active: toutes les 2s
     tabPva_Triac_2s[i] = 0;
   }
+  RAZ_JSY = true; 
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", "OK");
 }
 void handleParaRouteurAjax() {
-  String S = Source + GS + Source_data + GS + WiFi.localIP().toString() + GS + nomRouteur + GS + Version + GS + nomSondeFixe + GS + nomSondeMobile + GS + String(RMSextIP) + GS;
+  String S = Source + GS + Source_data + GS + WiFi.localIP().toString() + GS + nomRouteur + GS + Version + GS + nomSondeFixe + GS + nomSondeMobile + GS + String(RMSextIP) + GS + String(ModeWifi) + GS + String(ModePara) + GS+ String(Horloge) + GS;
   for (int i = 0; i < LesRouteursMax; i++) {  //index 0 pour ESP32 local
     if (RMS_IP[i] > 0) {
       S += RMS_IP[i] + US + RMS_Nom[i] + RS;
@@ -617,8 +613,7 @@ void handleSetGpio() {
   server.send(200, "text/html", S);
 }
 void handleExport() {
-  server.sendHeader("Connection", "close");
-  server.send(200, "text/html", ExportHtml);
+  lectureCookie(ExportHtml);
 }
 void handleExport_file() {
   String S = Fichier_parametres(server.arg("ip"), server.arg("para"), server.arg("action"));
@@ -630,8 +625,7 @@ void handleAP_ScanWifi() {
 }
 void Liste_WIFI() {  //Doit être fait avant toute connection WIFI depuis biblio ESP32 3.0.1
   WIFIbug = 0;
-  esp_task_wdt_reset();
-  delay(1);
+
   int n = 0;
   WiFi.disconnect();
   delay(100);
@@ -660,8 +654,6 @@ void Liste_WIFI() {  //Doit être fait avant toute connection WIFI depuis biblio
   WiFi.scanDelete();
 }
 void handleAP_SetWifi() {
-  WIFIbug = 0;
-  esp_task_wdt_reset();
   delay(1);
   Serial.println("Set Wifi");
   String NewSsid = server.arg("ssid");
@@ -672,6 +664,7 @@ void handleAP_SetWifi() {
   Serial.println(NewPassword);
   ssid = NewSsid;
   password = NewPassword;
+  ModeWifi = 0;
   StockMessage("Wifi Begin : " + ssid);
   WiFi.begin(ssid.c_str(), password.c_str());
   unsigned long newstartMillis = millis();
@@ -692,6 +685,7 @@ void handleAP_SetWifi() {
     S += "<br><br> Connectez vous au wifi : " + ssid;
     S += "<br><br> Cliquez sur l'adresse : <a href='http://" + IP + "' >http://" + IP + "</a>";
     dhcpOn = 1;
+    ModeWifi = 0;  //A priori
     EcritureEnROM();
   } else {
     S = "No" + RS + "ESP32 non connecté à :" + ssid + "<br>";
@@ -702,9 +696,55 @@ void handleAP_SetWifi() {
   ESP.restart();
 }
 
-void handleCommunCSS() {
+void handleHeure() {
+  lectureCookie(HeureHtml);
+}
+void handleHourUpdate() {
+  String New_H = server.arg("New_H");
+  int p = New_H.indexOf(":");
+  if (p > 0) {
+    Int_Heure = (New_H.substring(0, p).toInt()) % 24;
+    Int_Minute = (New_H.substring(p + 1).toInt()) % 60;
+    HeureValide = true;
+  }
   server.sendHeader("Connection", "close");
-  server.send(200, "text/css", CommunCSS);
+  server.send(200, "text/plain", "OKheure");
+}
+
+void handleCouleurs() {
+  lectureCookie(CouleursHtml);
+}
+void handleCommunCouleurJS() {  //Code Javascript
+  CacheEtClose(300);
+  server.send(200, "text/javascript", CommunCouleurJS);  // Javascript code
+}
+void handleCouleursAjax() {
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/javascript", Couleurs);  // tableau des couleurs
+}
+void handleCouleurUpdate() {
+  Couleurs = server.arg("couleurs");
+  EcritureEnROM();
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/plain", "OK couleurs");
+}
+void handleCommunCSS() {
+  CacheEtClose(60);
+  String S="* {box-sizing: border-box;}\n";
+  S+="body {font-size:150%;text-align:center;width:100%;max-width:1000px;margin:auto;padding:10px;background:linear-gradient(";
+  if (Couleurs=="") {
+    S +="#000033,#77b5fe,#000033";
+  } else {
+    S +="#"+Couleurs.substring(12, 18)+",#"+Couleurs.substring(6, 12)+",#"+Couleurs.substring(12, 18);
+  } 
+  S +=");background-attachment:fixed;color:";
+  if (Couleurs=="") {
+    S +="#ffffff";
+  } else {
+    S +="#"+Couleurs.substring(0,6);
+  } 
+  S+=";}\n";
+  server.send(200, "text/css", S + CommunCSS);
 }
 
 
@@ -722,4 +762,33 @@ void handleNotFound() {  //Page Web pas trouvé
   }
   server.sendHeader("Connection", "close");
   server.send(404, "text/plain", message);
+}
+void CacheEtClose(int16_t seconde){
+  server.sendHeader("Cache-Control", "max-age=" + String(seconde) );
+  server.sendHeader("Connection", "close");
+}
+void lectureCookie(String S) {
+  CleAcces = "";
+  if (server.hasHeader("Cookie")) {
+    String cookie = server.header("Cookie");
+    cookie.trim();
+    int p = cookie.indexOf("CleAcces=");
+    if (p >= 0) {
+      CleAcces = cookie.substring(p + 9);
+      p = CleAcces.indexOf(";");
+      if (p >= 0) CleAcces = CleAcces.substring(0, p - 1);
+    }
+    CleAcces.trim();
+  }
+  Serial.print("Clé accès reçue :" + CleAcces);
+  Serial.println("  Attendue :" + CleAccesRef);
+  if (S != "") {
+    server.sendHeader("Connection", "close");
+    if (CleAccesRef == CleAcces) {
+      server.sendHeader("Cache-Control", "max-age=300");
+      server.send(200, "text/html", S);
+    } else {
+      server.send(200, "text/html", ParaCleHtml);  //Demande clé d'acces / mot de passe
+    }
+  }
 }

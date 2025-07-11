@@ -36,8 +36,8 @@ void Call_RTE_data() {
     }  
 
 
-  if ((DATEvalid) && (!(couleur_lendemain && couleur_jour ) ) && ((LastH != Hcour) && (Hcour == 302 || Hcour == 310 || Hcour == 530 || Hcour == 560 || Hcour == 600 || Hcour == 900 || Hcour == 1150) || LastHeureRTE < 0)) {
-    if (TempoRTEon == 1) {
+  if ((HeureValide) && (!(couleur_lendemain && couleur_jour ) ) && ((LastH != Hcour) && (Hcour == 302 || Hcour == 310 || Hcour == 530 || Hcour == 560 || Hcour == 600 || Hcour == 900 || Hcour == 1150) || LastHeureRTE < 0)) {
+    if (TempoRTEon == 1 && ModeWifi==0) {
       // Use clientSecu class to create TCP connections
       clientSecuRTE.setInsecure();  //skip verification
       if (!clientSecuRTE.connect(adr_RTE_Host, 443)) {

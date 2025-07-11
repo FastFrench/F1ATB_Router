@@ -66,10 +66,14 @@ void Liste_Noms(int Idx_RMS) {
     }
   }
 }
-void InfoActionExterne() {
+void InfoActionExterne() { //Relevé périodique etat des actions internes et externes
   if (NbActions > 0) {
     RMS_Datas_idx = (RMS_Datas_idx + 1) % NbActions;
-    byte SelectAction = LesActions[RMS_Datas_idx].SelectAct;
+    byte SelectAction=LesActions[RMS_Datas_idx].SelActEnCours(HeureCouranteDeci);
+    if (LesActions[RMS_Datas_idx].ExtSelAct !=SelectAction){ //Changement action surveillé
+        LesActions[RMS_Datas_idx].ExtValide = 0;
+        LesActions[RMS_Datas_idx].ExtSelAct =SelectAction;
+    }
     if (SelectAction != 255) {                                                              //Action sous condition d'une autre
       if (SelectAction < 10) {                                                              //Action sur même routeur
         LesActions[RMS_Datas_idx].ExtValide = 3;                                            //Condition OK Action externe
@@ -110,7 +114,6 @@ void InfoActionExterne() {
           int p = RMSExtDataB.indexOf(GS);
           int Actif = RMSExtDataB.substring(p - 1, p).toInt();
           if (Actif > 0) {
-            Serial.println(" RMSExtDataB2:" + String(RMSExtDataB));
             RMSExtDataB = RMSExtDataB.substring(p + 1);
             p = RMSExtDataB.indexOf(GS);
             LesActions[RMS_Datas_idx].ExtOuvert = RMSExtDataB.substring(0, p).toInt();

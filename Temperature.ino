@@ -56,7 +56,7 @@ void LectureTemperature() {
         TemperatureValide[canal] = 5;
         temperature[canal] = temperature_brute;
       }
-    } else if (Source_Temp[canal] == "tempExt" && refTempIP[canal] > 0) {
+    } else if (Source_Temp[canal] == "tempExt" && refTempIP[canal] > 0 && ModeWifi<2) {
       String RMSExtTemp = "";
 
       // Use WiFiClient class to create TCP connections
@@ -110,7 +110,7 @@ void LectureTemperature() {
         }
         RMSExtTemp = "";
       }
-    } else if (Source_Temp[canal] == "tempMqtt") {
+    } else if (Source_Temp[canal] == "tempMqtt"  && ModeWifi<2) {
       if (TemperatureValide[canal] > 0) {
         TemperatureValide[canal] = TemperatureValide[canal] - 1;  // Watchdog pour verfier mesures arrivent voir MQTT.ino
       } else {

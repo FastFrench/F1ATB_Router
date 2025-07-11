@@ -6,7 +6,6 @@ const char *ExportHtml = R"====(
   <html><head><meta charset="UTF-8">
   <link rel="stylesheet" href="commun.css">
   <style>
-    body{color:white;}
     .Zone{width:100%;border 1px solid grey;border-radius:10px;margin-top:10px;background-color:rgba(30,30,30,0.3);} 
     .boldT{text-align:left;font-weight:bold;padding:10px;}
     .form {margin:auto;padding:10px;display: table;text-align:left;width:100%;}
@@ -19,7 +18,7 @@ const char *ExportHtml = R"====(
     .Bparametres{border:inset 10px azure;}
     .Bexport{border:inset 4px azure;}
   </style>
-  <script src="/ParaRouteurJS"></script>
+  
   </head>
   <body onload="Init();">
     <div id='lesOnglets'></div>
@@ -57,8 +56,9 @@ const char *ExportHtml = R"====(
           </div>
         </form>
     </div>
-     <script>
-          
+    
+    <script>
+        var BordsInverse=[".Bparametres",".Bexport"]; 
         function Init(){
           SetHautBas();
           LoadParaRouteur();
@@ -91,11 +91,16 @@ const char *ExportHtml = R"====(
           GID("adr_export").href= conf;
         }
         function AdaptationSource(){};
-        function FinParaRouteur(){};
+        function FinParaRouteur(){
+          GID("Bheure").style.display= (Horloge>1) ? "inline-block": "none";
+          LoadCouleurs();
+        };
     </script>
     <br>
     <div id='pied'></div>
     <br>
+    <script src="/ParaRouteurJS"></script>
+    <script src="/CommunCouleurJS"></script>
 </body></html>
  
  )====";

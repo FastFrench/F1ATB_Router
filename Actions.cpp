@@ -18,18 +18,33 @@ Action::Action(int aIdx) {
   T_LastAction = int(millis() / 1000);
   On = false;
   Actif = 0;
-  Reactivite = 50;
+  Reactivite = 10;
   OutOn = 1;
   OutOff = 0;
   Tempo = 0;
   Repet = 0;
   tOnOff = 0;
-  CanalT = -1;  //pas de canal temperature associé
   H_Ouvre = 0;
-  SelectAct = 255;  //ref ESP*10+num Action externe à suivre. 255 =pas de suivi
-  ExtValide = 0;    //Condition Action externe
-  ExtHequiv = 0;    //Duree heure *100 action externe
-  ExtOuvert = 0;
+  ExtSelAct = 255;
+  ExtValide = 0;  //Condition Action externe
+  ExtHequiv = 0;  //Duree heure *100 action externe
+  ExtOuvert = 0;  //Pourcent ouverture
+  for (int i = 0; i < 8; i++) {
+    Type[i] = 0;  //0=NO(pas utilisé),1=OFF,2=ON,3=PW,4=Triac
+    Hdeb[i] = 0;
+    Hfin[i] = 0;
+    Vmin[i] = 0;      //Seuil Pw On ou decoupe
+    Vmax[i] = 0;      //Seuil Pw Off ou ouverture max triac
+    Tinf[i] = -1600;  //Temperarure * 10
+    Tsup[i] = -1600;
+    Hmin[i] = 0;  //Heure deci *100 Min pour actif. 0=non utilisé
+    Hmax[i] = 0;  //Heure deci *100 Max pour actif
+    CanalTemp[i] = -1;
+    SelAct[i] = 255;  //Ref ESP/Action. 255=pas exploité
+    Ooff[i] = 0;      //Ouvre Min Action pour Actif. 0 non utilisé
+    O_on[i] = 0;
+    Tarif[i] = 0;
+  }
 }
 
 
@@ -37,12 +52,12 @@ Action::Action(int aIdx) {
 void Action::Arreter() {
   int Tseconde = int(millis() / 1000);
   if ((Tseconde - T_LastAction) >= Tempo || Idx == 0 || Actif != 1) {
-    if (Gpio > 0 || Idx == 0) {
+    if (Gpio > 0 ) {
       digitalWrite(Gpio, OutOff);
       T_LastAction = Tseconde;
     } else {
       if (On || ((Tseconde - T_LastAction) > Repet && Repet != 0)) {
-        CallExterne(Host, OrdreOff, Port);
+        if (Actif > 0) CallExterne(Host, OrdreOff, Port);
         T_LastAction = Tseconde;
       }
     }
@@ -107,10 +122,6 @@ void Action::Definir(String ligne) {
   ligne = ligne.substring(ligne.indexOf(RS) + 1);
   Reactivite = byte(ligne.substring(0, ligne.indexOf(RS)).toInt());
   ligne = ligne.substring(ligne.indexOf(RS) + 1);
-  CanalT = ligne.substring(0, ligne.indexOf(RS)).toInt();
-  ligne = ligne.substring(ligne.indexOf(RS) + 1);
-  SelectAct = ligne.substring(0, ligne.indexOf(RS)).toInt();
-  ligne = ligne.substring(ligne.indexOf(RS) + 1);
   NbPeriode = byte(ligne.substring(0, ligne.indexOf(RS)).toInt());
   ligne = ligne.substring(ligne.indexOf(RS) + 1);
   int Hdeb_ = 0;
@@ -133,6 +144,10 @@ void Action::Definir(String ligne) {
     ligne = ligne.substring(ligne.indexOf(RS) + 1);
     Hmax[i] = ligne.substring(0, ligne.indexOf(RS)).toInt();
     ligne = ligne.substring(ligne.indexOf(RS) + 1);
+    CanalTemp[i] = ligne.substring(0, ligne.indexOf(RS)).toInt();
+    ligne = ligne.substring(ligne.indexOf(RS) + 1);
+    SelAct[i] = ligne.substring(0, ligne.indexOf(RS)).toInt();
+    ligne = ligne.substring(ligne.indexOf(RS) + 1);
     Ooff[i] = ligne.substring(0, ligne.indexOf(RS)).toInt();
     ligne = ligne.substring(ligne.indexOf(RS) + 1);
     O_on[i] = ligne.substring(0, ligne.indexOf(RS)).toInt();
@@ -154,8 +169,6 @@ String Action::Lire() {
   S += String(Repet) + RS;
   S += String(Tempo) + RS;
   S += String(Reactivite) + RS;
-  S += String(CanalT) + RS;
-  S += String(SelectAct) + RS;
   S += String(NbPeriode) + RS;
   for (byte i = 0; i < NbPeriode; i++) {
     S += String(Type[i]) + RS;
@@ -166,6 +179,8 @@ String Action::Lire() {
     S += String(Tsup[i]) + RS;
     S += String(Hmin[i]) + RS;
     S += String(Hmax[i]) + RS;
+    S += String(CanalTemp[i]) + RS;
+    S += String(SelAct[i]) + RS;
     S += String(Ooff[i]) + RS;
     S += String(O_on[i]) + RS;
     S += String(Tarif[i]) + RS;
@@ -173,25 +188,38 @@ String Action::Lire() {
   return S + GS;
 }
 
-
-
-
+int16_t Action::CanalTempEnCours(int Heure) {
+  int16_t CanalEnCours = -1;
+  for (int i = 0; i < NbPeriode; i++) {
+    if (Heure >= Hdeb[i] && Heure <= Hfin[i]) {
+      CanalEnCours = CanalTemp[i];
+    }
+  }
+  return CanalEnCours;
+}
 byte Action::TypeEnCours(int Heure, float Temperature, int Ltarfbin, int Retard) {  //Retourne type d'action  active à cette heure et test temperature OK
-  byte S = 1;                                                           //Equivalent à Action Off
+  byte S = 1;
+  int16_t Tempx10 = int(Temperature * 10.0);  //Température en dixième de degré                                                                  //Equivalent à Action Off
   bool ConditionsOk;
   for (int i = 0; i < NbPeriode; i++) {
     if (Heure >= Hdeb[i] && Heure <= Hfin[i]) {
       ConditionsOk = true;
-      if (Temperature > -100) {
-        if (Tinf[i] <= 1000 && int(Temperature * 10.0) > Tinf[i]) { ConditionsOk = false; }
-        if (Tsup[i] <= 1000 && int(Temperature * 10.0) < Tsup[i]) { ConditionsOk = false; }
+      if (Temperature > -100.0) {
+        if (Tinf[i] < 1500 && Tsup[i] < 1500 && Tinf[i] < Tsup[i]) {  // on applique un hystérésis dont les valeurs sont Tinf et Tsup
+          if (Tempx10 > Tinf[i] && Tempx10 > Tsup[i]) Tseuil = Tinf[i];
+          if (Tempx10 < Tinf[i] && Tempx10 < Tsup[i]) Tseuil = Tsup[i];
+          if (Tempx10 > Tseuil) { ConditionsOk = false; }
+        } else {
+          if (Tinf[i] <= 1000 && Tempx10 > Tinf[i]) { ConditionsOk = false; }
+          if (Tsup[i] <= 1000 && Tempx10 < Tsup[i]) { ConditionsOk = false; }
+        }
       }
       if (Ltarfbin > 0 && (Ltarfbin & Tarif[i]) == 0) ConditionsOk = false;
-      if (SelectAct != 255) {  //On conditionne à une autre action
+      if (SelAct[i] != 255) {  //On conditionne à une autre action
         if (Hmin[i] != 0 && (Hmin[i] > ExtHequiv || ExtValide == 0)) ConditionsOk = false;
         if (Hmax[i] != 0 && (Hmax[i] < ExtHequiv || ExtValide == 0)) ConditionsOk = false;
-        if (Ooff[i] != 0 && ((int(Ooff[i]) >= ExtOuvert && Retard!=100) || ExtValide == 0)) ConditionsOk = false; //Inferieur au seuil bas
-        if (O_on[i] != 0 && ((int(O_on[i]) > ExtOuvert && Retard==100) || ExtValide == 0)) ConditionsOk = false; //Inferieur au seuil haut et pas encore ouvert
+        if (Ooff[i] != 0 && ((int(Ooff[i]) >= ExtOuvert && Retard != 100) || ExtValide == 0)) ConditionsOk = false;  //Inferieur au seuil bas
+        if (O_on[i] != 0 && ((int(O_on[i]) > ExtOuvert && Retard == 100) || ExtValide == 0)) ConditionsOk = false;   //Inferieur au seuil haut et pas encore ouvert
       }
       if (ConditionsOk) S = Type[i];
     }
@@ -200,6 +228,15 @@ byte Action::TypeEnCours(int Heure, float Temperature, int Ltarfbin, int Retard)
   if (tOnOff > 0) S = 2;  // Force On
   if (tOnOff < 0) S = 1;  // Force Off
   return S;               //0=NO (pas utilisé),1=OFF,2=ON,3=PW,4=Triac
+}
+byte Action::SelActEnCours(int Heure) {
+  int S = 255;
+  for (int i = 0; i < NbPeriode; i++) {
+    if (Heure >= Hdeb[i] && Heure <= Hfin[i]) {
+      S = SelAct[i];
+    }
+  }
+  return S;
 }
 int Action::Valmin(int Heure) {  //Retourne la valeur Vmin (ex seuil Triac) à cette heure
   int S = 0;

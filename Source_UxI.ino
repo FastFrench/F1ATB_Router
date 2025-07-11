@@ -64,7 +64,7 @@ void ComputePower() {
   PowerFactor_M = PowerFactor;
   if (PWcal >= 0) {
     EASfloat += PWcal / 90000.0;         // Watt Hour,Every 40ms. Soutirée
-    Energie_M_Soutiree = int(EASfloat);  // Watt Hour,Every 40ms. Soutirée
+    Energie_M_Soutiree = int(EASfloat);  
     PuissanceS_M_inst = PWcal;
     PuissanceI_M_inst = 0;
     PVAS_M_inst = PVA;

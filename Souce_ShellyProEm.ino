@@ -1,6 +1,6 @@
 //*********************************************************************
 // Variante Shelly Pro Em proposé par Raphael591 (Juillet 2024)       *
-//  + Correction Octobre 2024                                         *
+//  + Correction Octobre 2024  et Janvier 2025                                       *
 // ********************************************************************
 // * Paramétrage de la voie pour le shelly pro 3 em :                 *
 // *   - 3 sur le triphasé.                                           *
@@ -27,10 +27,10 @@ void LectureShellyProEm() {
     return;
   }
   int voie = EnphaseSerial.toInt();
-  int Voie = voie % 2;
+  int Voie = voie % 3; //Pro3Em trois voies
 
   if (ShEm_comptage_appels == 1) {
-    Voie = (Voie + 1) % 2;
+    Voie = (Voie + 1) % 3; //Pro3Em trois voies
   }
 
   // Connaître modèle du shelly *******************************************
@@ -56,7 +56,7 @@ void LectureShellyProEm() {
   int p = Shelly_Name.indexOf("-");
   Shelly_Name = Shelly_Name.substring(0,p);
   Shelly_Data = "";
-  // Modèle shelly FIN *****************************************************
+  // Modèle shelly FIN ******
  
   if (!clientESP_RMS.connect(host.c_str(), 80))
   {
@@ -150,43 +150,96 @@ void LectureShellyProEm() {
     pf = ValJson("pf", tmp);
     pf = abs(pf);
     if (pf > 1) pf = 1;
-    if (Pw >= 0)
-    {
-      PuissanceS_M_inst = Pw;
-      PuissanceI_M_inst = 0;
-      if (pf > 0.01)
-      {
-        PVAS_M_inst = PfloatMax(Pw / pf);
+    if (Voie == voie)
+      { // voie du routeur
+        if (Pw >= 0)
+        {
+          PuissanceS_M_inst = Pw;
+          PuissanceI_M_inst = 0;
+          if (pf > 0.01)
+          {
+            PVAS_M_inst = PfloatMax(Pw / pf);
+          }
+          else
+          {
+            PVAS_M_inst = 0;
+          }
+          PVAI_M_inst = 0;
+        }
+        else
+        {
+          PuissanceS_M_inst = 0;
+          PuissanceI_M_inst = -Pw;
+          if (pf > 0.01)
+          {
+            PVAI_M_inst = PfloatMax(-Pw / pf);
+          }
+          else
+          {
+            PVAI_M_inst = 0;
+          }
+          PVAS_M_inst = 0;
+        }
+        tmp = PrefiltreJson("em1data:" + String(Voie), ":", Shelly_Data); // ADD PERSO
+        Energie_M_Soutiree = myLongJson("total_act_energy", tmp);         // ADD PERSO
+        Energie_M_Injectee = myLongJson("total_act_ret_energy", tmp);     // ADD PERSO
+        PowerFactor_M = pf;
+        Tension_M = voltage;
+        Pva_valide = true;
       }
-      else
-      {
-        PVAS_M_inst = 0;
-      }
-      PVAI_M_inst = 0;
-    }
     else
-    {
-      PuissanceS_M_inst = 0;
-      PuissanceI_M_inst = -Pw;
-      if (pf > 0.01)
-      {
-        PVAI_M_inst = PfloatMax(-Pw / pf);
+      { // voie secondaire
+        if (LissageLong)
+        {
+          PwMoy2 = 0.2 * Pw + 0.8 * PwMoy2; // Lissage car moins de mesure sur voie secondaire
+          pfMoy2 = 0.2 * pf + 0.8 * pfMoy2;
+          Pw = PwMoy2;
+          pf = pfMoy2;
+        }
+        if (Pw >= 0)
+        {
+          PuissanceS_T_inst = Pw;
+          PuissanceI_T_inst = 0;
+          if (pf > 0.01)
+          {
+            PVAS_T_inst = PfloatMax(Pw / pf);
+          }
+          else
+          {
+            PVAS_T_inst = 0;
+          }
+          PVAI_T_inst = 0;
+        }
+        else
+        {
+          PuissanceS_T_inst = 0;
+          PuissanceI_T_inst = -Pw;
+          if (pf > 0.01)
+          {
+            PVAI_T_inst = PfloatMax(-Pw / pf);
+          }
+          else
+          {
+            PVAI_T_inst = 0;
+          }
+          PVAS_T_inst = 0;
+        }
+        tmp = PrefiltreJson("em1data:" + String(Voie), ":", Shelly_Data); // ADD PERSO
+        Energie_T_Soutiree = myLongJson("total_act_energy", tmp);         // ADD PERSO
+        Energie_T_Injectee = myLongJson("total_act_ret_energy", tmp);     // ADD PERSO
+        PowerFactor_T = pf;
+        Tension_T = voltage;
       }
-      else
-      {
-        PVAI_M_inst = 0;
-      }
-      PVAS_M_inst = 0;
-    }
-    tmp = PrefiltreJson("em1data:" + String(Voie), ":", Shelly_Data); // ADD PERSO
-    Energie_M_Soutiree = myLongJson("total_act_energy", tmp);         // ADD PERSO
-    Energie_M_Injectee = myLongJson("total_act_ret_energy", tmp);     // ADD PERSO
-    PowerFactor_M = pf;
-    Tension_M = voltage;
-    Pva_valide = true;
   }
   else if (Shelly_Name == "shellyproem50" )
   { // Monophasé pro EM
+
+    //redifinition proEm50 2 voie (0 ou 1) 
+    Voie = voie % 2;
+    if (ShEm_comptage_appels == 1) {
+      Voie = (Voie + 1) % 2;
+    }
+
     ShEm_dataBrute = "<strong>" + Shelly_Name + "</strong><br>" + Shelly_Data;
     Shelly_Data = Shelly_Data + ",";
     if (Shelly_Data.indexOf("true") > 0)

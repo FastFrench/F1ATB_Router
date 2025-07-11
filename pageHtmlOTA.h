@@ -11,9 +11,7 @@ const char *OtaHtml = R"====(
     #onglets2{display:block;}
     .Bparametres{border:inset 10px azure;}
     .Bota{border:inset 4px azure;}
-    body{color:white;}
   </style>
-  <script src="/ParaRouteurJS"></script>
   <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
 
   </head>
@@ -45,7 +43,9 @@ const char *OtaHtml = R"====(
       <input class='bouton' type='submit' value='Mettre à jour'>
     </form>
     <div id='prg'>progression: 0%</div>
+    
     <script>
+          var BordsInverse=[".Bparametres",".Bota"];
           $('form').submit(function(e){
             e.preventDefault();
             var form = $('#upload_form')[0];
@@ -78,15 +78,21 @@ const char *OtaHtml = R"====(
         function Init(){
           SetHautBas();
           LoadParaRouteur();
+          LoadCouleurs();
         }
         function AdaptationSource(){
           setTimeout('GH("Version_actu", GID("version").innerHTML)',1000);
         };
-        function FinParaRouteur(){};
+        function FinParaRouteur(){
+          GID("Bheure").style.display= (Horloge>1) ? "inline-block": "none";
+        };
     </script>
     <br>
+    <small>Après une mise à jour un reset de l'ESP32 et un Ctrl+F5 pour vider le cache du navigateur sont recommandés.</small>
     <div id='pied'></div>
     <br>
+    <script src="/ParaRouteurJS"></script>
+    <script src="/CommunCouleurJS"></script>
 </body></html>
  
  )====";

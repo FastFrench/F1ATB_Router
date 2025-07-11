@@ -47,7 +47,7 @@ void LectureConsoMatinJour(void) {
   EAI_T_J0 = EEPROM.readULong(adr_E_T_injecte0);
   EAS_M_J0 = EEPROM.readULong(adr_E_M_soutire0);  //Maison
   EAI_M_J0 = EEPROM.readULong(adr_E_M_injecte0);
-  DateCeJour = EEPROM.readString(adr_DateCeJour);
+  //DateCeJour = EEPROM.readString(adr_DateCeJour); Plus utilisé depuis V13
   idxPromDuJour = EEPROM.readUShort(adr_lastStockConso);
   if (Energie_T_Soutiree < EAS_T_J0) {
     Energie_T_Soutiree = EAS_T_J0;
@@ -65,46 +65,71 @@ void LectureConsoMatinJour(void) {
 
 
 void JourHeureChange() {
-  if (DATEvalid) {
+  char buffer[MAX_SIZE_T];
+  unsigned short Tnow = CptIT;
+  if (Horloge > 4 && ITmode > 0) {  // Horloge sur IT 20ms
+    StepIT = 2;
+  } else {
+    StepIT = 1;
+  }
+
+  unsigned short deltaT = Tnow - Int_Last_10Millis;
+  int16_t old_Heure = Int_Heure;
+  while (deltaT >= 100) {
+    Int_Last_10Millis = Int_Last_10Millis + 100;
+    Int_Seconde++;
+    T_On_seconde++;
+    deltaT = Tnow - Int_Last_10Millis;
+    while (Int_Seconde >= 60) {
+      Int_Minute++;
+      Int_Seconde = Int_Seconde - 60;
+      while (Int_Minute >= 60) {
+        Int_Heure = (Int_Heure + 1) % 24;
+        Int_Minute = Int_Minute - 60;
+      }
+    }
+  }
+
+  if (Horloge == 0) {  //Heure Internet
     //Time Update / de l'heure
     time_t timestamp = time(NULL);
-    char buffer[MAX_SIZE_T];
     struct tm *pTime = localtime(&timestamp);
     strftime(buffer, MAX_SIZE_T, "%d/%m/%Y %H:%M:%S", pTime);
     DATE = String(buffer);
-    strftime(buffer, MAX_SIZE_T, "%d%m%Y", pTime);
-    String JourCourant = String(buffer);
     strftime(buffer, MAX_SIZE_T, "%H", pTime);
-    int hour = atoi(buffer);
+    int16_t hour = atoi(buffer);
+    Int_Heure = hour;
     strftime(buffer, MAX_SIZE_T, "%M", pTime);
-    int minute = atoi(buffer);
-    strftime(buffer, MAX_SIZE_T, "%s", pTime);
-    unsigned long Tactu = strtoul(buffer, NULL, 10);
-    if (T0_seconde == 0) T0_seconde = Tactu;
-    T_On_seconde = Tactu - T0_seconde;
-    HeureCouranteDeci = hour * 100 + minute * 10 / 6;
-    if (DateCeJour != JourCourant) {                  //Changement de jour
-      if (EnergieActiveValide && DateCeJour != "") {  //Données recues
-        idxPromDuJour = (idxPromDuJour + 1 + NbJour) % NbJour;
-        //On enregistre les conso en début de journée pour l'historique de l'année
-        long energie = Energie_M_Soutiree - Energie_M_Injectee;  //Bilan energie du jour
-        EEPROM.writeLong(idxPromDuJour * 4, energie);
-        EEPROM.writeULong(adr_E_T_soutire0, long(Energie_T_Soutiree));
-        EEPROM.writeULong(adr_E_T_injecte0, long(Energie_T_Injectee));
-        EEPROM.writeULong(adr_E_M_soutire0, long(Energie_M_Soutiree));
-        EEPROM.writeULong(adr_E_M_injecte0, long(Energie_M_Injectee));
-        EEPROM.writeString(adr_DateCeJour, JourCourant);
-        EEPROM.writeUShort(adr_lastStockConso, idxPromDuJour);
-        EEPROM.commit();
-        LectureConsoMatinJour();
-      }
-      DateCeJour = JourCourant;
-      erreurTriac = false;
+    int16_t minute = atoi(buffer);
+    Int_Minute = minute;
+  } else if (Horloge == 1) {  //Heure Linky
+    sprintf(buffer, "%d:%02d:%02d", Int_Heure, Int_Minute, Int_Seconde);
+    DATE = JourLinky + " " + String(buffer);
+  } else {  //Horloge interne ou par IT 10 ou 20ms
+    sprintf(buffer, "%d:%02d:%02d", Int_Heure, Int_Minute, Int_Seconde);
+    DATE = String(buffer);
+  }
+  HeureCouranteDeci = Int_Heure * 100 + Int_Minute * 10 / 6;
+  if (HeureCouranteDeci >= 599 && HeureCouranteDeci <= 600) {
+    for (int i = 0; i < LesActionsLength; i++) {
+      LesActions[i].H_Ouvre = 0;  //RAZ temps equivalent ouverture à 6h du matin
     }
-    if (HeureCouranteDeci >= 599 && HeureCouranteDeci <= 600) {
-      for (int i = 0; i < LesActionsLength; i++) {
-        LesActions[i].H_Ouvre = 0;  //RAZ temps equivalent ouverture à 6h du matin
-      }
+  }
+  if (old_Heure == 23 && Int_Heure == 0) {
+    erreurTriac = false;
+    if (EnergieActiveValide) {  //Données recues
+      idxPromDuJour = (idxPromDuJour + 1 + NbJour) % NbJour;
+      //On enregistre les conso en début de journée pour l'historique de l'année
+      long energie = Energie_M_Soutiree - Energie_M_Injectee;  //Bilan energie du jour
+      EEPROM.writeLong(idxPromDuJour * 4, energie);
+      EEPROM.writeULong(adr_E_T_soutire0, long(Energie_T_Soutiree));
+      EEPROM.writeULong(adr_E_T_injecte0, long(Energie_T_Injectee));
+      EEPROM.writeULong(adr_E_M_soutire0, long(Energie_M_Soutiree));
+      EEPROM.writeULong(adr_E_M_injecte0, long(Energie_M_Injectee));
+      EEPROM.writeString(adr_DateCeJour, "");
+      EEPROM.writeUShort(adr_lastStockConso, idxPromDuJour);
+      EEPROM.commit();
+      LectureConsoMatinJour();
     }
   }
 }
@@ -155,11 +180,21 @@ void LectureEnROM() {
   int VersionMajeur = int(VersionStocke / 100);
   String V = Version;
   int Vr = V.toInt();
-  Serial.print("VersionMajeur:");
+  Serial.print("Version stockée (partie entière) :");
   Serial.println(VersionMajeur);
-  Serial.print("Version:");
+  Serial.print("Version du logiciel( partie entière) :");
   Serial.println(Vr);
   if (Vr == VersionMajeur) {  //La partie entière  ne change pas. On lit la suite
+    CleAccesRef = EEPROM.readString(address);
+    address += CleAccesRef.length() + 1;
+    Couleurs = EEPROM.readString(address);
+    address += Couleurs.length() + 1;
+    ModePara = EEPROM.readByte(address);
+    address += sizeof(byte);
+    ModeWifi = EEPROM.readByte(address);
+    address += sizeof(byte);
+    Horloge = EEPROM.readByte(address);
+    address += sizeof(byte);
     Source = EEPROM.readString(address);
     address += Source.length() + 1;
     RMSextIP = EEPROM.readULong(address);
@@ -182,6 +217,8 @@ void LectureEnROM() {
     address += MQTTPwd.length() + 1;
     MQTTPrefix = EEPROM.readString(address);
     address += MQTTPrefix.length() + 1;
+    MQTTPrefixEtat = EEPROM.readString(address);
+    address += MQTTPrefixEtat.length() + 1;
     MQTTdeviceName = EEPROM.readString(address);
     address += MQTTdeviceName.length() + 1;
     TopicP = EEPROM.readString(address);
@@ -248,10 +285,6 @@ void LectureEnROM() {
       address += sizeof(unsigned short);
       LesActions[iAct].Reactivite = EEPROM.readByte(address);
       address += sizeof(byte);
-      LesActions[iAct].CanalT = EEPROM.readShort(address);
-      address += sizeof(unsigned short);
-      LesActions[iAct].SelectAct = EEPROM.readByte(address);
-      address += sizeof(byte);
       LesActions[iAct].NbPeriode = EEPROM.readByte(address);
       address += sizeof(byte);
       Hdeb = 0;
@@ -261,19 +294,23 @@ void LectureEnROM() {
         LesActions[iAct].Hfin[i] = EEPROM.readUShort(address);
         LesActions[iAct].Hdeb[i] = Hdeb;
         Hdeb = LesActions[iAct].Hfin[i];
-        address += sizeof(unsigned short);
+        address += sizeof(short);
         LesActions[iAct].Vmin[i] = EEPROM.readShort(address);
-        address += sizeof(unsigned short);
+        address += sizeof(short);
         LesActions[iAct].Vmax[i] = EEPROM.readShort(address);
-        address += sizeof(unsigned short);
+        address += sizeof(short);
         LesActions[iAct].Tinf[i] = EEPROM.readShort(address);
-        address += sizeof(unsigned short);
+        address += sizeof(short);
         LesActions[iAct].Tsup[i] = EEPROM.readShort(address);
-        address += sizeof(unsigned short);
+        address += sizeof(short);
         LesActions[iAct].Hmin[i] = EEPROM.readShort(address);
-        address += sizeof(unsigned short);
+        address += sizeof(short);
         LesActions[iAct].Hmax[i] = EEPROM.readShort(address);
-        address += sizeof(unsigned short);
+        address += sizeof(short);
+        LesActions[iAct].CanalTemp[i] = EEPROM.readShort(address);
+        address += sizeof(short);
+        LesActions[iAct].SelAct[i] = EEPROM.readByte(address);
+        address += sizeof(byte);
         LesActions[iAct].Ooff[i] = EEPROM.readByte(address);
         address += sizeof(byte);
         LesActions[iAct].O_on[i] = EEPROM.readByte(address);
@@ -308,6 +345,16 @@ int EcritureEnROM() {
   address += sizeof(unsigned long);
   EEPROM.writeULong(address, dns);
   address += sizeof(unsigned long);
+  EEPROM.writeString(address, CleAccesRef);
+  address += CleAccesRef.length() + 1;
+  EEPROM.writeString(address, Couleurs);
+  address += Couleurs.length() + 1;
+  EEPROM.writeByte(address, ModePara);
+  address += sizeof(byte);
+  EEPROM.writeByte(address, ModeWifi);
+  address += sizeof(byte);
+  EEPROM.writeByte(address, Horloge);
+  address += sizeof(byte);
   EEPROM.writeString(address, Source);
   address += Source.length() + 1;
   EEPROM.writeULong(address, RMSextIP);
@@ -318,6 +365,10 @@ int EcritureEnROM() {
   address += EnphasePwd.length() + 1;
   EEPROM.writeString(address, EnphaseSerial);
   address += EnphaseSerial.length() + 1;
+  if (ModePara==0) {
+    MQTTRepet=0;
+    subMQTT=0;
+  }
   EEPROM.writeUShort(address, MQTTRepet);
   address += sizeof(unsigned short);
   EEPROM.writeULong(address, MQTTIP);
@@ -330,6 +381,8 @@ int EcritureEnROM() {
   address += MQTTPwd.length() + 1;
   EEPROM.writeString(address, MQTTPrefix);
   address += MQTTPrefix.length() + 1;
+  EEPROM.writeString(address, MQTTPrefixEtat);
+  address += MQTTPrefixEtat.length() + 1;
   EEPROM.writeString(address, MQTTdeviceName);
   address += MQTTdeviceName.length() + 1;
   EEPROM.writeString(address, TopicP);
@@ -394,29 +447,33 @@ int EcritureEnROM() {
     address += sizeof(unsigned short);
     EEPROM.writeByte(address, LesActions[iAct].Reactivite);
     address += sizeof(byte);
-    EEPROM.writeShort(address, LesActions[iAct].CanalT);
-    address += sizeof(unsigned short);
-    EEPROM.writeByte(address, LesActions[iAct].SelectAct);
-    address += sizeof(byte);
     EEPROM.writeByte(address, LesActions[iAct].NbPeriode);
     address += sizeof(byte);
     for (byte i = 0; i < LesActions[iAct].NbPeriode; i++) {
+      if (ModePara == 0) {  //standard
+        LesActions[iAct].CanalTemp[i] = -1;
+        LesActions[iAct].SelAct[i] = 255;
+      }
       EEPROM.writeByte(address, LesActions[iAct].Type[i]);
       address += sizeof(byte);
       EEPROM.writeUShort(address, LesActions[iAct].Hfin[i]);
-      address += sizeof(unsigned short);
+      address += sizeof(short);
       EEPROM.writeShort(address, LesActions[iAct].Vmin[i]);
-      address += sizeof(unsigned short);
+      address += sizeof(short);
       EEPROM.writeShort(address, LesActions[iAct].Vmax[i]);
-      address += sizeof(unsigned short);
+      address += sizeof(short);
       EEPROM.writeShort(address, LesActions[iAct].Tinf[i]);
-      address += sizeof(unsigned short);
+      address += sizeof(short);
       EEPROM.writeShort(address, LesActions[iAct].Tsup[i]);
-      address += sizeof(unsigned short);
+      address += sizeof(short);
       EEPROM.writeShort(address, LesActions[iAct].Hmin[i]);
-      address += sizeof(unsigned short);
+      address += sizeof(short);
       EEPROM.writeShort(address, LesActions[iAct].Hmax[i]);
-      address += sizeof(unsigned short);
+      address += sizeof(short);
+      EEPROM.writeShort(address, LesActions[iAct].CanalTemp[i]);
+      address += sizeof(short);
+      EEPROM.writeByte(address, LesActions[iAct].SelAct[i]);
+      address += sizeof(byte);
       EEPROM.writeByte(address, LesActions[iAct].Ooff[i]);
       address += sizeof(byte);
       EEPROM.writeByte(address, LesActions[iAct].O_on[i]);
@@ -522,7 +579,7 @@ void LireSerial() {
     String valeur = "";
     int p;
 
-    if (inbyte == 13) {
+    if ((inbyte == 10) || (inbyte == 13)) {
       SerialIn.trim();
       Serial.println(SerialIn);
       p = SerialIn.indexOf(":");
@@ -540,6 +597,7 @@ void LireSerial() {
       }
       if (sw.indexOf("ssid") >= 0) {
         ssid = valeur;
+        ModeWifi = 0;  // A priori
         EcritureEnROM();
       }
       if (sw.indexOf("password") >= 0) {
@@ -567,9 +625,11 @@ String Fichier_parametres(String ip, String para, String action) {
     S += AddUlong("Gateway", Gateway) + AddUlong("masque", masque) + AddUlong("dns", dns);
   }
   if (para == "true") {
+    S += AddStr("CleAccesRef", CleAccesRef) + AddStr("Couleurs", Couleurs);
+    S += AddByte("ModePara", ModePara) + AddByte("ModeWifi", ModeWifi) + AddByte("Horloge", Horloge);
     S += AddStr("Source", Source) + AddUlong("RMSextIP", RMSextIP) + AddStr("EnphaseUser", EnphaseUser) + AddStr("EnphasePwd", EnphasePwd) + AddStr("EnphaseSerial", EnphaseSerial);
     S += AddUshort("MQTTRepet", MQTTRepet) + AddUlong("MQTTIP", MQTTIP) + AddUshort("MQTTPort", MQTTPort);
-    S += AddStr("MQTTUser", MQTTUser) + AddStr("MQTTPwd", MQTTPwd) + AddStr("MQTTPrefix", MQTTPrefix);
+    S += AddStr("MQTTUser", MQTTUser) + AddStr("MQTTPwd", MQTTPwd) + AddStr("MQTTPrefix", MQTTPrefix) + AddStr("MQTTPrefixEtat", MQTTPrefixEtat);
     S += AddStr("MQTTdeviceName", MQTTdeviceName) + AddStr("TopicP", TopicP);
     S += AddByte("subMQTT", subMQTT) + AddStr("nomRouteur", nomRouteur) + AddStr("nomSondeFixe", nomSondeFixe) + AddStr("nomSondeMobile", nomSondeMobile);
     for (int i = 1; i < LesRouteursMax; i++) {
@@ -588,8 +648,6 @@ String Fichier_parametres(String ip, String para, String action) {
       S += "{\"Action\":" + String(iAct) + AddByte("Actif", LesActions[iAct].Actif) + AddStr("Titre", LesActions[iAct].Titre);
       S += AddStr("Host", LesActions[iAct].Host) + AddUshort("Port", LesActions[iAct].Port) + AddStr("OrdreOn", LesActions[iAct].OrdreOn) + AddStr("OrdreOff", LesActions[iAct].OrdreOff);
       S += AddUshort("Repet", LesActions[iAct].Repet) + AddUshort("Tempo", LesActions[iAct].Tempo) + AddByte("Reactivite", LesActions[iAct].Reactivite);
-      S += AddUshort("CanalT", LesActions[iAct].CanalT);
-      S += AddByte("SelectAct", LesActions[iAct].SelectAct);
       NbPeriode = LesActions[iAct].NbPeriode;
       S += AddByte("NbPeriode", NbPeriode) + ",\"Périodes\":[";
       for (byte i = 0; i < NbPeriode; i++) {
@@ -597,6 +655,8 @@ String Fichier_parametres(String ip, String para, String action) {
         S += AddInt("Hfin", LesActions[iAct].Hfin[i]) + AddInt("Vmin", LesActions[iAct].Vmin[i]) + AddInt("Vmax", LesActions[iAct].Vmax[i]);
         S += AddInt("Tinf", LesActions[iAct].Tinf[i]) + AddInt("Tsup", LesActions[iAct].Tsup[i]);
         S += AddInt("Hmin", LesActions[iAct].Hmin[i]) + AddInt("Hmax", LesActions[iAct].Hmax[i]);
+        S += AddUshort("CanalTemp", LesActions[iAct].CanalTemp[i]);
+        S += AddByte("SelAct", LesActions[iAct].SelAct[i]);
         S += AddByte("Ooff", LesActions[iAct].Ooff[i]) + AddByte("O_on", LesActions[iAct].O_on[i]);
         S += AddByte("Tarif", LesActions[iAct].Tarif[i]) + "}";
         if (i != NbPeriode - 1) S += ",";
@@ -642,6 +702,11 @@ void ImportParametres(String Conf) {
     dns = ULongJson("dns", Conf);
   }
   if (Conf.indexOf("\"Source\":") > 0) {  //Autres parametres
+    CleAccesRef = StringJson("CleAccesRef", Conf);
+    Couleurs = StringJson("Couleurs", Conf);
+    ModePara = ByteJson("ModePara", Conf);
+    ModeWifi = ByteJson("ModeWifi", Conf);
+    Horloge = ByteJson("Horloge", Conf);
     Source = StringJson("Source", Conf);
     RMSextIP = ULongJson("RMSextIP", Conf);
     EnphaseUser = StringJson("EnphaseUser", Conf);
@@ -653,6 +718,7 @@ void ImportParametres(String Conf) {
     MQTTUser = StringJson("MQTTUser", Conf);
     MQTTPwd = StringJson("MQTTPwd", Conf);
     MQTTPrefix = StringJson("MQTTPrefix", Conf);
+    MQTTPrefixEtat = StringJson("MQTTPrefixEtat", Conf);
     MQTTdeviceName = StringJson("MQTTdeviceName", Conf);
     TopicP = StringJson("TopicP", Conf);
     subMQTT = ByteJson("subMQTT", Conf);
@@ -702,10 +768,6 @@ void ImportParametres(String Conf) {
       LesActions[iAct].Repet = UShortJson("Repet", Conf);
       LesActions[iAct].Tempo = UShortJson("Tempo", Conf);
       LesActions[iAct].Reactivite = ByteJson("Reactivite", Conf);
-      LesActions[iAct].CanalT = -1;
-      if (Conf.indexOf("\"CanalT\":") > 0) LesActions[iAct].CanalT = UShortJson("CanalT", Conf);  //V12
-      LesActions[iAct].SelectAct = 255;
-      if (Conf.indexOf("\"SelectAct\":") > 0) LesActions[iAct].SelectAct = ByteJson("SelectAct", Conf);  //V12
       LesActions[iAct].NbPeriode = ByteJson("NbPeriode", Conf);
       Hdeb = 0;
       for (byte i = 0; i < LesActions[iAct].NbPeriode; i++) {
@@ -721,6 +783,8 @@ void ImportParametres(String Conf) {
         LesActions[iAct].Tsup[i] = ShortJson("Tsup", Conf);
         LesActions[iAct].Hmin[i] = ShortJson("Hmin", Conf);
         LesActions[iAct].Hmax[i] = ShortJson("Hmax", Conf);
+        LesActions[iAct].CanalTemp[i] = UShortJson("CanalTemp", Conf);  //V13
+        LesActions[iAct].SelAct[i] = ByteJson("SelAct", Conf);          //V13
         LesActions[iAct].Ooff[i] = ByteJson("Ooff", Conf);
         LesActions[iAct].O_on[i] = ByteJson("O_on", Conf);
         LesActions[iAct].Tarif[i] = ByteJson("Tarif", Conf);
@@ -755,4 +819,18 @@ unsigned long String2IP(String S) {
   }
   IP += S.toInt();
   return IP;
+}
+
+//Gestion couleurs
+String ULtoHex(unsigned long x) {
+  char buffer[15];
+  ltoa(x, buffer, 16);
+  String S = "000000" + String(buffer);
+  int p = S.length();
+  S = "#" + S.substring(p - 6);  //Format pour HTML color
+  return S;
+}
+unsigned long ConvCouleur(String V) {  //Notation CSS en UL
+  V = V.substring(1);                  //enleve #
+  return strtoul(V.c_str(), NULL, 16);
 }
