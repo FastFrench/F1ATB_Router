@@ -411,13 +411,18 @@ void handleSetGpio() {
   server.send(200, "text/html", S);
 }
 void handleAP_ScanWifi() {
+  server.send(200, "text/html", Liste_AP);
+}
+void Liste_WIFI() {  //Doit être fait avant toute connection WIFI depuis biblio ESP32 3.0.1
   WIFIbug = 0;
-  esp_task_wdt_reset();  //Reset du Watchdog
+  int n = 0;
+  WiFi.disconnect();
+  delay(100);
   Serial.println("Scan start");
   // WiFi.scanNetworks will return the number of networks found.
-  int n = WiFi.scanNetworks();
+  n = WiFi.scanNetworks();
   Serial.println("Scan done");
-  String S = "";
+  Liste_AP = "";
   if (n == 0) {
     Serial.println("Pas de réseau Wifi trouvé");
   } else {
@@ -432,12 +437,10 @@ void handleAP_ScanWifi() {
       Serial.print(" | ");
       Serial.printf("%4d", WiFi.RSSI(i));
       Serial.println();
-      S += WiFi.SSID(i).c_str() + RS + WiFi.RSSI(i) + GS;
-      delay(2);
+      Liste_AP += WiFi.SSID(i).c_str() + RS + WiFi.RSSI(i) + GS;
     }
   }
   WiFi.scanDelete();
-  server.send(200, "text/html", S);
 }
 void handleAP_SetWifi() {
   WIFIbug = 0;

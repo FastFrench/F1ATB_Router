@@ -1,7 +1,7 @@
 /*
   PV Router / Routeur Solaire 
   ****************************************
-  Version V9.02_RMS 
+  Version V9.03_RMS 
 
   RMS=Routeur Multi Sources
 
@@ -33,6 +33,8 @@
     Suite au passage de la bibliothèque ESP32 en Version 3.01 importants changement pour le routeur sur le WIFI, les Timers, Le Watchdog et la partition mémoire FLASH. 
     Attention à ne pas utiliser la bibliothèque ESP32 en Version 3.00, elle est bugée et génère 20% de plus de code.
     Filtrage des températures pour tolérer une perte éventuelle de mesure
+  - V9.03_RMS 
+    Suite au changement de bibliothèque ESP32 en V3.0.1, le scan réseau pour un changement de nom de WIFI ne fonctionnait plus. Scan fait maintenant au boot.
   
               
   
@@ -46,7 +48,7 @@
 
 
 */
-#define Version "9.02_RMS"
+#define Version "9.03_RMS"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -350,6 +352,7 @@ PubSubClient clientMQTT(MqttClient);
 int WIFIbug = 0;
 WiFiClientSecure clientSecu;
 WiFiClientSecure clientSecuEDF;
+String Liste_AP="";
 
 //Multicoeur - Processeur 0 - Collecte données RMS local ou distant
 TaskHandle_t Task1;
@@ -484,6 +487,11 @@ void setup() {
   }
 
   init_puissance();
+  //Liste Wifi à faire avant connexion à un AP. Necessaire depuis biblio ESP32 3.0.1
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  Liste_WIFI();
+  
   esp_task_wdt_reset();
 
   // Configure WIFI
@@ -599,7 +607,7 @@ void setup() {
     WiFi.mode(WIFI_AP_STA);
     delay(10);
     WiFi.softAP(ap_default_ssid, ap_default_psk);
-    Serial.print("Access Point Mode. IP address: ");
+    Serial.print("Access Point Mode / Point accès Wifi ESP..... IP address: ");
     Serial.println(WiFi.softAPIP());
   }
 
