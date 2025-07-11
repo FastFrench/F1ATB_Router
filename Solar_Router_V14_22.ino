@@ -1,4 +1,4 @@
-#define Version "14.21"
+#define Version "14.22"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -145,6 +145,8 @@
     Courbe sur 10mn des ouvertures de Triac ou SSR
     Choix d'affichage des courbes de VA
     RAZ pour JSY-MK-333G
+  - V14.22
+    Distintinction des ESP32U en version "ESP32-D0WD" er WT-ETH01 (Ethernet)
             
   
   Les détails sont disponibles sur / Details are available here:
@@ -694,10 +696,13 @@ void setup() {
   }
   Serial.printf("Chip Model: %s\n", ESP.getChipModel());
   delay(100);
-  if (String(ESP.getChipModel()) == "ESP32-D0WD") {
-    Serial.println("\nAncien modèle d'ESP32 que l'on trouve sur les cartes Ethernet  WT-ETH01");
-    Serial.println("Crash en Wifi. On force Ethernet.\n");
-    ESP32_Type = 10;  //On force Ethernet
+  Ethernet.init(driver);
+  if (String(ESP.getChipModel()) == "ESP32-D0WD") { //certains ESP32U et WT32-ETH01
+    Serial.println("\nAncien modèle d'ESP32 que l'on trouve sur les cartes Ethernet WT32-ETH01 (branchez le câble) et certains ESP32U");
+    if (Ethernet.begin() != 0) { //C'est une carte WT-ETH01
+      Serial.println("Carte WT32-ETH01 qui Crash en Wifi. On force Ethernet.\n");
+      ESP32_Type = 10;  //On force Ethernet
+    }
   }
   Serial.println("InitGPIO");
   delay(500);
@@ -730,7 +735,6 @@ void setup() {
   Serial.println(hostname);    //optional
   if (ESP32_Type == 10) {  //Ethernet (avant Horloge)
     PrintScroll("Lancement de la liaison Ethernet");
-    Ethernet.init(driver);
     if (Ethernet.linkStatus() == LinkOFF) {
       PrintScroll("Câble Ethernet non connecté.");
     }
