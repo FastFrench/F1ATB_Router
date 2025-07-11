@@ -22,7 +22,7 @@ const char *PageBrute = R"====(
     .dispT{display:none;}
     .ce { text-align: center;position:relative;}
     svg { border:10px inset azure;}
-    #infoUxIx2,#infoUxIx3,#infoUxI,#infoLinky,#infoEnphase,#infoSmartG,#infoShellyEm,#infoPmqtt{display:none;}
+    #infoUxIx2,#infoUxIx3,#infoUxI,#infoLinky,#infoEnphase,#infoSmartG,#infoHomeW,#infoShellyEm,#infoPmqtt{display:none;}
     #donneeDistante{font-size:50%;text-align:center;margin-bottom:10px;display:none;}
   </style>
   </head>
@@ -51,6 +51,10 @@ const char *PageBrute = R"====(
     <div id='infoSmartG'>
       <div>Donn&eacute;es SmartGateways</div>
       <div id='dataSmartG' class='tableau dataIn'></div>
+    </div>
+    <div id='infoHomeW'>
+      <div>Donn&eacute;es HomeWizard</div>
+      <div id='dataHomeW' class='tableau dataIn'></div>
     </div>
     <div id='infoShellyEm'>
       <div>Donn&eacute;es Shelly Em </div>
@@ -335,6 +339,16 @@ const char *PageBruteJS = R"====(
                     S +=G1[i]+"<br>";
               }
                GH('dataSmartG', S);
+            }
+            if (Source_data == "HomeW"){
+              GID('infoHomeW').style.display="block";
+              groupes[1] = groupes[1].replaceAll('"','');
+              var G1=groupes[1].split(",");
+              var S="";              
+              for (var i=0;i<G1.length;i++){
+                    S +=G1[i]+"<br>";
+              }
+               GH('dataHomeW', S);
             }
             if (Source_data == "UxIx3"){
               GID('infoUxIx3').style.display="block";

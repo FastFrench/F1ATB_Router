@@ -82,8 +82,8 @@ bool testMQTTconnected() {
         Ethernet.macAddress(mac);
         cu = "http://" + Ethernet.localIP().toString();
       }
-      sprintf(ESP_ID, "%02x%02x%02x", mac[2], mac[1], mac[0]);  // ID de l'entité pour HA
-      sprintf(mdl, "%s%s", "ESP32 - ", ESP_ID);                 // ID de l'entité pour HA
+      sprintf(ESP_ID, "%02x%02x%02x%02x%02x", mac[4], mac[3], mac[2], mac[1], mac[0]);  // ID de l'entité pour HA
+      sprintf(mdl, "%s%s", "ESP32 - ", ESP_ID);                                         // ID de l'entité pour HA
       String mf = "F1ATB - https://f1atb.fr";
       String hw = String(ESP.getChipModel()) + " rev." + String(ESP.getChipRevision());
       String sw = Version;

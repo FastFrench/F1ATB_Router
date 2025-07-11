@@ -600,6 +600,7 @@ void StockMessage(String m) {
   Serial.println(m);
   MessageH[idxMessage] = m;
   idxMessage = (idxMessage + 1) % 10;
+  PrintScroll(m);
 }
 
 // PORT SERIE

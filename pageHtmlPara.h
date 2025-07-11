@@ -147,7 +147,7 @@ const char *ParaHtml = R"====(
         <div class="form"  >
           
           <div class="ligne source">
-            <label for='LED0' style='text-align:right;'>Pas de LED</label>
+            <label for='LED0' style='text-align:right;'>Pas de LED / OLED</label>
             <input type='radio' name='pLED' id='LED0' value="0"  >
             <label for='LED1' style='text-align:right;'>LEDs  gpio 18, gpio 19</label>
             <input type='radio' name='pLED' id='LED1' value="1"  checked>
@@ -155,6 +155,16 @@ const char *ParaHtml = R"====(
             <input type='radio' name='pLED' id='LED2' value="2"   >
             <label for='LED3' style='text-align:right;'>LEDs gpio 2, gpio 4</label>
             <input type='radio' name='pLED' id='LED3' value="3"  >
+          </div>
+          <div class="ligne source">
+            <label for='LED10' style='text-align:right;'>SSD1306/1309 OLED<br>sda=gpio 18, scl=gpio 19</label>
+            <input type='radio' name='pLED' id='LED10' value="10"  >
+            <label for='LED11' style='text-align:right;'>SSD1306/1309 OLED<br>sda=gpio 4, scl=gpio 32</label>
+            <input type='radio' name='pLED' id='LED11' value="11"  >
+            <label for='LED12' style='text-align:right;'>SH1106 OLED<br>sda=gpio 18, scl=gpio 19</label>
+            <input type='radio' name='pLED' id='LED12' value="12"  >
+            <label for='LED13' style='text-align:right;'>SH1106 OLED<br>sda=gpio 4, scl=gpio 32</label>
+            <input type='radio' name='pLED' id='LED13' value="13"  >
           </div>
           <div class="ligne source" id="pTemp">
             <label for='pTemp0' style='text-align:right;'>Pas de capteur de température</label>
@@ -235,6 +245,8 @@ const char *ParaHtml = R"====(
               <input type='radio' name='sources' id='Enphase' value="Enphase"  onclick="checkDisabled();">
               <label for='SmartG' style='text-align:right;'>SmartGateways</label>
               <input type='radio' name='sources' id='SmartG' value="SmartG"  onclick="checkDisabled();">
+              <label for='HomeW' style='text-align:right;'>HomeWizard</label>
+              <input type='radio' name='sources' id='HomeW' value="HomeW"  onclick="checkDisabled();">
               <label for='ShellyEm' style='text-align:right;'>Shelly Em</label>
               <input type='radio' name='sources' id='ShellyEm' value="ShellyEm"  onclick="checkDisabled();">
               <label for='ShellyPro' style='text-align:right;'>Shelly Pro Em</label>
@@ -644,6 +656,7 @@ const char *ParaJS = R"====(
       var txtExt = "ESP-RMS";
       if (Source=='Enphase') txtExt = "Enphase-Envoy";
       if (Source=='SmartG') txtExt = "SmartGateways";
+      if (Source=='HomeW') txtExt = "HomeWizard";
       var lab_enphaseShelly= "Numéro série passerelle IQ Enphase : <span class='fsize10'><br>Pour firmvare Envoy-S V7 seulement</span>";
       if (Source=='ShellyEm' || Source=='ShellyPro') {
         txtExt = "Shelly (Pro) Em ";
@@ -651,7 +664,7 @@ const char *ParaJS = R"====(
       }
       GID('labExtIp').innerHTML = txtExt;
       GID('label_enphase_shelly').innerHTML = lab_enphaseShelly;
-      GID('ligneExt').style.display = (Source=='Ext' || Source=='Enphase' || Source=='SmartG' || Source=='ShellyEm' || Source=='ShellyPro') ? "table-row" : "none";
+      GID('ligneExt').style.display = (Source=='Ext' || Source=='Enphase' || Source=='SmartG' || Source=='HomeW'|| Source=='ShellyEm' || Source=='ShellyPro') ? "table-row" : "none";
       GID('ligneEnphaseUser').style.display = (Source=='Enphase') ? "table-row" : "none";
       GID('ligneEnphasePwd').style.display = (Source=='Enphase') ? "table-row" : "none";
       GID('ligneEnphaseSerial').style.display = (Source=='Enphase' || Source=='ShellyEm' || Source=='ShellyPro') ? "table-row" : "none"; //Numéro de serie ou voie

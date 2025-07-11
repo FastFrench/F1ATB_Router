@@ -2,7 +2,7 @@
 #include <SPI.h>
 #include <cstdint>
 #define LIGHT_ADC 34
-#define LGFX_AUTODETECT // Autodetect board
+#define LGFX_AUTODETECT  // Autodetect board
 #define LGFX_USE_V1
 #include <LovyanGFX.hpp>
 
@@ -25,8 +25,8 @@ void Ecran_Init(void) {
   pinMode(21, OUTPUT);  //LED bleue non utilisée
   lcd.init();
   // Réinitialiser le mode non miroir
-  lcd.writecommand(0x36); // Commande MADCTL
-  lcd.writedata(0x00); // Mode normal sans inversion
+  lcd.writecommand(0x36);  // Commande MADCTL
+  lcd.writedata(0x00);     // Mode normal sans inversion
   lcd.setRotation(rotation);
   SetCouleurs();
   lcd.setFont(&fonts::AsciiFont8x16);
@@ -47,7 +47,7 @@ void Ecran_Loop() {
           GrapheTrace(10);
           break;
         case 3:
-          TraceMessages();
+          runtime_On = millis(); //Cas des messages de debug, on laisse allumé
           break;
         case 4:
           TraceReseau();
@@ -58,7 +58,7 @@ void Ecran_Loop() {
     runtime_0 = millis();
   }
   if ((millis() - runtime_On) > 30000) {
-    lcd.clear();
+    lcd.clear(TFT_BLACK);
     ReDraw = true;
     ScreenOn = false;
     runtime_On = millis();
@@ -76,7 +76,7 @@ void Ecran_Loop() {
       runtime_On = millis();
       if (!ScreenOn) {
         ScreenOn = true;
-        GoPage(NumPage); 
+        GoPage(NumPage);
       } else {
 
         ClickCount = ClickCount + 10;
@@ -636,15 +636,17 @@ void GrapheTrace(int8_t gr) {
 
 void TraceMessages() {
   lcd.setTextColor(CoulTexte, CoulFond);
-  lcd.fillRect(0, H_Onglet, lcd.width(), lcd.height() - H_Onglet, CoulFond);
+  lcd.setScrollRect(0, H_Onglet, lcd.width(), lcd.height() - H_Onglet, CoulFond);
+  lcd.setTextScroll(true);
   PrintCentre("Messages", -1, H_Onglet, 1.2);
   lcd.println("");
-  lcd.setTextSize(0.8);
+  lcd.setTextSize(1);
   int j = idxMessage;
   for (int i = 0; i < 10; i++) {
     lcd.println(Ascii(MessageH[j]));
     j = (j + 1) % 10;
   }
+  lcd.setTextScroll(false);
 }
 void TraceReseau() {
   lcd.setTextColor(CoulTexte, CoulFond);

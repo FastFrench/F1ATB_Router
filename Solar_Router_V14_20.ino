@@ -1,4 +1,4 @@
-#define Version "14.11"
+#define Version "14.20"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -17,6 +17,7 @@
   - Lecture avec Shelly Em
   - Lecture avec Shelly Pro Em
   - Lecture compteur SmartG 
+  - Lecture compteur HomeWizard
   - Lecture via MQTT
   - Lecture depuis un autre ESP depuis une des sources citées plus haut
   
@@ -133,7 +134,12 @@
     Modif pour Shelly Pro Em de Dash
     Introduction ESP32-ETH01 : Ethernet
   - V4.11
-    Prise en compte des chip model D0WDQ6 qui fonctionne en WiFi bien que non V3
+    Prise en compte des chips model D0WDQ6 qui fonctionne en WiFi bien que non V3
+  - V14.20 
+    Possibilité de remplcer les 2 LEDs par un mini écran SSD1306,SSD1309 ou SH1106
+    Augmentation de la taille de l'identifiant ESP32 MQTT
+    Source HomeWizard
+    Correction Nom serveur si Ethernet
             
   
   Les détails sont disponibles sur / Details are available here:
@@ -207,9 +213,9 @@ byte ModePara = 0;    //0 = Minimal, 1= Expert
 byte ModeReseau = 0;  //0 = Internet, 1= LAN only, 2 =AP pas de réseau
 byte Horloge = 0;     //0=Internet, 1=Linky, 2=Interne, 3=IT 10ms/triac, 4=IT 20ms
 byte ESP32_Type = 0;  //0=Inconnu,1=Wroom seul,2=Wroom 1 relais,3=Wroom 4 relais,4=Wroom+Ecran320*240,10=ESP32-ETH01
-byte LEDgroupe = 0;   //0:pas de LED,1=(18,19),2=(4,16)
-byte LEDyellow[] = { 0, 18, 4, 2 };
-byte LEDgreen[] = { 0, 19, 16, 4 };
+byte LEDgroupe = 0;   //0:pas de LED,1à9 pour les LED. 10 et 11 pour les écrans  OLED 
+byte LEDyellow[] = { 0, 18, 4, 2 ,0 , 0 ,0 ,0 ,0, 0, 18, 4, 18, 4}; //Ou SDA pour OLED
+byte LEDgreen[] = { 0, 19, 16, 4 ,0 ,0 ,0 ,0 ,0 ,0 ,19 ,32,19 ,32};  //ou SCL pour OLED
 unsigned long Gateway = 0;
 unsigned long masque = 4294967040;
 unsigned long dns = 0;
@@ -376,6 +382,9 @@ float EMS_Wh = 0;        //Energie entrée Maison Soutirée Wh
 
 //Paramètres for SmartGateways
 String SG_dataBrute = "";
+
+//Paramètres for HomeWizard
+String HW_dataBrute = "";
 
 //Paramètres for Shelly Em
 String ShEm_dataBrute = "";
@@ -711,11 +720,11 @@ void setup() {
   }
   hostname += String(chipId);  //Add chip ID to hostname
   Serial.println(hostname);    //optional
-  if (ESP32_Type == 10) {
-    Serial.println("Lancement de la liaison Ethernet");  //Ethernet (avant Horloge)
+  if (ESP32_Type == 10) {  //Ethernet (avant Horloge)
+    PrintScroll("Lancement de la liaison Ethernet");
     Ethernet.init(driver);
     if (Ethernet.linkStatus() == LinkOFF) {
-      Serial.println("Câble Ethernet non connecté.");
+      PrintScroll("Câble Ethernet non connecté.");
     }
     //Ethernet.hostname(hostname);
     if (dhcpOn == 0) {  //Static IP
@@ -727,10 +736,12 @@ void setup() {
       Ethernet.begin(local_IP, primaryDNS, gateway, subnet);  //On s'y prend 2 fois. Parfois ne reussi pas au premier coup
       delay(100);
       StockMessage("Adresse IP Ethernet fixe : : " + Ethernet.localIP().toString());
+      RMS_IP[0] = String2IP(Ethernet.localIP().toString());
     } else {
       Serial.println("Initialisation Ethernet par DHCP:");
       if (Ethernet.begin()) {
         StockMessage("Adresse IP Ethernet assignée par DHCP : " + Ethernet.localIP().toString());
+        RMS_IP[0] = String2IP(Ethernet.localIP().toString());
       } else {
         Serial.println("Failed to configure Ethernet using DHCP");
         delay(1);
@@ -961,6 +972,11 @@ void Task_LectureRMS(void *pvParameters) {
         LastRMS_Millis = millis();
         PeriodeProgMillis = 200 + ralenti;  //On s'adapte à la vitesse réponse SmartGateways
       }
+      if (Source == "HomeW") {
+        LectureHomeW();
+        LastRMS_Millis = millis();
+        PeriodeProgMillis = 200 + ralenti;  //On s'adapte à la vitesse réponse HomeWizard
+      }
       if (Source == "ShellyEm") {
         LectureShellyEm();
         LastRMS_Millis = millis();
@@ -1109,12 +1125,10 @@ void loop() {
         } else {
           WIFIbug = 0;
         }
-        Serial.print("Niveau Signal WIFI :");
-        Serial.println(WiFi.RSSI());
-        Serial.print("Addresse IP WiFi : ");
-        Serial.println(WiFi.localIP());
-        Serial.print("WIFIbug : #");
-        Serial.println(WIFIbug);
+       
+        PrintScroll("Signal WiFi: " +String(WiFi.RSSI())+"dBm");
+        PrintScroll("IP :"+WiFi.localIP().toString() );
+        if (WIFIbug > 0) PrintScroll("WiFi Bug # :"+String(WIFIbug) );
         if (WIFIbug > 2880) {  //24h sans WIFI Reset
           delay(5000);
           ESP.restart();
@@ -1132,10 +1146,9 @@ void loop() {
         infoSerie();
       }
     } else {  //ESP32 Ethernet
-      Serial.print("Adresse IP Ethernet : ");
-      Serial.println(Ethernet.localIP());
+      PrintScroll("IP :"+Ethernet.localIP().toString() );
       if (Ethernet.linkStatus() == LinkOFF) {
-        Serial.println("Câble Ethernet non connecté.");
+        PrintScroll("Câble Ethernet non connecté.");
         EthernetBug++;
       } else {
         EthernetBug = 0;
@@ -1176,6 +1189,7 @@ void loop() {
       if (LTARF.indexOf("BLANC") >= 0) Ltarf += 8;
       if (LTARF.indexOf("ROUGE") >= 0) Ltarf += 16;
       LTARFbin = Ltarf;
+      if (LTARF!="") PrintScroll(LTARF);
     }
     //Test pulse Zc Triac
     if (ITmode < 0 && pTriac > 0) {
@@ -1184,8 +1198,8 @@ void loop() {
     } else {
       erreurTriac = false;
     }
-    if (ESP32_Type == 0) StockMessage("Attention, modèle carte ESP32 non défini dans les paramètres !");
-    if (pSerial == 0 && (Source == "UxIx2" || Source == "UxIx3" || Source == "Linky")) StockMessage("Attention, port série non défini dans les paramètres !");
+    if (ESP32_Type == 0) StockMessage("! Carte ESP32 non définie !");
+    if (pSerial == 0 && (Source == "UxIx2" || Source == "UxIx3" || Source == "Linky")) StockMessage("! Port série non défini !");
   }
 
 
@@ -1302,12 +1316,8 @@ void InitGPIOs() {
   Gpio[0] = pulseTriac;
   LesActions[0].Gpio = pulseTriac;
 
-  //LEDs
-  //LEDgroupe = 0;   //0:pas de LED,1=(18,19),2=(4,16)
-  if (LEDgroupe > 0) {
-    pinMode(LEDyellow[LEDgroupe], OUTPUT);
-    pinMode(LEDgreen[LEDgroupe], OUTPUT);
-  }
+  Init_LED_OLED();
+  
   if (pSerial > 0) {
     if (ESP32_Type == 2) pSerial = 2;  //Obligatoire carte 1 relais
     if (ESP32_Type == 4) pSerial = 3;  //Obligatoire carte écran
@@ -1392,52 +1402,7 @@ void time_sync_notification(struct timeval *tv) {
 }
 
 
-//****************
-//* Gestion LEDs *
-//****************
-void Gestion_LEDs() {
-  int retard_min = 100;
-  int retardI;
-  cptLEDyellow++;
-  if ((WiFi.status() != WL_CONNECTED && ESP32_Type < 10) || (EthernetBug > 0 && ESP32_Type >= 10)) {  // Attente connexion au Wifi ou ethernet
-    if (WiFi.getMode() == WIFI_STA) {                                                                 // en  Station mode
-      cptLEDyellow = (cptLEDyellow + 6) % 10;
-      cptLEDgreen = cptLEDyellow;
-    } else {  //AP Mode
-      cptLEDyellow = cptLEDyellow % 10;
-      cptLEDgreen = (cptLEDyellow + 5) % 10;
-    }
-  } else {
-    for (int i = 0; i < NbActions; i++) {
-      retardI = Retard[i];
-      retard_min = min(retard_min, retardI);
-    }
-    if (retard_min < 100) {
-      cptLEDgreen = int((cptLEDgreen + 1 + 8 / (1 + retard_min / 10))) % 10;
-    } else {
-      cptLEDgreen = 10;
-    }
-  }
 
-
-  if (LEDgroupe > 0) {
-    int L = 0, H = 1;
-    if (LEDgroupe == 2) {
-      L = 1;
-      H = 0;
-    }
-    if (cptLEDyellow > 5) {
-      digitalWrite(LEDyellow[LEDgroupe], L);
-    } else {
-      digitalWrite(LEDyellow[LEDgroupe], H);
-    }
-    if (cptLEDgreen > 5) {
-      digitalWrite(LEDgreen[LEDgroupe], L);
-    } else {
-      digitalWrite(LEDgreen[LEDgroupe], H);
-    }
-  }
-}
 //*************
 //* Test Pmax *
 //*************
