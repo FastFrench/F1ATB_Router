@@ -168,15 +168,17 @@ void LectureLinky() {  //Lecture port série du LINKY .
           if (code.indexOf("IRMS1") == 0) {
             Intensite_M = val.toFloat();  //Phase 1 uniquement
           }
+          if (code.indexOf("STGE") == 0) {
+              STGE = val;  //Status
+              STGE.trim();
+          }
           if (TempoRTEon == 0) {  // On prend tarif sur Linky
             if (code.indexOf("LTARF") == 0) {
               LTARF = val;  //Option Tarifaire
               LTARF.trim();
             }
             if (code.indexOf("STGE") == 0) {
-              STGE = val;  //Status
-              STGE.trim();
-              STGE = STGE.substring(1, 2);  //Tempo lendemain et jour sur 1 octet
+              STGEt = STGE.substring(1, 2);  //Tempo lendemain et jour sur 1 octet
             }
           }
           if (code.indexOf("NGTF") == 0) {

@@ -16,19 +16,19 @@ void Call_RTE_data() {
   int LastH = LastHeureRTE / 2;
 
 // il faut éviter de questionner l'URL tempo light si on a déjà les infos qui nous intéressent...
-  bool couleur_lendemain =  (STGE == "4" || STGE == "8" || STGE == "C" );              // true si couleur du lendemain connue
+  bool couleur_lendemain =  (STGEt == "4" || STGEt == "8" || STGEt == "C" );              // true si couleur du lendemain connue
   bool couleur_jour      =  (LTARF == "TEMPO_BLEU" || LTARF == "TEMPO_BLANC" || LTARF == "TEMPO_ROUGE"); // true si couleur du jour connu
 
  // traitement du changement de couleur tempo à 6h00, avec ré-initialisation de la couleur du lendemain
- if ( (Hcour==300) && (LTARF!="") && (STGE!="") )   // à 6h00 précises, la couleur tempo du lendemain devient la couleur du jour. Celle du lendemain n'est à priori pas encore connue
+ if ( (Hcour==300) && (LTARF!="") && (STGEt!="") )   // à 6h00 précises, la couleur tempo du lendemain devient la couleur du jour. Celle du lendemain n'est à priori pas encore connue
                                                     // Cela permet de continuer à fonctionner de manière nominale même si le site RTE n'est pas encore renseigné
                                                     // && (LTARF!="") pour ne pas passer dans cette boucle au reset si fait à 6h00 du matin...
-                                                    // && (STGE<>"")  pour éviter de passer plusieurs fois( 3 à 4 ) dans cette boucle à cause du Hcour/2
+                                                    // && (STGEt<>"")  pour éviter de passer plusieurs fois( 3 à 4 ) dans cette boucle à cause du Hcour/2
     {  
-     if       (STGE == "4") LTARF = "TEMPO_BLEU";  
-     else if  (STGE == "8") LTARF = "TEMPO_BLANC"; 
-     else if  (STGE == "C") LTARF = "TEMPO_ROUGE";
-     STGE=""; 
+     if       (STGEt == "4") LTARF = "TEMPO_BLEU";  
+     else if  (STGEt == "8") LTARF = "TEMPO_BLANC"; 
+     else if  (STGEt == "C") LTARF = "TEMPO_ROUGE";
+     STGEt=""; 
      couleur_lendemain=false; // on ne connait plus la couleur du lendemain. Cela forcera la lecture sur le site RTE 
      if (LTARF!="" && TempoRTEon == 1 && ModeReseau==0) {  
            StockMessage("Tempo depuis 6h00: " + LTARF + ",demain ? ");
@@ -100,7 +100,7 @@ void Call_RTE_data() {
             line = "C";
             lendemain = "TEMPO_ROUGE";
           }
-          STGE = line;  //Valeur Hexa code du Linky
+          STGEt = line;  //Valeur Hexa code du Linky
           StockMessage(DateRTE + " : " + LTARF + " | " + DateRTE2 + " : " + lendemain);
           RTEdata = "";
           LastHeureRTE = HeureCouranteDeci;  //Heure lecture Tempo RTE
@@ -111,7 +111,7 @@ void Call_RTE_data() {
     } else {
       if (Source != "Linky" && Source != "Ext") {
         LTARF = "";
-        STGE = "0";
+        STGEt = "0";
       }
     }
   }

@@ -711,7 +711,7 @@ void TraceTarif() {
     }
   }
 
-  long lendemain = int(strtol(STGE.c_str(), NULL, 16)) / 4;
+  long lendemain = int(strtol(STGEt.c_str(), NULL, 16)) / 4;
   if (lendemain > 0) {
     lcd.drawRect(lcd.width() - W, lcd.height() - H, W - 1, H - 1, CoulSaisieBord);
     lcd.fillRect(lcd.width() - W + 1, lcd.height() - H + 1, W - 2, H - 2, couleur[lendemain + 1]);

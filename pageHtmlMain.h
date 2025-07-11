@@ -134,7 +134,7 @@ const char *MainJS = R"====(
             }
             GID('couleurTarif_jour').style.backgroundColor= couleur[idx];
             GID('couleurTarif_jour').innerHTML =tarif[idx];
-            var tempo = parseInt(G0[4], 16); //Tempo lendemain et jour STGE
+            var tempo = parseInt(G0[4], 16); //Tempo lendemain et jour STGEt
             tempo =Math.floor(tempo/4) ; //Tempo lendemain uniquement
             idx=-2;
             var txtJ = "";

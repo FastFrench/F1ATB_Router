@@ -1,4 +1,4 @@
-#define Version "14.22"
+#define Version "14.23"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -136,7 +136,7 @@
   - V4.11
     Prise en compte des chips model D0WDQ6 qui fonctionne en WiFi bien que non V3
   - V14.20 
-    Possibilité de remplcer les 2 LEDs par un mini écran SSD1306,SSD1309 ou SH1106
+    Possibilité de remplacer les 2 LEDs par un mini écran SSD1306,SSD1309 ou SH1106
     Augmentation de la taille de l'identifiant ESP32 MQTT
     Source HomeWizard
     Correction Nom serveur si Ethernet
@@ -146,7 +146,9 @@
     Choix d'affichage des courbes de VA
     RAZ pour JSY-MK-333G
   - V14.22
-    Distintinction des ESP32U en version "ESP32-D0WD" er WT-ETH01 (Ethernet)
+    Distintinction des ESP32U en version "ESP32-D0WD" et WT-ETH01 (Ethernet)
+  - V14.23
+    MQTT : envoi facteur de puissance sans unité et envoi STGE du Linky
             
   
   Les détails sont disponibles sur / Details are available here:
@@ -360,7 +362,8 @@ float COSphiI = 1;
 long TlastEASTvalide = 0;
 long TlastEAITvalide = 0;
 String LTARF = "";  //Option tarifaire RTE
-String STGE = "";   //Status Tempo uniquement RTE
+String STGE = "";   //Status Linky
+String STGEt = "";   //Status Tempo uniquement RTE
 String NGTF = "";   //Calendrier tarifaire
 String JourLinky = "";
 int16_t Int_HeureLinky = 0;  //Heure interne

@@ -347,7 +347,7 @@ void handleAjaxData() {  //Données page d'accueil
     DateLast = DATE;
   }
   String S = LesTemperatures();
-  S = "Deb" + RS + DateLast + RS + Source_data + RS + LTARF + RS + STGE + RS + S + RS + String(Pva_valide);
+  S = "Deb" + RS + DateLast + RS + Source_data + RS + LTARF + RS + STGEt + RS + S + RS + String(Pva_valide);
   S += GS + String(PuissanceS_M) + RS + String(PuissanceI_M) + RS + String(PVAS_M) + RS + String(PVAI_M);
   S += RS + String(EnergieJour_M_Soutiree) + RS + String(EnergieJour_M_Injectee) + RS + String(Energie_M_Soutiree) + RS + String(Energie_M_Injectee);
   if (Source_data == "UxIx2" || ((Source_data == "ShellyEm" || Source_data == "ShellyPro") && EnphaseSerial.toInt() != 3   )) {  //UxIx2 ou Shelly monophasé avec 2 sondes

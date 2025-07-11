@@ -158,7 +158,7 @@ void sendMQTTDiscoveryMsg_global() {
     DeviceToDiscover("PuissanceI_T", "Puissance T Injectée", "W", "power", "0");
     DeviceToDiscover("Tension_T", "Tension T", "V", "voltage", "2");
     DeviceToDiscover("Intensite_T", "Intensité T", "A", "current", "2");
-    DeviceToDiscover("PowerFactor_T", "Facteur de Puissance T", "", "power_factor", "2");
+    DeviceToDiscoverWithoutUnit("PowerFactor_T", "Facteur de Puissance T", "2");
     DeviceToDiscover("Energie_T_Soutiree", "Energie Totale T Soutirée", "Wh", "energy", "0");
     DeviceToDiscover("Energie_T_Injectee", "Energie Totale T Injectée", "Wh", "energy", "0");
     DeviceToDiscover("EnergieJour_T_Soutiree", "Energie Jour T Soutirée", "Wh", "energy", "0");
@@ -176,6 +176,7 @@ void sendMQTTDiscoveryMsg_global() {
   }
   if (Source == "Linky") {
     DeviceTextToDiscover("NGTF", "Calendrier Tarifaire");
+    DeviceTextToDiscover("STGE", "Statuts");
     DeviceToDiscover("EASF01", "EASF01", "Wh", "energy", "0");
     DeviceToDiscover("EASF02", "EASF02", "Wh", "energy", "0");
     DeviceToDiscover("EASF03", "EASF03", "Wh", "energy", "0");
@@ -196,7 +197,7 @@ void sendMQTTDiscoveryMsg_global() {
   DeviceToDiscover("PuissanceI_M", "Puissance M Injectée", "W", "power", "0");
   DeviceToDiscover("Tension_M", "Tension M", "V", "voltage", "2");
   DeviceToDiscover("Intensite_M", "Intensité M", "A", "current", "2");
-  DeviceToDiscover("PowerFactor_M", "Facteur de Puissance M", "", "power_factor", "2");
+  DeviceToDiscoverWithoutUnit("PowerFactor_M", "Facteur de Puissance M", "2");
   DeviceToDiscover("Energie_M_Soutiree", "Energie Totale M Soutirée", "Wh", "energy", "0");
   DeviceToDiscover("Energie_M_Injectee", "Energie Totale M Injectée", "Wh", "energy", "0");
   DeviceToDiscover("EnergieJour_M_Soutiree", "Energie Jour M Soutirée", "Wh", "energy", "0");
@@ -316,12 +317,12 @@ void SendDataToHomeAssistant() {
     int code = 0;
     if (LTARF.indexOf("HEURE  CREUSE") >= 0) code = 1;  //Code Linky
     if (LTARF.indexOf("HEURE  PLEINE") >= 0) code = 2;
-    if (LTARF.indexOf("HC BLEU") >= 0) code = 11;
-    if (LTARF.indexOf("HP BLEU") >= 0) code = 12;
-    if (LTARF.indexOf("HC BLANC") >= 0) code = 13;
-    if (LTARF.indexOf("HP BLANC") >= 0) code = 14;
-    if (LTARF.indexOf("HC ROUGE") >= 0) code = 15;
-    if (LTARF.indexOf("HP ROUGE") >= 0) code = 16;
+    if (LTARF.indexOf("HC") >= 0 && LTARF.indexOf("BLEU") >= 0) code = 11;
+    if (LTARF.indexOf("HP") >= 0 && LTARF.indexOf("BLEU") >= 0) code = 12;
+    if (LTARF.indexOf("HC") >= 0 && LTARF.indexOf("BLANC") >= 0) code = 13;
+    if (LTARF.indexOf("HP") >= 0 && LTARF.indexOf("BLANC") >= 0) code = 14;
+    if (LTARF.indexOf("HC") >= 0 && LTARF.indexOf("ROUGE") >= 0) code = 15;
+    if (LTARF.indexOf("HP") >= 0 && LTARF.indexOf("ROUGE") >= 0) code = 16;
     if (LTARF.indexOf("TEMPO_BLEU") >= 0) code = 17;  // Code RTE
     if (LTARF.indexOf("TEMPO_BLANC") >= 0) code = 18;
     if (LTARF.indexOf("TEMPO_ROUGE") >= 0) code = 19;
@@ -329,6 +330,7 @@ void SendDataToHomeAssistant() {
   }
   if (Source == "Linky") {
     sprintf(value, "%s,\"NGTF\":\"%s\"", value, NGTF.c_str());
+    sprintf(value, "%s,\"STGE\":\"%s\"", value, STGE.c_str());
     sprintf(value, "%s,\"EASF01\":%d, \"EASF02\":%d, \"EASF03\":%d, \"EASF04\":%d, \"EASF05\":%d, \"EASF06\":%d,\"EASF07\":%d, \"EASF08\":%d, \"EASF09\":%d, \"EASF10\":%d", value, EASF01, EASF02, EASF03, EASF04, EASF05, EASF06, EASF07, EASF08, EASF09, EASF10);
   }
   if (Source == "Enphase") {

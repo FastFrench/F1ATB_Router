@@ -75,7 +75,7 @@ void CallESP32_Externe() {
           if (TempoRTEon == 0) LTARF = data_[i];
           break;
         case 3:
-          if (TempoRTEon == 0) STGE = data_[i];
+          if (TempoRTEon == 0) STGEt = data_[i];
           break;
         case 4:
           //Temperature non utilisé
