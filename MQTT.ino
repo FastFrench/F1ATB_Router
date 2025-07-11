@@ -163,7 +163,7 @@ void sendMQTTDiscoveryMsg_global() {
   for (int canal = 0; canal < 4; canal++) {
     if (Source_Temp[canal] != "tempNo") DeviceToDiscover("Temperature_" + String(canal), nomTemperature[canal], "°C", "temperature", "1");
   }
-
+  DeviceToDiscover("Temperature_CPU" , "Température CPU ESP32", "°C", "temperature", "1");
 
   if (Source == "Linky" || TempoRTEon == 1) {
     DeviceTextToDiscover("LTARF", "Option Tarifaire");
@@ -306,7 +306,7 @@ void SendDataToHomeAssistant() {
       sprintf(value, "%s,\"Temperature_%s\": %.1f", value, String(canal), temperature[canal]);
     }
   }
-
+  sprintf(value, "%s,\"Temperature_CPU\": %.1f", value,  temperatureRead());
   if (Source == "Linky" || TempoRTEon == 1) {
     int code = 0;
     if (LTARF.indexOf("HEURE  CREUSE") >= 0) code = 1;  //Code Linky

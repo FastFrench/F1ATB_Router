@@ -1,9 +1,9 @@
-#define Version "13.03"
+#define Version "14.02"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
 /*
-  PV Router / Routeur Solaire 
+  PV Router / Routeur Photovoltaïque 
   ****************************************
   
   RMS=Routeur Multi Sources
@@ -102,7 +102,7 @@
     Choix de la connexion, WIFI avec Internet, WIFI sans internet ou pas de WIFI (mode AP)
     Retrait du watchdog. Il ne fonctionne plus, sauf si on retire des lignes de code sur des sujets qui n'ont rien à voir. Problème occupation/débordement mémoire ? Pas clair.
     Choix des couleurs sur les pages Web
-    Choix de l'horloge :internet,Linky,Interneou Secteur
+    Choix de l'horloge :internet,Linky,Interne ou Secteur
     Choix paramétrage en mode standard ou expert.
   - V13.01
     Mystère du watchdog qui fait planter les ESP esclaves après quelques minutes, bien que plus présent. Il faut lui dire de ne pas s'activer avec un esp_task_wdt_deinit(); en début de programme
@@ -114,12 +114,22 @@
   - V13.03
     Bug corrigé : variable non initialisée en l'abscence de Triac
     Mise en cache du navigateur (5mn) de certaines pages pour accélerer le chargement
+  - V14
+    Carte ESP32 Wroom avec écran 320*240
+    Envoi température CPU en MQTT
+    Notes mesurant la qualité des échanges entre ESP32
+    Correction bug calcul Energie avec Horloge Linky
+  - V14.01
+    Correction bug MesurePower UxI
+  - V14.02
+    Re-introduction du Watchdog avec une table de partition personalisé fichier : partitions.csv
+    Correction bub absence lecture état actions
             
   
   Les détails sont disponibles sur / Details are available here:
   https://f1atb.fr  Section Domotique / Home Automation
 
-  F1ATB Janvier 2025
+  F1ATB Février 2025
 
   GNU Affero General Public License (AGPL) / AGPL-3.0-or-later
 
@@ -153,25 +163,12 @@
 #include "pageHtmlCouleurs.h"
 #include "Actions.h"
 
-
+//Watchdog de 180 secondes. Le systeme se Reset si pas de dialoque avec le LINKY ou JSY-MK-194T/333 ou Enphase-Envoy pendant 180s
+//Watchdog for 180 seconds. The system resets if no dialogue with the Linky or  JSY-MK-194T/333 or Enphase-Envoy for 180s
+#define WDT_TIMEOUT 180
 
 //PINS - GPIO
-
-#define AnalogIn0 35  //Pour Routeur Uxi
-#define AnalogIn1 32
-#define AnalogIn2 33  //Note: si GPIO 33 non disponible sur la carte ESP32, utilisez la 34. If GPIO 33 not available on the board replace by GPIO 34
-#define RXD2_1 16     //Pour Routeur Linky ou UxIx2 (sur carte ESP32 simple): Couple RXD2=26 et TXD2=27 . Pour carte ESP32 4 relais : Couple RXD2=17 et TXD2=27
-#define TXD2_1 17
-#define RXD2_2 26  //Pour Routeur Linky ou UxIx2 (sur carte ESP32 simple): Couple RXD2=26 et TXD2=27 . Pour carte ESP32 4 relais : Couple RXD2=17 et TXD2=27
-#define TXD2_2 27
 #define SER_BUF_SIZE 4096
-#define LedYellow 18
-#define LedGreen 19
-#define pulseTriac_1 4
-#define zeroCross_1 5
-#define pulseTriac_2 22
-#define zeroCross_2 23
-#define pinTemp 13  //Capteur température
 #define TEMPERATURE_PRECISION 12
 
 
@@ -195,9 +192,13 @@ String Source_data = "UxI";
 String SerialIn = "";
 String hostname = "";
 byte dhcpOn = 1;
-byte ModePara = 0;  //0 = Minimal, 1= Expert
-byte ModeWifi = 0;  //0 = Internet, 1= LAN only, 2 =AP pas de réseau
-byte Horloge = 0;   //0=Internet, 1=Linky, 2=Interne, 3=IT 10ms/triac, 4=IT 20ms
+byte ModePara = 0;    //0 = Minimal, 1= Expert
+byte ModeWifi = 0;    //0 = Internet, 1= LAN only, 2 =AP pas de réseau
+byte Horloge = 0;     //0=Internet, 1=Linky, 2=Interne, 3=IT 10ms/triac, 4=IT 20ms
+byte ESP32_Type = 0;  //0=Inconnu,1=Wroom seul,2=Wroom 1 relais,3=Wroom 4 relais,5=Wroom+Ecran320*240
+byte LEDgroupe = 0;   //0:pas de LED,1=(18,19),2=(4,16)
+byte LEDyellow[] = { 0, 18, 4 };
+byte LEDgreen[] = { 0, 19, 16 };
 unsigned long Gateway = 0;
 unsigned long masque = 4294967040;
 unsigned long dns = 0;
@@ -217,8 +218,6 @@ String nomSondeFixe = "Données seconde sonde";
 String nomSondeMobile = "Données Maison";
 String Couleurs = "";  // Couleurs pages web
 byte WifiSleep = 1;
-byte pSerial = 2;              //Choix Pin port serie
-byte pTriac = 2;               //Choix Pin Triac
 String ES = String((char)27);  //ESC Separator
 String FS = String((char)28);  //File Separator
 String GS = String((char)29);  //Group Separator
@@ -230,8 +229,7 @@ int P_cent_EEPROM;
 int cptLEDyellow = 0;
 int cptLEDgreen = 0;
 
-unsigned int CalibU = 1000;  //Calibration Routeur UxI
-unsigned int CalibI = 1000;
+
 int value0;
 int volt[100];
 int amp[100];
@@ -251,7 +249,9 @@ long EAI_M_J0 = 0;
 
 int adr_debut_para = 0;  //Adresses Para après le Wifi
 
-
+//Paramètres écran
+byte rotation = 3;
+uint16_t Calibre[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 //Paramètres électriques
 float Tension_T, Intensite_T, PowerFactor_T, Frequence;
 float Tension_M, Intensite_M, PowerFactor_M;
@@ -287,9 +287,25 @@ int16_t IdxStockPW = 0;
 float PmaxReseau = 36000;  //Puissance Max pour eviter des débordements
 bool LissageLong = false;
 bool Pva_valide = false;
-int8_t RXD2 = -1, TXD2 = -1;  //Port serie
-int8_t pulseTriac = 0, zeroCross = -1;
+
+
+//Triac
 bool erreurTriac = false;
+byte pTriac = 0;  //Choix Pin Triac
+int8_t pulseTriac = 0, zeroCross = -1;
+int8_t PulseT[] = { 0, 4, 22, 21 };
+int8_t ZeroT[] = { -1, 5, 23, 22 };
+
+//Parameters for UxI
+byte AnalogIn0 = 35;
+byte AnalogIn1 = 32;
+byte AnalogIn2 = 33;
+unsigned int CalibU = 1000;  //Calibration Routeur UxI
+unsigned int CalibI = 1000;
+byte pUxI = 0;
+byte Analog0[] = { 0, 35, 35, 34 };
+byte Analog1[] = { 0, 32, 32, 32 };
+byte Analog2[] = { 0, 33, 34, 33 };
 
 //Parameters for JSY-MK-194T module
 byte ByteArray[130];
@@ -324,6 +340,9 @@ String LTARF = "";  //Option tarifaire RTE
 String STGE = "";   //Status Tempo uniquement RTE
 String NGTF = "";   //Calendrier tarifaire
 String JourLinky = "";
+int16_t Int_HeureLinky = 0;  //Heure interne
+int16_t Int_MinuteLinky = 0;
+int16_t Int_SecondeLinky = 0;
 long EASF01 = 0;
 long EASF02 = 0;
 long EASF03 = 0;
@@ -366,7 +385,8 @@ byte TempoRTEon = 0;
 int LastHeureRTE = -1;
 int LTARFbin = 0;  //Code binaire  des tarifs
 
-
+//Paramètres pour Source Externe
+int8_t RMSextIdx = 0;
 
 //Actions
 Action LesActions[LesActionsLength];  //Liste des actions
@@ -385,7 +405,6 @@ unsigned long previousTimer2sMillis;
 unsigned long previousOverProdMillis;
 unsigned long previousLEDsMillis;
 unsigned long previousActionMillis;
-unsigned long previousActionExterneMillis;
 unsigned long previousTempMillis;
 unsigned long previousLoop;
 unsigned long previousETX;
@@ -429,6 +448,10 @@ WebServer server(80);  // Simple Web Server on port 80
 
 //Port Serie 2 - Remplace Serial2 qui bug
 HardwareSerial MySerial(2);
+byte pSerial = 0;             //Choix Pin port serie
+int8_t RXD2 = -1, TXD2 = -1;  //Port serie
+int8_t RX2_[] = { -1, 16, 26, 18 };
+int8_t TX2_[] = { -1, 17, 27, 19 };
 
 // Heure et Date
 #define MAX_SIZE_T 80
@@ -446,7 +469,9 @@ unsigned short Int_Last_10Millis = 0;
 
 
 //Température Capteur DS18B20
-OneWire oneWire(pinTemp);
+byte pTemp = 0;
+byte pinTemp[] = { 0, 13, 27 };
+OneWire oneWire(17);  //Numero de pin bidon pour le constructor en attendant affectation reel à placer au debut du setup
 DallasTemperature ds18b20(&oneWire);
 float temperature[4];  // 4 canaux max de températurre
 int offsetTemp[4];     //erreur *100
@@ -458,7 +483,6 @@ String Source_Temp[4];
 String nomTemperature[4];
 String TopicT[4];
 String AllTemp = "";
-
 
 //MQTT
 WiFiClient MqttClient;
@@ -473,8 +497,9 @@ String Liste_AP = "";
 
 // Routeurs du réseau
 unsigned long RMS_IP[LesRouteursMax];  //RMS_IP[0] = adresse IP de cet ESP32
-String RMS_Nom[LesRouteursMax];
-bool RMS_Actif[LesRouteursMax];
+String RMS_NomEtat[LesRouteursMax];
+int8_t RMS_Note[LesRouteursMax];
+int8_t RMS_NbCx[LesRouteursMax];
 int RMS_Noms_idx = 0;
 int RMS_Datas_idx = 0;
 
@@ -558,17 +583,26 @@ void setup() {
   startMillis = millis();
   previousLEDsMillis = startMillis;
 
-  //Pin initialisation
-  pinMode(LedYellow, OUTPUT);
-  pinMode(LedGreen, OUTPUT);
-  digitalWrite(LedYellow, LOW);
-  digitalWrite(LedGreen, LOW);
+
 
   //Ports Série ESP
   Serial.begin(115200);
   Serial.println("Booting");
 
-  esp_task_wdt_deinit();  // ARRET nécessaire du Watchdog bien que non utilisé ! Mystère
+  //Watchdog initialisation
+  esp_task_wdt_deinit();
+  // Initialisation de la structure de configuration pour la WDT
+  esp_task_wdt_config_t wdt_config = {
+    .timeout_ms = WDT_TIMEOUT * 1000,                 // Convertir le temps en millisecondes
+    .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,  // Bitmask of all cores, https://github.com/espressif/esp-idf/blob/v5.2.2/examples/system/task_watchdog/main/task_watchdog_example_main.c
+    .trigger_panic = true                             // Enable panic to restart ESP32
+  };
+  // Initialisation de la WDT avec la structure de configuration
+  ESP32_ERROR = esp_task_wdt_init(&wdt_config);
+  Serial.println("Dernier Reset : " + String(esp_err_to_name(ESP32_ERROR)));
+  esp_task_wdt_add(NULL);  //add current thread to WDT watch
+  esp_task_wdt_reset();
+  delay(1);  //VERY VERY IMPORTANT for Watchdog Reset
 
   for (int i = 0; i < LesActionsLength; i++) {
     LesActions[i] = Action(i);  //Creation objets
@@ -608,9 +642,12 @@ void setup() {
   }
   for (int i = 0; i < LesRouteursMax; i++) {
     RMS_IP[i] = 0;  //IP du reseau
+    RMS_Note[i] = 0;
+    RMS_NbCx[i] = 0;
   }
   init_puissance();
   InitTemperature();
+
   //Liste Wifi à faire avant connexion à un AP. Necessaire depuis biblio ESP32 3.0.1
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
@@ -648,27 +685,11 @@ void setup() {
   if (Rcle == Cle_ROM) {  // Programme déjà executé
     LectureEnROM();
     LectureConsoMatinJour();
-    InitGpioActions();
   } else {
     RAZ_Histo_Conso();
   }
-  //Triac init
-  if (pTriac > 0) {
-    pulseTriac = pulseTriac_2;
-    zeroCross = zeroCross_2;
-    if (pTriac == 1) {
-      pulseTriac = pulseTriac_1;
-      zeroCross = zeroCross_1;
-    }
-    pinMode(zeroCross, INPUT_PULLUP);
-    pinMode(pulseTriac, OUTPUT);
-    digitalWrite(pulseTriac, LOW);  //Stop Triac
-  } else {
-    Actif[0] = 0;
-    LesActions[0].Actif = 0;
-  }
-  Gpio[0] = pulseTriac;
-  LesActions[0].Gpio = pulseTriac;
+  InitGPIOs();
+  if (ESP32_Type == 4) Ecran_Init();
 
 
   if (Horloge == 0) {  //heure par Internet}
@@ -764,12 +785,7 @@ void setup() {
 
   //Port Série si besoin
   if (pSerial > 0) {
-    RXD2 = RXD2_2;
-    TXD2 = TXD2_2;
-    if (pSerial == 1) {
-      RXD2 = RXD2_1;
-      TXD2 = TXD2_1;
-    }
+
     if (Source == "UxIx2") {
       Setup_UxIx2();
     }
@@ -780,6 +796,7 @@ void setup() {
   }
 
   if (Source == "Ext") {
+    IndexSource();
   } else {
     Source_data = Source;
   }
@@ -825,9 +842,10 @@ void setup() {
   previousOverProdMillis = millis();
   LastRMS_Millis = millis();
   previousActionMillis = millis();
-  previousActionExterneMillis = millis();
   previousTempMillis = millis() - 110000;
   if (Nbr_DS18B20 > 0) LectureTemperature();
+   esp_task_wdt_reset();
+  delay(1);  //VERY VERY IMPORTANT for Watchdog Reset
 }
 
 /* **********************
@@ -938,6 +956,7 @@ void loop() {
   previousLoopMoy = deltaT * 0.01 + previousLoopMoy * 0.99;
   previousLoopMin = min(previousLoopMin, previousLoopMoy);
   previousLoopMax = max(previousLoopMax, previousLoopMoy);
+
   //Gestion des serveurs
   //********************
   ArduinoOTA.handle();
@@ -1001,11 +1020,7 @@ void loop() {
     previousLEDsMillis = tps;
     Gestion_LEDs();
   }
-  //Suivi action externes
-  if (tps - previousActionExterneMillis > 21001) {
-    previousActionExterneMillis = tps;
-    InfoActionExterne();
-  }
+
   //Actions forcées et température
   if (tps - previousActionMillis > 60000) {
     previousActionMillis = tps;
@@ -1014,18 +1029,19 @@ void loop() {
       if (LesActions[i].tOnOff < 0) LesActions[i].tOnOff += 1;
     }
   }
-  if (tps - previousTempMillis > 60001) {
+  if (tps - previousTempMillis > 15001) {
     previousTempMillis = tps;
     //Temperature
     LectureTemperature();
-    //Rafraichissement des noms si un a changé
+    //Rafraichissement des noms et des états des actions externes
     for (int i = 0; i < LesRouteursMax; i++) {
       RMS_Noms_idx = (RMS_Noms_idx + 1) % LesRouteursMax;
       if (RMS_IP[RMS_Noms_idx] > 0) {
-        Liste_Noms(RMS_Noms_idx);
+        Liste_NomsEtats(RMS_Noms_idx);
         i = LesRouteursMax;
       }
     }
+    InfoActionExterne();
   }
   //Vérification du WIFI et de la puissance
   //********************
@@ -1061,6 +1077,12 @@ void loop() {
       LTARFbin = Ltarf;
 
     } else {
+      if (ModeWifi < 2) { //Normalement connecté au réseau
+        WIFIbug++;
+        if (WIFIbug > 120) {  // 24h en mode AP Reset
+          ESP.restart();
+        }
+      }
       Serial.println("Access Point Mode : " + hostname);
       Serial.print("IP address: ");
       Serial.println(WiFi.softAPIP());
@@ -1074,7 +1096,10 @@ void loop() {
     String OK = "Non";
     if (PuissanceRecue) {
       OK = "Oui";
-      PuissanceValide = 5;
+      PuissanceValide = 4;
+      PuissanceRecue = false;
+      esp_task_wdt_reset();
+      delay(1);  //VERY VERY IMPORTANT for Watchdog Reset to apply.
     }
     if (PuissanceValide > 0) {
       PuissanceValide = PuissanceValide - 1;
@@ -1082,7 +1107,7 @@ void loop() {
       delay(5000);
       ESP.restart();
     }
-    Serial.println(OK);
+    Serial.println("Puissance reçue : "+ OK);
     Serial.println("Charge Lecture RMS (coeur 0) en ms - Min : " + String(int(previousTimeRMSMin)) + " Moy : " + String(int(previousTimeRMSMoy)) + "  Max : " + String(int(previousTimeRMSMax)));
     Serial.println("Charge Boucle générale (coeur 1) en ms - Min : " + String(int(previousLoopMin)) + " Moy : " + String(int(previousLoopMoy)) + "  Max : " + String(int(previousLoopMax)));
     Serial.println("Mémoire RAM libre actuellement: " + String(esp_get_free_internal_heap_size()) + " byte");
@@ -1096,8 +1121,13 @@ void loop() {
     } else {
       erreurTriac = false;
     }
+    if (ESP32_Type==0) StockMessage("Attention, modèle carte ESP32 non défini dans les paramètres !");
+    if (pSerial ==0 && (Source == "UxIx2" || Source == "UxIx3" || Source == "Linky") ) StockMessage("Attention, port série non défini dans les paramètres !");       
   }
 
+
+  //Ecran
+  if (ESP32_Type == 4) Ecran_Loop();
   //Port Série
   LireSerial();
   delay(1);
@@ -1183,13 +1213,57 @@ void GestionOverproduction() {
   LissageLong = lissage;
 }
 
-void InitGpioActions() {
-  for (int i = 1; i < NbActions; i++) {
-    LesActions[i].InitGpio();
-    Gpio[i] = LesActions[i].Gpio;
-    OutOn[i] = LesActions[i].OutOn;
-    OutOff[i] = LesActions[i].OutOff;
+void InitGPIOs() {
+  //byte ESP32_Type = 0; //0=Inconnu,1=Wroom seul,2=Wroom 1relais,3=Wroom 4 relais,5=Wroom+Ecran320*240
+
+  if (ESP32_Type > 0) {
+    //En premier pour affecter le GPIO au constructeur OneWire
+    for (int i = 1; i < NbActions; i++) {
+      LesActions[i].InitGpio();
+      Gpio[i] = LesActions[i].Gpio;
+      OutOn[i] = LesActions[i].OutOn;
+      OutOff[i] = LesActions[i].OutOff;
+    }
   }
+  //Triac init
+  if (pTriac > 0) {
+    if (ESP32_Type == 2 || ESP32_Type == 3) pTriac = 1;  //Obligatoire carte avec relais)
+    pulseTriac = PulseT[pTriac];
+    zeroCross = ZeroT[pTriac];
+    pinMode(zeroCross, INPUT_PULLUP);
+    pinMode(pulseTriac, OUTPUT);
+    digitalWrite(pulseTriac, LOW);  //Stop Triac
+  } else {
+    Actif[0] = 0;
+    LesActions[0].Actif = 0;
+  }
+  Gpio[0] = pulseTriac;
+  LesActions[0].Gpio = pulseTriac;
+
+  //LEDs
+  //LEDgroupe = 0;   //0:pas de LED,1=(18,19),2=(4,16)
+  if (LEDgroupe > 0) {
+    pinMode(LEDyellow[LEDgroupe], OUTPUT);
+    pinMode(LEDgreen[LEDgroupe], OUTPUT);
+  }
+  if (pSerial > 0) {
+    if (ESP32_Type == 2) pSerial = 2;  //Obligatoire carte 1 relais
+    if (ESP32_Type == 4) pSerial = 3;  //Obligatoire carte écran
+    RXD2 = RX2_[pSerial];              //Port serie
+    TXD2 = TX2_[pSerial];
+  }
+  if (pTemp > 0) {
+    Serial.print("InirTemp:");
+    Serial.println(pinTemp[pTemp]);
+    oneWire.begin(pinTemp[pTemp]);
+    ds18b20.begin();
+    Nbr_DS18B20 = ds18b20.getDeviceCount();
+  }
+  //Entree Analogique UxI
+  if (Source == "UxI" && pUxI == 0) pUxI = 1;
+  AnalogIn0 = Analog0[pUxI];
+  AnalogIn1 = Analog1[pUxI];
+  AnalogIn2 = Analog2[pUxI];
 }
 // ***********************************
 // * Calage Zéro Energie quotidienne * -
@@ -1269,15 +1343,24 @@ void Gestion_LEDs() {
       cptLEDgreen = 10;
     }
   }
-  if (cptLEDyellow > 5) {
-    digitalWrite(LedYellow, LOW);
-  } else {
-    digitalWrite(LedYellow, HIGH);
-  }
-  if (cptLEDgreen > 5) {
-    digitalWrite(LedGreen, LOW);
-  } else {
-    digitalWrite(LedGreen, HIGH);
+
+
+  if (LEDgroupe > 0) {
+    int L = 0, H = 1;
+    if (LEDgroupe == 2) {
+      L = 1;
+      H = 0;
+    }
+    if (cptLEDyellow > 5) {
+      digitalWrite(LEDyellow[LEDgroupe], L);
+    } else {
+      digitalWrite(LEDyellow[LEDgroupe], H);
+    }
+    if (cptLEDgreen > 5) {
+      digitalWrite(LEDgreen[LEDgroupe], L);
+    } else {
+      digitalWrite(LEDgreen[LEDgroupe], H);
+    }
   }
 }
 //*************

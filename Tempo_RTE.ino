@@ -30,7 +30,7 @@ void Call_RTE_data() {
      else if  (STGE == "C") LTARF = "TEMPO_ROUGE";
      STGE=""; 
      couleur_lendemain=false; // on ne connait plus la couleur du lendemain. Cela forcera la lecture sur le site RTE 
-     if (LTARF!="") {  
+     if (LTARF!="" && TempoRTEon == 1 && ModeWifi==0) {  
            StockMessage("Tempo depuis 6h00: " + LTARF + ",demain ? ");
       }
     }  

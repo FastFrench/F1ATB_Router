@@ -103,6 +103,9 @@ void JourHeureChange() {
     int16_t minute = atoi(buffer);
     Int_Minute = minute;
   } else if (Horloge == 1) {  //Heure Linky
+    Int_Heure = Int_HeureLinky;
+    Int_Minute = Int_MinuteLinky;
+    Int_Seconde = Int_SecondeLinky;
     sprintf(buffer, "%d:%02d:%02d", Int_Heure, Int_Minute, Int_Seconde);
     DATE = JourLinky + " " + String(buffer);
   } else {  //Horloge interne ou par IT 10 ou 20ms
@@ -194,6 +197,20 @@ void LectureEnROM() {
     ModeWifi = EEPROM.readByte(address);
     address += sizeof(byte);
     Horloge = EEPROM.readByte(address);
+    address += sizeof(byte);
+    ESP32_Type = EEPROM.readByte(address);
+    address += sizeof(byte);
+    LEDgroupe = EEPROM.readByte(address);
+    address += sizeof(byte);
+    rotation = EEPROM.readByte(address);
+    address += sizeof(byte);
+    for (int i = 0; i < 8; i++) {
+      Calibre[i] = EEPROM.readShort(address);
+      address += sizeof(unsigned short);
+    }
+    pUxI = EEPROM.readByte(address);
+    address += sizeof(byte);
+    pTemp = EEPROM.readByte(address);
     address += sizeof(byte);
     Source = EEPROM.readString(address);
     address += Source.length() + 1;
@@ -320,6 +337,7 @@ void LectureEnROM() {
       }
     }
     Calibration(address);
+    
   }
 }
 int EcritureEnROM() {
@@ -355,6 +373,20 @@ int EcritureEnROM() {
   address += sizeof(byte);
   EEPROM.writeByte(address, Horloge);
   address += sizeof(byte);
+  EEPROM.writeByte(address, ESP32_Type);
+  address += sizeof(byte);
+  EEPROM.writeByte(address, LEDgroupe);
+  address += sizeof(byte);
+  EEPROM.writeByte(address, rotation);
+  address += sizeof(byte);
+  for (int i = 0; i < 8; i++) {
+    EEPROM.writeShort(address, Calibre[i]);
+    address += sizeof(unsigned short);
+  }
+  EEPROM.writeByte(address, pUxI);
+  address += sizeof(byte);
+  EEPROM.writeByte(address, pTemp);
+  address += sizeof(byte);
   EEPROM.writeString(address, Source);
   address += Source.length() + 1;
   EEPROM.writeULong(address, RMSextIP);
@@ -365,9 +397,9 @@ int EcritureEnROM() {
   address += EnphasePwd.length() + 1;
   EEPROM.writeString(address, EnphaseSerial);
   address += EnphaseSerial.length() + 1;
-  if (ModePara==0) {
-    MQTTRepet=0;
-    subMQTT=0;
+  if (ModePara == 0) {
+    MQTTRepet = 0;
+    subMQTT = 0;
   }
   EEPROM.writeUShort(address, MQTTRepet);
   address += sizeof(unsigned short);
@@ -627,6 +659,11 @@ String Fichier_parametres(String ip, String para, String action) {
   if (para == "true") {
     S += AddStr("CleAccesRef", CleAccesRef) + AddStr("Couleurs", Couleurs);
     S += AddByte("ModePara", ModePara) + AddByte("ModeWifi", ModeWifi) + AddByte("Horloge", Horloge);
+    S += AddByte("ESP32_Type", ESP32_Type) + AddByte("LEDgroupe", LEDgroupe) + AddByte("rotation", rotation);
+    for (int i = 0; i < 8; i++) {
+      S += AddUshort("Calibre" + String(i), Calibre[i]);
+    }
+    S += AddByte("pUxI", pUxI) + AddByte("pTemp", pTemp);
     S += AddStr("Source", Source) + AddUlong("RMSextIP", RMSextIP) + AddStr("EnphaseUser", EnphaseUser) + AddStr("EnphasePwd", EnphasePwd) + AddStr("EnphaseSerial", EnphaseSerial);
     S += AddUshort("MQTTRepet", MQTTRepet) + AddUlong("MQTTIP", MQTTIP) + AddUshort("MQTTPort", MQTTPort);
     S += AddStr("MQTTUser", MQTTUser) + AddStr("MQTTPwd", MQTTPwd) + AddStr("MQTTPrefix", MQTTPrefix) + AddStr("MQTTPrefixEtat", MQTTPrefixEtat);
@@ -707,6 +744,14 @@ void ImportParametres(String Conf) {
     ModePara = ByteJson("ModePara", Conf);
     ModeWifi = ByteJson("ModeWifi", Conf);
     Horloge = ByteJson("Horloge", Conf);
+    ESP32_Type = ByteJson("ESP32_Type", Conf);
+    LEDgroupe = ByteJson("LEDgroupe", Conf);
+    rotation = ByteJson("rotation", Conf);
+    for (int i = 0; i < 8; i++) {
+      Calibre[i] = UShortJson("Calibre" + String(i), Conf);
+    }
+    pUxI = ByteJson("pUxI", Conf);
+    pTemp = ByteJson("pTemp", Conf);
     Source = StringJson("Source", Conf);
     RMSextIP = ULongJson("RMSextIP", Conf);
     EnphaseUser = StringJson("EnphaseUser", Conf);
@@ -737,7 +782,7 @@ void ImportParametres(String Conf) {
     for (int i = 1; i < LesRouteursMax; i++) {
       RMS_IP[i] = ULongJson("RMS_IP" + String(i), Conf);
     }
-    if (Conf.indexOf("\"nomTemperature0\":") > 0) {  //On a les temperarures
+    if (Conf.indexOf("\"nomTemperature0\":") > 0) {  //On a les temperatures
       for (int c = 0; c < 4; c++) {
         nomTemperature[c] = StringJson("nomTemperature" + String(c), Conf);
         Source_Temp[c] = StringJson("Source_Temp" + String(c), Conf);
@@ -791,7 +836,7 @@ void ImportParametres(String Conf) {
       }
     }
   }
-
+  
   EcritureEnROM();
 }
 
@@ -831,6 +876,5 @@ String ULtoHex(unsigned long x) {
   return S;
 }
 unsigned long ConvCouleur(String V) {  //Notation CSS en UL
-  V = V.substring(1);                  //enleve #
   return strtoul(V.c_str(), NULL, 16);
 }

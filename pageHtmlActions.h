@@ -73,6 +73,7 @@ const char *ActionsHtml = R"====(
     <div id='pied'></div> 
     <script src="/ParaRouteurJS"></script>
     <script src="ActionsJS"></script>
+    <script src="PinsActionsJS"></script>
     <script src="/CommunCouleurJS"></script>
   </body></html>
 )====";
@@ -114,7 +115,6 @@ const char *ActionsJS = R"====(
       if (iAct > 0){Radio1 = "<div ><input type='radio' name='modeactif" + iAct +"' id='radio" + iAct +"-1'  onclick='checkDisabled();'>On/Off</div>";}
       Radio1 += "<div ><input type='radio' name='modeactif" + iAct +"' id='radio" + iAct +"-2'  onclick='checkDisabled();'>Multi-sinus</div>";
       Radio1 += "<div ><input type='radio' name='modeactif" + iAct +"' id='radio" + iAct +"-3'  onclick='checkDisabled();'>Train de sinus</div>";
-      var Pins=[0,4,5,14,16,17,21,22,23,25,26,27,-1];
       var SelectPin="<div>Gpio <select id='selectPin"+iAct +"' onchange='checkDisabled();' onmousemove='Disp(this)'>";
       for (var i=0;i<Pins.length;i++){
         var v="gpio:"+Pins[i];

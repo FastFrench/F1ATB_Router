@@ -181,7 +181,8 @@ const char *PageBruteJS = R"====(
         xhttp.onreadystatechange = function() { 
           if (this.readyState == 4 && this.status == 200) {
               var dataESP=this.responseText;
-              var message=dataESP.split(RS);
+              var Messages=dataESP.split(GS);
+              var message=Messages[0].split(RS);
               var S='<table>';
               var H=parseInt(message[0]);
               H=H + (message[0]-H)*0.6;
@@ -189,32 +190,44 @@ const char *PageBruteJS = R"====(
               H=H.replace(".", "h ")+"mn";
               var LaSource=Source;
               if (LaSource=='Ext') LaSource="Externe ("+Source_data+")<br>" +int2ip(RMSextIP);
-              S+='<tr><td>ESP On depuis :</td><td>'+H+'</td></tr>';
+              var typeESP32=["Non défini","Wroom seul","Carte 1 relais","Carte 4 relais","Ecran320*240"];
+              S+='<tr><td>ESP32 On depuis :</td><td>'+H+'</td></tr>';
+              S+='<tr><td>ESP32 modèle :</td><td>'+typeESP32[message[1]]+'</td></tr>';
               S+='<tr><td>Source des mesures :</td><td>'+LaSource+'</td></tr>';
               if (ModeWifi<2){
-                S+='<tr><td>Niveau WiFi :</td><td>'+message[1]+' dBm</td></tr>';
-                S+="<tr><td>Point d'acc&egrave;s WiFi :</td><td>"+message[2]+'</td></tr>';
-                S+='<tr><td>Adresse MAC ESP32 :</td><td>'+message[3]+'</td></tr>';
-                S+='<tr><td>R&eacute;seau WiFi :</td><td>'+message[4]+'</td></tr>';
-                S+='<tr><td>Adresse IP ESP32 :</td><td>'+message[5]+'</td></tr>';
-                S+='<tr><td>Adresse passerelle :</td><td>'+message[6]+'</td></tr>';
-                S+='<tr><td>Masque du r&eacute;seau :</td><td>'+message[7]+'</td></tr>';
+                S+='<tr><td>Niveau WiFi :</td><td>'+message[2]+' dBm</td></tr>';
+                S+="<tr><td>Point d'acc&egrave;s WiFi :</td><td>"+message[3]+'</td></tr>';
+                S+='<tr><td>Adresse MAC ESP32 :</td><td>'+message[4]+'</td></tr>';
+                S+='<tr><td>R&eacute;seau WiFi :</td><td>'+message[5]+'</td></tr>';
+                S+='<tr><td>Adresse IP ESP32 :</td><td>'+message[6]+'</td></tr>';
+                S+='<tr><td>Adresse passerelle :</td><td>'+message[7]+'</td></tr>';
+                S+='<tr><td>Masque du r&eacute;seau :</td><td>'+message[8]+'</td></tr>';
               } else {
                 S+="<tr><td>Adresse IP ESP32 (Point d'Accès) :</td><td>192.168.4.1</td></tr>";
               }
-              S+='<tr><td>Charge coeur 0 (Lecture Puissance) Min, Moy, Max :</td><td>'+message[8]+' ms</td></tr>';
-              S+='<tr><td>Charge coeur 1 (Calcul + Wifi) Min, Moy, Max :</td><td>'+message[9]+' ms</td></tr>';
-              S+='<tr><td>Espace mémoire EEPROM utilisé :</td><td>'+message[10]+' %</td></tr>';
-              S+='<tr><td>Mémoire RAM libre actuellement :</td><td>'+message[11]+' octet</td></tr>';
-              S+='<tr><td>Mémoire RAM libre minimum :</td><td>'+message[12]+' octet</td></tr>';
-              S+="<tr><td>Nombre d'interruptions en 15ms du Gradateur (signal Zc) : Filtrés/Brutes :</td><td>"+message[13]+'</td></tr>';
-              S+='<tr><td>Synchronisation au Secteur ou asynchrone horloge ESP32</td><td>'+message[14]+'</td></tr>';
-              var Stemp=message[15];
-              if (message[15]>0) Stemp +='<span class="fsize10">' + message[16] +'</span>';
+              S+='<tr><td>Charge coeur 0 (Lecture Puissance) Min, Moy, Max :</td><td>'+message[9]+' ms</td></tr>';
+              S+='<tr><td>Charge coeur 1 (Calcul + Wifi) Min, Moy, Max :</td><td>'+message[10]+' ms</td></tr>';
+              S+='<tr><td>Espace mémoire EEPROM utilisé :</td><td>'+message[11]+' %</td></tr>';
+              S+='<tr><td>Mémoire RAM libre actuellement :</td><td>'+message[12]+' octet</td></tr>';
+              S+='<tr><td>Mémoire RAM libre minimum :</td><td>'+message[13]+' octet</td></tr>';
+              S+="<tr><td>Nombre d'interruptions en 15ms du Gradateur (signal Zc) : Filtrés/Brutes :</td><td>"+message[14]+'</td></tr>';
+              S+='<tr><td>Synchronisation au Secteur ou asynchrone horloge ESP32</td><td>'+message[15]+'</td></tr>';
+              var Stemp=message[16];
+              if (message[16]>0) Stemp +='<span class="fsize10">' + message[17] +'</span>';
               S+="<tr><td>Nombre de capteurs de température DS18B20 :</td><td>"+Stemp+'</td></tr>';
+              S+='<tr><td>Température CPU ESP32</td><td>'+message[18]+'°C</td></tr>';
               S +='<tr><td style="text-align:center;"><strong>Messages</strong></td><td></td></tr>';
-              for (var i=0;i<10;i++){
-                S +='<tr><td>'+message[17+i]+'</td><td></td></tr>';
+              var message1=Messages[1].split(RS);
+              for (var i=1;i<=10;i++){
+                S +='<tr><td>'+message1[i]+'</td><td></td></tr>';
+              }
+              var message2=Messages[2].split(RS);
+              if(message2.length>1){
+                S +='<tr><td style="text-align:center;"><strong>Note échanges entre routeurs</strong></td><td></td></tr>';
+                for (var i=0;i<message2.length-1;i++){
+                    var Note=message2[i].split(ES);
+                    S +='<tr><td>'+Note[0]+'</td><td>' +Note[1] +'</td></tr>';
+                }
               }
               S+='</table>';
               GH('DataESP32', S);             

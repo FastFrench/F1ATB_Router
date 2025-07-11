@@ -16,6 +16,7 @@ void Init_Server() {
   server.on("/CleUpdate", handleCleUpdate);
   server.on("/Actions", handleActions);
   server.on("/ActionsJS", handleActionsJS);
+  server.on("/PinsActionsJS", handlePinsActionsJS);
   server.on("/ActionsUpdate", handleActionsUpdate);
   server.on("/ActionsAjax", handleActionsAjax);
   server.on("/Brute", handleBrute);
@@ -28,6 +29,7 @@ void Init_Server() {
   server.on("/ajax_data10mn", handleAjaxData10mn);
   server.on("/ajax_etatActions", handleAjax_etatActions);
   server.on("/ajax_etatActionX", handleAjax_etatActionX);
+  server.on("/ForceAction", handleForceAction);
   server.on("/ajax_Temperature", handleAjaxTemperature);
   server.on("/ajax_Noms", handleAjaxNoms);
   server.on("/ajaxRAZhisto", handleajaxRAZhisto);
@@ -284,7 +286,7 @@ void handleAjaxESP32() {  // Envoi des dernières infos sur l'ESP32
   float H = float(T_On_seconde) / 3600.0;
   String coeur0 = String(int(previousTimeRMSMin)) + ", " + String(int(previousTimeRMSMoy)) + ", " + String(int(previousTimeRMSMax));
   String coeur1 = String(int(previousLoopMin)) + ", " + String(int(previousLoopMoy)) + ", " + String(int(previousLoopMax));
-  S += String(H) + RS + WiFi.RSSI() + RS + WiFi.BSSIDstr() + RS + WiFi.macAddress() + RS + ssid + RS + WiFi.localIP().toString() + RS + WiFi.gatewayIP().toString() + RS + WiFi.subnetMask().toString();
+  S += String(H) + RS + String(ESP32_Type) + RS + WiFi.RSSI() + RS + WiFi.BSSIDstr() + RS + WiFi.macAddress() + RS + ssid + RS + WiFi.localIP().toString() + RS + WiFi.gatewayIP().toString() + RS + WiFi.subnetMask().toString();
   S += RS + coeur0 + RS + coeur1 + RS + String(P_cent_EEPROM) + RS;
   S += String(esp_get_free_internal_heap_size()) + RS + String(esp_get_minimum_free_heap_size()) + RS;
   delay(15);  //Comptage interruptions
@@ -300,10 +302,19 @@ void handleAjaxESP32() {  // Envoi des dernières infos sur l'ESP32
   }
   S += RS + String(Nbr_DS18B20);
   S += RS + AllTemp;
+  S += RS + String(temperatureRead()) +GS;  //Temperature CPU
   int j = idxMessage;
   for (int i = 0; i < 10; i++) {
     S += RS + MessageH[j];
     j = (j + 1) % 10;
+  }
+  S +=GS;
+  for (int i = 1; i < LesRouteursMax; i++) {
+    if (RMS_IP[i] > 0) {
+      String nom="",after;
+      SplitS(RMS_NomEtat[i], nom, US, after);
+      S +=nom + " (" +IP2String(RMS_IP[i])+") "+ ES+String(RMS_Note[i])+"/"+String(RMS_NbCx[i]) + RS;
+    }
   }
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
@@ -314,9 +325,9 @@ void handleAjaxHisto1an() {  // Envoi Historique Energie quotiiienne sur 1 an 37
 }
 void handleAjaxData() {  //Données page d'accueil
   String DateLast = "Attente d'une mise à l'heure par internet";
-  if (Horloge==1) DateLast = "Attente d'une mise à l'heure par le Linky";
+  if (Horloge == 1) DateLast = "Attente d'une mise à l'heure par le Linky";
   if (ModeWifi == 0 && WiFi.getMode() != WIFI_STA) DateLast = "Sélectionnez un réseau <a href='/Wifi'>Wifi</a>";
-  if (Horloge>1) DateLast = "Attente d'une mise à l'heure  <a href='/Heure' >manuellement</a> ";
+  if (Horloge > 1) DateLast = "Attente d'une mise à l'heure  <a href='/Heure' >manuellement</a> ";
   if (HeureValide) {
     DateLast = DATE;
   }
@@ -335,7 +346,7 @@ void handleAjaxData() {  //Données page d'accueil
 void handleAjax_etatActions() {
   int Force = server.arg("Force").toInt();
   int NumAction = server.arg("NumAction").toInt();
-  if (Force != 0) {
+  if (Force != 0 && NumAction < NbActions) {
     if (Force > 0) {
       if (LesActions[NumAction].tOnOff < 0) {
         LesActions[NumAction].tOnOff = 0;
@@ -391,6 +402,15 @@ void handleAjax_etatActionX() {
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
 }
+void handleForceAction() {
+  int Force = server.arg("Force").toInt();
+  int NumAction = server.arg("NumAction").toInt();
+  if (NumAction < NbActions) {
+    LesActions[NumAction].tOnOff = Force;
+  }
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/html", "Force");
+}
 void handleAjaxTemperature() {
   String LesTemp = LesTemperatures();
   server.sendHeader("Connection", "close");
@@ -417,8 +437,8 @@ void handleAjaxData10mn() {  // Envoi Historique de 10mn (300points)Energie Acti
   server.send(200, "text/html", Source_data + GS + S + GS + T);
 }
 void handleAjaxNoms() {
-  Liste_Noms(0);  // Les noms de ce routeur
-  String S = GS + RMS_Nom[0];
+  Liste_NomsEtats(0);  // Les noms de ce routeur
+  String S = GS + RMS_NomEtat[0];
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
 }
@@ -435,7 +455,7 @@ void handleActionsUpdate() {
   int adresse_max = 0;
   String s = server.arg("actions");
   String ligne = "";
-  InitGpioActions();  //RAZ anciennes actions
+  InitGPIOs();  //RAZ anciennes actions
   NbActions = 0;
   while (s.indexOf(GS) > 3 && NbActions < LesActionsLength) {
     ligne = s.substring(0, s.indexOf(GS));
@@ -446,7 +466,7 @@ void handleActionsUpdate() {
   adresse_max = EcritureEnROM();
   server.sendHeader("Connection", "close");
   server.send(200, "text/plain", "OK" + String(adresse_max));
-  InitGpioActions();
+  InitGPIOs();
   Liste_des_Noms();
 }
 void handleActionsAjax() {
@@ -461,6 +481,14 @@ void handleActionsAjax() {
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
 }
+void handlePinsActionsJS() {  //Pins disponibles
+  String S = "var Pins=[0,-1];";
+  if (ESP32_Type == 1) S = "var Pins=[0,4,5,13,14,16,17,21,22,23,25,26,27,-1];";
+  if (ESP32_Type == 2 || ESP32_Type == 3) S = "var Pins=[0,4,5,13,14,16,17,18,19,21,22,25,26,27,32,33,-1];";
+  if (ESP32_Type == 4) S = "var Pins=[0,5,18,19,22,23,27,-1];";
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/javascript", S);
+}
 
 void handlePara() {
   lectureCookie(ParaHtml);
@@ -469,10 +497,9 @@ void handlePara() {
 void handleParaUpdate() {
   lectureCookie("");
   CleAccesRef = CleAcces;  //Nouvelle cle d'accès ou mise à jour
-  String Vp[64];
+  String Vp[69];
   String lesparas = server.arg("lesparas") + RS;
   int idx = 0;
-  Serial.println(lesparas);
   while (lesparas.length() > 0) {
     Vp[idx] = lesparas.substring(0, lesparas.indexOf(RS));
     lesparas = lesparas.substring(lesparas.indexOf(RS) + 1);
@@ -511,19 +538,24 @@ void handleParaUpdate() {
   WifiSleep = byte(Vp[29].toInt());
   pSerial = byte(Vp[30].toInt());
   pTriac = byte(Vp[31].toInt());
+  ESP32_Type = byte(Vp[32].toInt());
+  LEDgroupe = byte(Vp[33].toInt());
+  rotation = byte(Vp[34].toInt());
+  pUxI = byte(Vp[35].toInt());
+  pTemp = byte(Vp[36].toInt());
   int canal = 0;
   for (int c = 0; c < 4; c++) {
-    nomTemperature[c] = Vp[32 + 6 * c];
-    Source_Temp[c] = Vp[33 + 6 * c];
-    TopicT[c] = Vp[34 + 6 * c];
-    refTempIP[c] = byte(Vp[35 + 6 * c].toInt());
-    canalTempExterne[c] = byte(Vp[36 + 6 * c].toInt());
-    offsetTemp[c] = Vp[37 + 6 * c].toInt();
+    nomTemperature[c] = Vp[37 + 6 * c];
+    Source_Temp[c] = Vp[38 + 6 * c];
+    TopicT[c] = Vp[39 + 6 * c];
+    refTempIP[c] = byte(Vp[40 + 6 * c].toInt());
+    canalTempExterne[c] = byte(Vp[41 + 6 * c].toInt());
+    offsetTemp[c] = Vp[42 + 6 * c].toInt();
   }
   int j = 1;
   for (int i = 1; i < LesRouteursMax; i++) {
     RMS_IP[i] = 0;
-    unsigned long IP = strtoul(Vp[56 + i].c_str(), NULL, 10);
+    unsigned long IP = strtoul(Vp[61 + i].c_str(), NULL, 10);
     if (IP > 0 && ModeWifi < 2) {
       RMS_IP[j] = IP;
       j++;
@@ -538,7 +570,12 @@ void handleParaUpdate() {
   server.sendHeader("Connection", "close");
   server.send(200, "text/plain", "OK" + String(adresse_max));
   LastHeureRTE = -1;
+  if (ESP32_Type == 4) {
+    lcd.setRotation(rotation);
+    GoPage(NumPage);
+  }
   //Recherche des Noms (routeurs, températures,actions) des RMS partenaires
+  IndexSource();
   Liste_des_Noms();
 }
 void handleCleUpdate() {
@@ -562,9 +599,11 @@ void handleParaAjax() {
   S += RS + MQTTPrefix + RS + MQTTPrefixEtat + RS + MQTTdeviceName + RS + String(subMQTT) + RS + nomRouteur + RS + nomSondeFixe + RS + nomSondeMobile;
   S += RS + String(CalibU) + RS + String(CalibI);
   S += RS + String(TempoRTEon) + RS + String(WifiSleep) + RS + String(pSerial) + RS + String(pTriac);
+  S += RS + String(ESP32_Type) + RS + String(LEDgroupe) + RS + String(rotation) + RS + String(pUxI) + RS + String(pTemp);
   for (int c = 0; c < 4; c++) {
     S += GS + nomTemperature[c] + RS + Source_Temp[c] + RS + TopicT[c] + RS + String(refTempIP[c]) + RS + String(canalTempExterne[c]) + RS + String(offsetTemp[c]);
   }
+  Serial.println(S);
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
 }
@@ -586,15 +625,15 @@ void handleajaxRAZhisto() {
     tabPva_Maison_2s[i] = 0;  //Puissance Active: toutes les 2s
     tabPva_Triac_2s[i] = 0;
   }
-  RAZ_JSY = true; 
+  RAZ_JSY = true;
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", "OK");
 }
 void handleParaRouteurAjax() {
-  String S = Source + GS + Source_data + GS + WiFi.localIP().toString() + GS + nomRouteur + GS + Version + GS + nomSondeFixe + GS + nomSondeMobile + GS + String(RMSextIP) + GS + String(ModeWifi) + GS + String(ModePara) + GS+ String(Horloge) + GS;
+  String S = Source + GS + Source_data + GS + WiFi.localIP().toString() + GS + nomRouteur + GS + Version + GS + nomSondeFixe + GS + nomSondeMobile + GS + String(RMSextIP) + GS + String(ModeWifi) + GS + String(ModePara) + GS + String(Horloge) + GS;
   for (int i = 0; i < LesRouteursMax; i++) {  //index 0 pour ESP32 local
-    if (RMS_IP[i] > 0) {
-      S += RMS_IP[i] + US + RMS_Nom[i] + RS;
+    if (RMS_IP[i] > 0 && RMS_NomEtat[i]!="") {
+      S += RMS_IP[i] + US + RMS_NomEtat[i] + RS;
     }
   }
   server.sendHeader("Connection", "close");
@@ -625,7 +664,8 @@ void handleAP_ScanWifi() {
 }
 void Liste_WIFI() {  //Doit être fait avant toute connection WIFI depuis biblio ESP32 3.0.1
   WIFIbug = 0;
-
+  esp_task_wdt_reset();
+  delay(1);
   int n = 0;
   WiFi.disconnect();
   delay(100);
@@ -654,6 +694,7 @@ void Liste_WIFI() {  //Doit être fait avant toute connection WIFI depuis biblio
   WiFi.scanDelete();
 }
 void handleAP_SetWifi() {
+  esp_task_wdt_reset();
   delay(1);
   Serial.println("Set Wifi");
   String NewSsid = server.arg("ssid");
@@ -727,23 +768,24 @@ void handleCouleurUpdate() {
   EcritureEnROM();
   server.sendHeader("Connection", "close");
   server.send(200, "text/plain", "OK couleurs");
+  if (ESP32_Type == 4) SetCouleurs();
 }
 void handleCommunCSS() {
   CacheEtClose(60);
-  String S="* {box-sizing: border-box;}\n";
-  S+="body {font-size:150%;text-align:center;width:100%;max-width:1000px;margin:auto;padding:10px;background:linear-gradient(";
-  if (Couleurs=="") {
-    S +="#000033,#77b5fe,#000033";
+  String S = "* {box-sizing: border-box;}\n";
+  S += "body {font-size:150%;text-align:center;width:100%;max-width:1000px;margin:auto;padding:10px;background:linear-gradient(";
+  if (Couleurs == "") {
+    S += "#000033,#77b5fe,#000033";
   } else {
-    S +="#"+Couleurs.substring(12, 18)+",#"+Couleurs.substring(6, 12)+",#"+Couleurs.substring(12, 18);
-  } 
-  S +=");background-attachment:fixed;color:";
-  if (Couleurs=="") {
-    S +="#ffffff";
+    S += "#" + Couleurs.substring(12, 18) + ",#" + Couleurs.substring(6, 12) + ",#" + Couleurs.substring(12, 18);
+  }
+  S += ");background-attachment:fixed;color:";
+  if (Couleurs == "") {
+    S += "#ffffff";
   } else {
-    S +="#"+Couleurs.substring(0,6);
-  } 
-  S+=";}\n";
+    S += "#" + Couleurs.substring(0, 6);
+  }
+  S += ";}\n";
   server.send(200, "text/css", S + CommunCSS);
 }
 
@@ -763,8 +805,8 @@ void handleNotFound() {  //Page Web pas trouvé
   server.sendHeader("Connection", "close");
   server.send(404, "text/plain", message);
 }
-void CacheEtClose(int16_t seconde){
-  server.sendHeader("Cache-Control", "max-age=" + String(seconde) );
+void CacheEtClose(int16_t seconde) {
+  server.sendHeader("Cache-Control", "max-age=" + String(seconde));
   server.sendHeader("Connection", "close");
 }
 void lectureCookie(String S) {

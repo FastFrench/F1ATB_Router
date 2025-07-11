@@ -24,7 +24,7 @@ const char *ExportHtml = R"====(
     <div id='lesOnglets'></div>
     <h2 >Import / Export des paramètres</h2>
     <div class="Zone">
-        <div class="boldT">Export / Sauvegarde des paramètres <br><span class='fsize10'>(Permet la sauvegarde des paramètres sur votre PC avant une mise à jour)</span></div>
+        <div class="boldT">Export / Sauvegarde des paramètres <br><span class='fsize12'>(Permet la sauvegarde des paramètres sur votre PC avant une mise à jour)</span></div>
         <div class="form"  >
           <div class='ligne'>
             <label for='ip_load'>Paramètres IP du routeur : </label><input type='checkbox' name='ip_load' id='ip_load' style='width:25px;' onclick="setConf();" checked>
@@ -36,7 +36,7 @@ const char *ExportHtml = R"====(
             <label for='action_load'>Planning des Actions : </label><input type='checkbox' name='action_load' id='action_load' style='width:25px;' onclick="setConf();" checked>
           </div>
           <div class='ligne'>
-            <label for='nom_f_para'>Nom du fichier ( *.json) : </label><input type='text' name='nom_f_para' id='nom_f_para'  value="parametres.json" onchange="setNomPara();">
+            <label for='nom_f_para'>Nom du fichier de sauvegarde ( *.json) : </label><input type='text' name='nom_f_para' id='nom_f_para'  value="parametres.json" onchange="setNomPara();">
           </div>
           <div class='ligne'>
             <div class='cell'></div><div class='cell'><a href="/export_file" download="parametre.json" id="adr_export"><button class='bouton'>Télécharger paramètres</button></a></div>
@@ -55,8 +55,9 @@ const char *ExportHtml = R"====(
             <div class="lds-dual-ring" id="attente"></div>
           </div>
         </form>
+        <span class='fsize12'>Après un Import de paramètres, faites un Reset pour redémarrer avec les nouveaux.</span>
     </div>
-    
+    <input  class='bouton' type='button' onclick='Reset();' value='ESP32 Reset' >
     <script>
         var BordsInverse=[".Bparametres",".Bexport"]; 
         function Init(){
@@ -95,6 +96,19 @@ const char *ExportHtml = R"====(
           GID("Bheure").style.display= (Horloge>1) ? "inline-block": "none";
           LoadCouleurs();
         };
+        function Reset(){
+          GID("attente").style="visibility: visible;";
+            var xhttp = new XMLHttpRequest();
+              xhttp.onreadystatechange = function() { 
+                if (this.readyState == 4 && this.status == 200) {
+                  GID('BoutonsBas').innerHTML=this.responseText;
+                  GID("attente").style="visibility: hidden;";
+                  setTimeout(location.reload(),1000);
+                }         
+              };
+              xhttp.open('GET', 'restart', true);
+              xhttp.send();
+        }
     </script>
     <br>
     <div id='pied'></div>

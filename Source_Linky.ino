@@ -156,9 +156,9 @@ void LectureLinky() {  //Lecture port série du LINKY .
             PuissanceRecue = true;  //Reset du Watchdog à chaque trame du Linky reçue
             if (Horloge == 1) {
               JourLinky = val.substring(5, 7) + "/" + val.substring(3, 5) + "/" + val.substring(1, 3);
-              Int_Heure = val.substring(7, 9).toInt();
-              Int_Minute = val.substring(9, 11).toInt();
-              Int_Seconde = val.substring(11, 13).toInt();
+              Int_HeureLinky = val.substring(7, 9).toInt();
+              Int_MinuteLinky = val.substring(9, 11).toInt();
+              Int_SecondeLinky = val.substring(11, 13).toInt();
               HeureValide = true;
             }
           }

@@ -43,9 +43,9 @@ public:
   byte Reactivite;
   byte NbPeriode;
   byte ExtSelAct;  //Selection Action en cours
-  int ExtValide;   //Condition Action externe
-  int ExtHequiv;   //Duree heure *100 action externe
-  int ExtOuvert;   //Pourcent ouverture
+  int8_t ExtValide;   //Condition Action externe
+  int16_t ExtHequiv;   //Duree heure *100 action externe
+  int16_t ExtOuvert;   //Pourcent ouverture
 
   bool On;
   float H_Ouvre;

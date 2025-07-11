@@ -10,10 +10,12 @@ void CallESP32_Externe() {
 
   // Use WiFiClient class to create TCP connections
   WiFiClient clientESP_RMS;
+  if (RMS_NbCx[RMSextIdx] < 100) RMS_NbCx[RMSextIdx]++;
   String host = IP2String(RMSextIP);
   if (!clientESP_RMS.connect(host.c_str(), 80)) {
 
-    StockMessage("connection to ESP_RMS : " + host + " failed");
+    StockMessage("Connection to ESP_RMS : " + host + " failed");
+    if (RMS_Note[RMSextIdx] > 0) RMS_Note[RMSextIdx]--;
     delay(200);
     return;
   }
@@ -25,6 +27,7 @@ void CallESP32_Externe() {
 
       StockMessage("client ESP_RMS Timeout !" + host);
       clientESP_RMS.stop();
+      if (RMS_Note[RMSextIdx] > 0) RMS_Note[RMSextIdx]--;
       return;
     }
   }
@@ -40,6 +43,8 @@ void CallESP32_Externe() {
   if (RMSExtDataB.indexOf("Deb") >= 0 && RMSExtDataB.indexOf("Fin") > 0) {  //Trame complète reçue
     RMSExtDataB = RMSExtDataB.substring(RMSExtDataB.indexOf("Deb") + 4);
     RMSExtDataB = RMSExtDataB.substring(0, RMSExtDataB.indexOf("Fin") + 3);
+    if (RMS_Note[RMSextIdx] < 100) RMS_Note[RMSextIdx]++;
+    RMS_NbCx[RMSextIdx] = max(RMS_NbCx[RMSextIdx], RMS_Note[RMSextIdx]);
     String Sval = "";
     int idx = 0;
     while (RMSExtDataB.indexOf(GS) > 0) {
@@ -132,5 +137,25 @@ void CallESP32_Externe() {
       }
     }
     RMSExtDataB = "";
+  }
+}
+void IndexSource() {
+  RMSextIdx = 0;
+  if (RMSextIP > 0 && Source == "Ext") {
+    for (int8_t i = 1; i < LesRouteursMax; i++) {
+      if (RMS_IP[i] == RMSextIP) {
+        RMSextIdx = i;
+      }
+    }
+
+    if (RMSextIdx == 0) {
+      for (int8_t i = 1; i < LesRouteursMax; i++) {
+        if (RMS_IP[i] == 0) {
+          RMS_IP[i] = RMSextIP;
+          RMSextIdx = i;
+          i = 100;
+        }
+      }
+    }
   }
 }
