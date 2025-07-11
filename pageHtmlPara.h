@@ -32,6 +32,7 @@ const char *ParaHtml = R"====(
     .generaux label{width:30%;}
     .fsize150{font-size:140%;}
     .topG{display:flex;justify-content: center;}
+    .shem{font-size:12px;display:flex;}
   </style>
   
   </head>
@@ -650,7 +651,7 @@ const char *ParaJS = R"====(
         xhttp.send();
   }
   function AdaptationSource(){
-      GID('ligneFixe').style.display = (Source_data=='UxIx2' || ((Source_data=='ShellyEm' || Source_data=='ShellyPro') && GID("EnphaseSerial").value <3))? "table-row" : "none";
+      GID('ligneFixe').style.display = (Source_data=='UxIx2' || ((Source_data=='ShellyEm' || Source_data=='ShellyPro') && GID("EnphaseSerial").value !=3 ))? "table-row" : "none";
       GID('Zcalib').style.display=(Source_data=='UxI' && Source=='UxI' ) ? "table" : "none";
       GID('Analog').style.display=(Source_data=='UxI' && Source=='UxI' ) ? "table-row" : "none";
       var txtExt = "ESP-RMS";
@@ -660,7 +661,10 @@ const char *ParaJS = R"====(
       var lab_enphaseShelly= "Numéro série passerelle IQ Enphase : <span class='fsize10'><br>Pour firmvare Envoy-S V7 seulement</span>";
       if (Source=='ShellyEm' || Source=='ShellyPro') {
         txtExt = "Shelly (Pro) Em ";
-        lab_enphaseShelly="Monophasé : Numéro de voie (0, 1 ou 2) mesurant l'entrée du courant maison<br>Triphasé : mettre 3";
+        lab_enphaseShelly="<div class='shem'><strong>Shelly (Pro) Em</strong><br>";
+        lab_enphaseShelly +="Monophasé : Courant maison sur voie 0,1 ou 2<br>Triphasé : mettre 3";
+        lab_enphaseShelly +="</div><div class='shem'><Strong>Shelly Em Gen3</strong><br>";
+        lab_enphaseShelly +="Courant maison sur voie 0 = 30, voie 1 = 31</div>";
       }
       GID('labExtIp').innerHTML = txtExt;
       GID('label_enphase_shelly').innerHTML = lab_enphaseShelly;

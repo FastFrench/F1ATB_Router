@@ -1,4 +1,4 @@
-#define Version "14.20"
+#define Version "14.21"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -140,6 +140,11 @@
     Augmentation de la taille de l'identifiant ESP32 MQTT
     Source HomeWizard
     Correction Nom serveur si Ethernet
+  - V14.21
+    Shelly Em Gen3
+    Courbe sur 10mn des ouvertures de Triac ou SSR
+    Choix d'affichage des courbes de VA
+    RAZ pour JSY-MK-333G
             
   
   Les détails sont disponibles sur / Details are available here:
@@ -288,6 +293,7 @@ int16_t tabPva_Triac_2s[300];
 int8_t tabPulseSinusOn[101];
 int8_t tabPulseSinusTotal[101];
 int8_t tab_histo_ouverture[LesActionsLength][600];
+int8_t tab_histo_2s_ouverture[LesActionsLength][300];
 int16_t IdxStock2s = 0;
 int16_t IdxStockPW = 0;
 float PmaxReseau = 36000;  //Puissance Max pour eviter des débordements
@@ -391,6 +397,8 @@ String ShEm_dataBrute = "";
 int ShEm_comptage_appels = 0;
 float PwMoy2 = 0;  //Moyenne voie secondsaire
 float pfMoy2 = 1;  //pf Voie secondaire
+String Shelly_Name = "";
+String Shelly_Profile = "";
 
 //Paramètres pour puissance via MQTT
 String P_MQTT_Brute = "";
@@ -1034,8 +1042,8 @@ void loop() {
   //**********************************************
   if (EnergieActiveValide) {
 
-    if (tps - previousHistoryMillis >= 300000) {  //Historique consommation par pas de 5mn
-      previousHistoryMillis = tps;
+    if (tps - previousHistoryMillis > 300000) {  //Historique consommation par pas de 5mn
+      previousHistoryMillis += 300000;
       tabPw_Maison_5mn[IdxStockPW] = PuissanceS_M - PuissanceI_M;
       tabPw_Triac_5mn[IdxStockPW] = PuissanceS_T - PuissanceI_T;
       for (int c = 0; c < 4; c++) {
@@ -1061,13 +1069,20 @@ void loop() {
     }
 
 
-    if (tps - previousTimer2sMillis >= 2000) {
+    if (tps - previousTimer2sMillis > 2000) { 
       unsigned long dt = tps - previousTimer2sMillis;
-      previousTimer2sMillis = tps;
+      previousTimer2sMillis += 2000;  //Pou caler exactement à 2s
       tabPw_Maison_2s[IdxStock2s] = PuissanceS_M - PuissanceI_M;
       tabPw_Triac_2s[IdxStock2s] = PuissanceS_T - PuissanceI_T;
       tabPva_Maison_2s[IdxStock2s] = PVAS_M - PVAI_M;
       tabPva_Triac_2s[IdxStock2s] = PVAS_T - PVAI_T;
+      for (int i = 0; i < NbActions; i++) {
+        if (Actif[i] > 0) {
+          tab_histo_2s_ouverture[i][IdxStock2s] = 100 - Retard[i];
+        } else {
+          tab_histo_2s_ouverture[i][IdxStock2s] = 0;
+        }
+      }
       IdxStock2s = (IdxStock2s + 1) % 300;
       JourHeureChange();
       EnergieQuotidienne();

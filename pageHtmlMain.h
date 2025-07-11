@@ -31,6 +31,8 @@ const char *MainHtml = R"====(
     #couleurTarif_jour,#couleurTarif_J1{font-size:8px;}
     #etatActions{display:none;}
     th,td{border:2px solid grey;}
+    .choixG{text-align:left;width:100%;height:0px;}
+    .choix{position:relative;left:120px;top:-80px;font-size:16px;display:none;}
   </style>
   </head>
   <body onload='Init();' >
@@ -48,10 +50,13 @@ const char *MainHtml = R"====(
     <div id="donneeDistante">Données distantes</div>
     <div id='etatActions' class='tableau'></div>
     <p id='SVG_PW2sM' ></p>
+    <div class='choixG'><div class='choix' id='SVG_PW2sM_L'><label>VA</label><input type='checkbox'  id='SVG_PW2sM_C' ></div></div>
     <p id='SVG_PW2sT' ></p>
+    <div class='choixG'><div class='choix' id='SVG_PW2sT_L'><label>VA</label><input type='checkbox'  id='SVG_PW2sT_C' ></div></div>
     <p id='SVG_PW48hM' ></p>
     <p id='SVG_PW48hT' ></p>
     <p class='SVG_Temp48h' id='SVG_Temp48h0'></p><p class='SVG_Temp48h' id='SVG_Temp48h1'></p><p class='SVG_Temp48h' id='SVG_Temp48h2'></p><p class='SVG_Temp48h' id='SVG_Temp48h3'></p>
+    <p id='SVG_Ouvertures_2s' ></p>
     <p id='SVG_Ouvertures' ></p>
     <p id='SVG_Wh1an' ></p>
     <div id='info'><div id='info_txt'></div></div>
@@ -66,6 +71,13 @@ const char *MainHtml = R"====(
 const char *MainJS = R"====(
     var tabPW2sM=[];
     var tabPW2sT=[];
+    var tabActOuvre=[]
+    var LastPW_M=0;
+    var LastPVA_M=0;
+    var LastPW_T=0;
+    var LastPVA_T=0;
+    var LastActOuvre=[];
+
     var initUxIx2=false;
     var biSonde=false;
     var TabVal = [];
@@ -106,11 +118,10 @@ const char *MainJS = R"====(
             GID('EAJI_M').innerHTML = LaVal(G1[5]);
             GID('EAS_M').innerHTML = LaVal(G1[6]); 
             GID('EAI_M').innerHTML = LaVal(G1[7]); 
-            tabPW2sM.shift(); //Enleve Pw Maison
-            tabPW2sM.shift(); //Enleve PVA
-            tabPW2sM.push(parseFloat(G1[0]-G1[1]));
-            tabPW2sM.push(parseFloat(G1[2]-G1[3]));
-            Plot('SVG_PW2sM',tabPW2sM,Koul[Coul_W][3],'Puissance Active '+GID("nomSondeMobile").innerHTML+' sur 10 mn en W',Koul[Coul_VA][3],'Puissance Apparente sur 10 mn en VA');  
+
+            LastPW_M=parseFloat(G1[0]-G1[1]);
+            LastPVA_M=parseFloat(G1[2]-G1[3]);
+             
 
             var Tarif=["NON_DEFINI","PLEINE","CREUSE","BLEU","BLANC","ROUGE"];
             var couleur=["#"+Koul[Coul_Tab][3],"#f00","#0f0","#00bfff","#fff","#f00"];
@@ -144,11 +155,9 @@ const char *MainJS = R"====(
             GID('EAJI_T').innerHTML = LaVal(G2[5]);      
             GID('EAS_T').innerHTML = LaVal(G2[6]);
             GID('EAI_T').innerHTML = LaVal(G2[7]); 
-            tabPW2sT.shift(); //Enleve Pw Triav
-            tabPW2sT.shift(); //Enleve PVA
-            tabPW2sT.push(parseFloat(G2[0]-G2[1]));
-            tabPW2sT.push(parseFloat(G2[2]-G2[3]));
-            Plot('SVG_PW2sT',tabPW2sT,Koul[Coul_W][3],'Puissance Active '+GID("nomSondeFixe").innerHTML+' sur 10 mn en W',Koul[Coul_VA][3],'Puissance Apparente sur 10 mn en VA'); 
+            LastPW_T = parseFloat(G2[0]-G2[1]);
+            LastPVA_T = parseFloat(G2[2]-G2[3]);
+            
             if (parseInt(G2[5])==0 && Source!="ShellyEm" && Source!="ShellyPro")  { //Il n'y a pas d'injecté normalement
               GID('produite').innerHTML='';
               GID('PwI_T').innerHTML='';
@@ -181,13 +190,20 @@ const char *MainJS = R"====(
           tabPW2sM.splice(0,tabPW2sM.length);
           tabPW2sM=groupes[1].split(',');
           tabPW2sM.pop();
-          Plot('SVG_PW2sM',tabPW2sM,Koul[Coul_W][3],'Puissance Active '+GID("nomSondeMobile").innerHTML+' sur 10 mn en W',Koul[Coul_VA][3],'Puissance Apparente sur 10 mn en VA');
           if (biSonde){
             tabPW2sT.splice(0,tabPW2sT.length);
             tabPW2sT=groupes[2].split(',');
             tabPW2sT.pop();
-            GID('SVG_PW2sT').style.display="block";
-            Plot('SVG_PW2sT',tabPW2sT,Koul[Coul_W][3],'Puissance Active '+GID("nomSondeFixe").innerHTML+' sur 10 mn en W',Koul[Coul_VA][3],'Puissance Apparente sur 10 mn en VA');
+          }
+          groupes.shift();groupes.shift();groupes.shift();
+          if (groupes.length>0) { //Tableau des ouvertures par action
+            for (var g=0;g<groupes.length;g++){
+              var Act=groupes[g].split(ES);
+              var i=parseInt(Act[0]); //Index de l'action
+              tabActOuvre[i]=Act[1].split(RS);
+              tabActOuvre[i].pop();
+            }
+            
           }
           LoadHisto1an();
         }
@@ -253,31 +269,16 @@ const char *MainJS = R"====(
       LoadData();
       LoadHisto10mn();
       EtatActions(0,0);
-    };
-
+    }
+    
+    
     function Plot(SVG,Tab,couleur1,titre1,couleur2,titre2){
         var Vmax=0;
         var Vmin=0;
         var TabY0=[];
         var TabY1=[];
         couleur1 = "#" +couleur1;
-        couleur2 = "#" +couleur2;
-        for (var i = 0; i < Tab.length; i++) {
-              Tab[i]=Math.min(Tab[i],10000000);
-              Tab[i]=Math.max(Tab[i],-10000000);
-              Vmax = Math.max(Math.abs(Tab[i]), Vmax);       
-        }    
-        var cadrageMax=1;
-        var cadrage1=1000000;
-        var cadrage2=[10,8,5,4,2,1];
-        for (var m=0;m<7;m++){
-          for (var i=0;i<cadrage2.length;i++){
-              var X=cadrage1*cadrage2[i];
-              if ((Vmax)<=X) cadrageMax=X;
-          }
-          cadrage1=cadrage1/10;
-        }
-       
+        couleur2 = "#" +couleur2;      
         var dX=900/Tab.length;
         const d = new Date();
         var dI=1;
@@ -291,6 +292,7 @@ const char *MainJS = R"====(
         var Y0=250;
         var Yamp=230;
         var dy=2;
+        var dispVA=false;
         switch (SVG){
           case  'SVG_PW48hM':
             
@@ -311,6 +313,10 @@ const char *MainJS = R"====(
             moduloText=-100;
             H00= 0;
             dI=2; //2 courbes PW et PVA
+            GID(SVG +'_L').style='color:'+couleur2+';display:block;';
+            dispVA=GID(SVG +'_C').checked ; //Plot courbe VA
+            console.log("dispVA PWM",dispVA);
+            localStorage.setItem(SVG +'_LS', dispVA);
           break;
           case  'SVG_PW2sT':
             label='mn';
@@ -320,6 +326,10 @@ const char *MainJS = R"====(
             moduloText=-100;
             H00= 0;
             dI=2; //2 courbes PW et PVA
+            GID(SVG +'_L').style='color:'+couleur2+';display:block;';
+            dispVA=GID(SVG +'_C').checked ; //Plot courbe VA
+             console.log("dispVA PWT",dispVA);
+            localStorage.setItem(SVG +'_LS', dispVA);
           break;
           case  'SVG_Wh1an':
             label='Mois';
@@ -332,6 +342,24 @@ const char *MainJS = R"====(
           break;
           
         }
+        for (var i = 0; i < Tab.length; i++) {
+            if (i%2==0 || dI==1 || dispVA){
+              Tab[i]=Math.min(Tab[i],10000000);
+              Tab[i]=Math.max(Tab[i],-10000000);
+              Vmax = Math.max(Math.abs(Tab[i]), Vmax);  
+            }     
+        }    
+        var cadrageMax=1;
+        var cadrage1=1000000;
+        var cadrage2=[10,8,5,4,2,1];
+        for (var m=0;m<7;m++){
+          for (var i=0;i<cadrage2.length;i++){
+              var X=cadrage1*cadrage2[i];
+              if ((Vmax)<=X) cadrageMax=X;
+          }
+          cadrage1=cadrage1/10;
+        }
+
         var c1='"' + couleur1 + '"';
         var c2='"' + couleur2 + '"';
         var cT="#"+Koul[Coul_Graphe][1];
@@ -363,11 +391,11 @@ const char *MainJS = R"====(
             S +="<line x1='100' y1='"+Y2+"' x2='1000' y2='"+Y2+"' style='stroke:" + cT +";stroke-width:1;stroke-dasharray:2 10;' />";
             Y2=Y2+7;
             var T=cadrageMax*y/10;T=T.toString();
-            var X=90-9*T.length;
+            var X=90-9*T.length;LoadData
             S +="<text x='"+X+"' y='"+Y2+"' style='font-size:16px;fill:" + cT +";'>"+T+"</text>";
           }
         }
-        if (dI==2 && Pva_valide){ //Puissance apparente 
+        if (dI==2 && Pva_valide && dispVA){ //Puissance apparente 
           S +="<text x='450' y='40' style='font-size:18px;fill:"+couleur2+";'>"+titre2+"</text>";
           S += "<polyline points='"; 
             var j=0;       
@@ -378,7 +406,7 @@ const char *MainJS = R"====(
               TabY1[j]=parseFloat(Tab[i]);
               j++;
             }
-          S += "' style='fill:none;stroke:"+couleur2+";stroke-width:4' />";
+          S += "' style='fill:none;stroke:"+couleur2+";stroke-width:2' />";
         }
         S +="<text x='450' y='18' style='font-size:18px;fill:"+couleur1+";'>"+titre1+"</text>";
         S += "<polyline points='";   
@@ -390,7 +418,7 @@ const char *MainJS = R"====(
             TabY0[j]=parseFloat(Tab[i]);
             j++;
           }
-        S += "' style='fill:none;stroke:"+couleur1+";stroke-width:4' />";
+        S += "' style='fill:none;stroke:"+couleur1+";stroke-width:2' />";
         S += "</svg>";
         GID(SVG).innerHTML = S;
         TabVal["S_" + SVG]=[TabY0,TabY1];; //Sauvegarde valeurs
@@ -458,6 +486,8 @@ const char *MainJS = R"====(
         S +="<text x='"+X+"' y='" + Y2 + "' style='font-size:16px;fill:" + cT +";'>"+H00+"</text>";
         H00=(H00-dTextTic+moduloText)%moduloText;
       }
+      Y2=Y0-3;
+      S +="<text x='980' y='" + Y2 + "' style='font-size:14px;fill:" + cT +";'>"+label+"</text>";
       for (var i=0;i<Gr.length;i++){
         var tableau=Gr[i].split(RS);
         var Y00=(i+1)*150;
@@ -469,7 +499,7 @@ const char *MainJS = R"====(
         Y2= Y00 +7;
         S +="<text x='80' y='"+Y2+"' style='font-size:16px;fill:" + cT +";'>0</text>";
         Y2= Y00 -93;
-        S +="<text x='65' y='"+Y2+"' style='font-size:16px;fill:" + cT +";'>100</text>";
+        S +="<text x='55' y='"+Y2+"' style='font-size:16px;fill:" + cT +";'>100%</text>";
         Y2 = Y00-100;
         S += "<line x1='100' y1='"+Y00+"' x2='100' y2='"+Y2+"' style='stroke:" + cT +";stroke-width:1;' />";
         S += "<polyline points='";      
@@ -478,7 +508,7 @@ const char *MainJS = R"====(
             var X = 100+1.5 * j;
             S += X + "," + Y + " ";
           }
-        S += "' style='fill:none;stroke:" + Couls[i%4] + ";stroke-width:3' />";
+        S += "' style='fill:none;stroke:" + Couls[i%4] + ";stroke-width:2' />";
         
         LesVals.push(tableau); //Sauvegarde valeurs
         LesCouls.push(Couls[i%4]);
@@ -487,6 +517,68 @@ const char *MainJS = R"====(
       TabVal["S_Ouvertures"] = LesVals;
       TabCoul["S_Ouvertures"] = LesCouls;
       GID("SVG_Ouvertures").innerHTML = S;
+      
+    }
+    function Plot_ouvertures_2s(){
+      GID("SVG_Ouvertures_2s").style.display="block";
+      var label='mn';
+      var pixelTic=90;
+      var X0=0;
+      var dTextTic=1;
+      var moduloText=-100;
+      var H00= 0;
+      var Hmax=50+150*nomActions[0].length;
+      var Y0=Hmax-50;
+      var Couls=["#"+Koul[Coul_Ouvre][3],"#"+Koul[Coul_Ouvre+1][3],"#"+Koul[Coul_Ouvre+2][3],"#"+Koul[Coul_Ouvre+3][3]];
+      var LesVals =[];
+      var LesCouls =[];
+      var cT="#"+Koul[Coul_Graphe][1];
+      var style='background:linear-gradient(#' + Koul[Coul_Graphe][5] +',#' + Koul[Coul_Graphe][3] +',#' + Koul[Coul_Graphe][5] +');border-color:#' +Koul[Coul_Tab][5]+';' ;  
+      var S= "<svg viewbox='0 0 1030 " + Hmax + "' height='" + Hmax + "'  style='"+style+ "' width='100%' id='S_Ouvertures_2s'  onmousemove ='DispVal(this,event);'>";
+      S += "<line x1='100' y1='"+Y0+"' x2='1000' y2='"+Y0+"' style='stroke:" + cT +";stroke-width:2' />";
+      for (var x=1000+X0;x>100;x=x-pixelTic){
+        var X=x;
+        var Y2=Y0+6;
+        S +="<line x1='"+X+"' y1='"+Y0+"' x2='"+X+"' y2='"+Y2+"' style='stroke:" + cT +";stroke-width:2' />";
+        X=X-8;
+        Y2=Y0+22;
+        S +="<text x='"+X+"' y='" + Y2 + "' style='font-size:16px;fill:" + cT +";'>"+H00+"</text>";
+        H00=(H00-dTextTic+moduloText)%moduloText;
+      }
+      Y2=Y0-3;
+      S +="<text x='980' y='" + Y2 + "' style='font-size:14px;fill:" + cT +";'>"+label+"</text>";
+      for (var i=0;i<nomActions[0].length;i++){
+        var idxAction=parseInt(nomActions[0][i][0]);  
+        if (tabActOuvre[idxAction].length>0) tabActOuvre[idxAction].shift();
+        tabActOuvre[idxAction].push(LastActOuvre[idxAction]);
+        var Y00=(i+1)*150;
+        var Y2=Y00-110;
+        S +="<text x='450' y='" + Y2 + "' style='font-size:18px;fill:" + Couls[i%4] + ";'>"+ nomActions[0][i][1] +"</text>";
+        S += "<line x1='100' y1='"+Y00+"' x2='1000' y2='"+Y00+"' style='stroke:" + cT +";stroke-width:1;' />";
+        Y2= Y00 - 100;
+        S += "<line x1='100' y1='"+Y2+"' x2='1000' y2='"+Y2+"' style='stroke:" + cT +";stroke-width:1;stroke-dasharray:5 10;' />";
+        Y2= Y00 +7;
+        S +="<text x='80' y='"+Y2+"' style='font-size:16px;fill:" + cT +";'>0</text>";
+        Y2= Y00 -93;
+        S +="<text x='55' y='"+Y2+"' style='font-size:16px;fill:" + cT +";'>100%</text>";
+        Y2 = Y00-100;
+        S += "<line x1='100' y1='"+Y00+"' x2='100' y2='"+Y2+"' style='stroke:" + cT +";stroke-width:1;' />";
+        if(tabActOuvre[idxAction].length>0){
+          S += "<polyline points='";      
+            for (var j = 0; j < tabActOuvre[idxAction].length; j++) {
+              var Y = Y00 - tabActOuvre[idxAction][j];
+              var X = 100+3 * j;
+              S += X + "," + Y + " ";
+            }
+          S += "' style='fill:none;stroke:" + Couls[i%4] + ";stroke-width:2' />";
+          LesVals.push(tabActOuvre[idxAction]); //Sauvegarde valeurs
+          LesCouls.push(Couls[i%4]);
+        }
+      }
+      S += "</svg>";
+      TabVal["S_Ouvertures_2s"] = LesVals;
+      TabCoul["S_Ouvertures_2s"] = LesCouls;
+      GID("SVG_Ouvertures_2s").innerHTML = S;
       
     }
     function EtatActions(Force,NumAction) {
@@ -510,13 +602,17 @@ const char *MainJS = R"====(
             for (var i=0;i<message[3];i++){ 
               var data=message[i+4].split(RS);
               ActionForce[i]= data[3];
+              var ouvre=0;
               S+="<tr><td>"+data[1]+"</td>";
               if (data[2]=="On" || data[2]=="Off"){
                 S+="<td><div class='centrer'>"+data[2]+"</div></td>";
+                if (data[2]=="On") ouvre=100;
               } else {
                 var W=1+1.99*data[2];
                 S+="<td><div class='jaugeBack'><div class='jauge' style='width:"+W+"px'></div><div class='centrer w100'>"+data[2]+"%</div></div></td>";
+                ouvre=parseInt(data[2]);
               }
+              LastActOuvre[parseInt(data[0])]=ouvre;
               S+="<td><div class='centrer'>"+Hdeci2Hmn(data[4])+"</div></td>";
               var stOn=(ActionForce[i]>0) ? "style='background-color:#f66;'":"";
               var stOff=(ActionForce[i]<0) ? "style='background-color:#f66;'":"";
@@ -538,6 +634,24 @@ const char *MainJS = R"====(
       };
       xhttp.open('GET', 'ajax_etatActions?Force=' +Force + '&NumAction=' + NumAction, true);
       xhttp.send();
+    }
+    function Refresh_2s(){ //Rafraichit exactement toutes les 2s les graphiques de 10mn avec les dernieres valeur connues
+      if (tabPW2sM.length>0 ){
+        tabPW2sM.shift(); //Enleve Pw Maison
+        tabPW2sM.shift(); //Enleve PVA
+        tabPW2sM.push(LastPW_M);
+        tabPW2sM.push(LastPVA_M);
+        tabPW2sT.shift(); //Enleve Pw Triac
+        tabPW2sT.shift(); //Enleve PVA
+        tabPW2sT.push(LastPW_T);
+        tabPW2sT.push(LastPVA_T);
+        Plot('SVG_PW2sM',tabPW2sM,Koul[Coul_W][3],'Puissance Active '+GID("nomSondeMobile").innerHTML+' sur 10 mn en W',Koul[Coul_VA][3],'Puissance Apparente sur 10 mn en VA'); 
+        if (biSonde) {
+          GID('SVG_PW2sT').style.display="block";
+          Plot('SVG_PW2sT',tabPW2sT,Koul[Coul_W][3],'Puissance Active '+GID("nomSondeFixe").innerHTML+' sur 10 mn en W',Koul[Coul_VA][3],'Puissance Apparente sur 10 mn en VA'); 
+        }
+        Plot_ouvertures_2s();
+     }
     }
     
     function LaVal(d){
@@ -572,5 +686,17 @@ const char *MainJS = R"====(
     function Init(){
       SetHautBas();
       LoadParaRouteur();
+        var VA_M="true";
+      var VA_T="true";
+      if (localStorage.getItem("SVG_PW2sM_LS") !== null) { //Plot ou pas les VA
+        VA_M = localStorage.getItem("SVG_PW2sM_LS");
+        VA_T = localStorage.getItem("SVG_PW2sT_LS");
+        console.log("VA",VA_M,VA_T);
+      }
+      GID("SVG_PW2sM_C").checked =(VA_M=="true") ? true:false;
+      GID("SVG_PW2sT_C").checked =(VA_T=="true") ? true:false;
+      console.log("Vapres",GID("SVG_PW2sM_C").checked,GID("SVG_PW2sT_C").checked);
+      setInterval(Refresh_2s, 2000);
+    
     }
 )====";

@@ -350,7 +350,7 @@ void handleAjaxData() {  //Données page d'accueil
   S = "Deb" + RS + DateLast + RS + Source_data + RS + LTARF + RS + STGE + RS + S + RS + String(Pva_valide);
   S += GS + String(PuissanceS_M) + RS + String(PuissanceI_M) + RS + String(PVAS_M) + RS + String(PVAI_M);
   S += RS + String(EnergieJour_M_Soutiree) + RS + String(EnergieJour_M_Injectee) + RS + String(Energie_M_Soutiree) + RS + String(Energie_M_Injectee);
-  if (Source_data == "UxIx2" || ((Source_data == "ShellyEm" || Source_data == "ShellyPro") && EnphaseSerial.toInt() < 3)) {  //UxIx2 ou Shelly monophasé avec 2 sondes
+  if (Source_data == "UxIx2" || ((Source_data == "ShellyEm" || Source_data == "ShellyPro") && EnphaseSerial.toInt() != 3   )) {  //UxIx2 ou Shelly monophasé avec 2 sondes
     S += GS + String(PuissanceS_T) + RS + String(PuissanceI_T) + RS + String(PVAS_T) + RS + String(PVAI_T);
     S += RS + String(EnergieJour_T_Soutiree) + RS + String(EnergieJour_T_Injectee) + RS + String(Energie_T_Soutiree) + RS + String(Energie_T_Injectee);
   }
@@ -440,6 +440,7 @@ void handleRestart() {  // Eventuellement Reseter l'ESP32 à distance
 void handleAjaxData10mn() {  // Envoi Historique de 10mn (300points)Energie Active Soutiré - Injecté
   String S = "";
   String T = "";
+  String Ouverture="";
   int iS = IdxStock2s;
   for (int i = 0; i < 300; i++) {
     S += String(tabPw_Maison_2s[iS]) + ",";
@@ -448,8 +449,18 @@ void handleAjaxData10mn() {  // Envoi Historique de 10mn (300points)Energie Acti
     T += String(tabPva_Triac_2s[iS]) + ",";
     iS = (1 + iS) % 300;
   }
+  for (int i = 0; i < NbActions; i++) {
+    if (LesActions[i].Actif > 0) {
+      iS = IdxStock2s;      
+        Ouverture += GS+String(i)+ES;
+        for (int j = 0; j < 300; j++) {
+          Ouverture += String(tab_histo_2s_ouverture[i][iS]) + RS;
+          iS = (1 + iS) % 300;
+        } 
+    }
+  }
   server.sendHeader("Connection", "close");
-  server.send(200, "text/html", Source_data + GS + S + GS + T);
+  server.send(200, "text/html", Source_data + GS + S + GS + T + Ouverture);
 }
 void handleAjaxNoms() {
   Liste_NomsEtats(0);  // Les noms de ce routeur
@@ -640,6 +651,9 @@ void handleajaxRAZhisto() {
     tabPw_Triac_2s[i] = 0;    //Puissance Triac: toutes les 2s
     tabPva_Maison_2s[i] = 0;  //Puissance Active: toutes les 2s
     tabPva_Triac_2s[i] = 0;
+    for (int j = 0; j < LesActionsLength; j++) {
+      tab_histo_2s_ouverture[j][i] = 0;
+    }
   }
   RAZ_JSY = true;
   server.sendHeader("Connection", "close");

@@ -233,6 +233,13 @@ String PrefiltreJson(String F1, String F2, String Json) {
   Json = Json.substring(p);
   return Json;
 }
+String SubJson(String F1, String F2, String Json) {
+  int p = Json.indexOf(F1);
+  Json = Json.substring(p);
+  p = Json.indexOf(F2);
+  Json = Json.substring(0,p+1);
+  return Json;
+}
 
 float ValJson(String nom, String Json) {
   int p = Json.indexOf(nom + "\":");
