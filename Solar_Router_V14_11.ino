@@ -1,4 +1,4 @@
-#define Version "14.10"
+#define Version "14.11"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -132,6 +132,8 @@
   - V14.10
     Modif pour Shelly Pro Em de Dash
     Introduction ESP32-ETH01 : Ethernet
+  - V4.11
+    Prise en compte des chip model D0WDQ6 qui fonctionne en WiFi bien que non V3
             
   
   Les détails sont disponibles sur / Details are available here:
@@ -675,10 +677,10 @@ void setup() {
   }
   Serial.printf("Chip Model: %s\n", ESP.getChipModel());
   delay(100);
-  if (String(ESP.getChipModel()).indexOf("V3")<0) {
-     Serial.println("\nAncien modèle d'ESP32 que l'on trouve sur les cartes Ethernet  WT-ETH01");
-     Serial.println("Crash en Wifi. On force Ethernet.\n");
-     ESP32_Type = 10;//On force Ethernet
+  if (String(ESP.getChipModel()) == "ESP32-D0WD") {
+    Serial.println("\nAncien modèle d'ESP32 que l'on trouve sur les cartes Ethernet  WT-ETH01");
+    Serial.println("Crash en Wifi. On force Ethernet.\n");
+    ESP32_Type = 10;  //On force Ethernet
   }
   Serial.println("InitGPIO");
   delay(500);
@@ -712,6 +714,9 @@ void setup() {
   if (ESP32_Type == 10) {
     Serial.println("Lancement de la liaison Ethernet");  //Ethernet (avant Horloge)
     Ethernet.init(driver);
+    if (Ethernet.linkStatus() == LinkOFF) {
+      Serial.println("Câble Ethernet non connecté.");
+    }
     //Ethernet.hostname(hostname);
     if (dhcpOn == 0) {  //Static IP
                         //optional
@@ -719,7 +724,7 @@ void setup() {
                         //optional
       Ethernet.begin(local_IP, primaryDNS, gateway, subnet);
       delay(100);
-      Ethernet.begin(local_IP, primaryDNS, gateway, subnet); //On s'y prend 2 fois. Parfois ne reussi pas au premier coup
+      Ethernet.begin(local_IP, primaryDNS, gateway, subnet);  //On s'y prend 2 fois. Parfois ne reussi pas au premier coup
       delay(100);
       StockMessage("Adresse IP Ethernet fixe : : " + Ethernet.localIP().toString());
     } else {
@@ -753,7 +758,6 @@ void setup() {
       WiFi.mode(WIFI_STA);
       delay(10);
     }
-    
   }
 
 
@@ -1395,8 +1399,8 @@ void Gestion_LEDs() {
   int retard_min = 100;
   int retardI;
   cptLEDyellow++;
-  if ((WiFi.status() != WL_CONNECTED  && ESP32_Type <10 ) || (EthernetBug>0 && ESP32_Type >=10) ) {  // Attente connexion au Wifi ou ethernet
-    if (WiFi.getMode() == WIFI_STA) {   // en  Station mode
+  if ((WiFi.status() != WL_CONNECTED && ESP32_Type < 10) || (EthernetBug > 0 && ESP32_Type >= 10)) {  // Attente connexion au Wifi ou ethernet
+    if (WiFi.getMode() == WIFI_STA) {                                                                 // en  Station mode
       cptLEDyellow = (cptLEDyellow + 6) % 10;
       cptLEDgreen = cptLEDyellow;
     } else {  //AP Mode
