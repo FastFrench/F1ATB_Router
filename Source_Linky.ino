@@ -136,6 +136,7 @@ void LectureLinky() {  //Lecture port série du LINKY .
                   PowerFactor_M = COSphiS;
                 }
                 PuissanceS_M = PintMax(int(COSphiS * float(PVAS_M)));
+                Pva_valide=true;
               }
               if (code.indexOf("SINSTI") == 0) {  //Puissance apparente injectée
                 PVAI_M = PintMax(val.toInt());

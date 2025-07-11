@@ -1,7 +1,7 @@
 /*
   PV Router / Routeur Solaire 
   ****************************************
-  Version V9.00_RMS 
+  Version V9.01_RMS 
 
   RMS=Routeur Multi Sources
 
@@ -27,6 +27,8 @@
     Source de puissance reçue via MQTT
     Souscription MQTT à une température externe
     Souscription MQTT pour forcer On ou Off les actionneurs.
+  - V9.01_RMS
+    Validation Pva_valide pour les Linky en CACSI
   
               
   
@@ -40,7 +42,7 @@
 
 
 */
-#define Version "9.00_RMS"
+#define Version "9.01_RMS"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
