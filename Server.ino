@@ -167,7 +167,7 @@ void handleAjaxHisto48h() {  // Envoi Historique de 50h (600points) toutes les 5
   for (int i = 0; i < 600; i++) {
     S += String(tabPw_Maison_5mn[iS]) + ",";
     T += String(tabPw_Triac_5mn[iS]) + ",";
-    U += String(float(tabTemperature_5mn[iS])*0.1) + ",";
+    U += String(float(tabTemperature_5mn[iS]) * 0.1) + ",";
     iS = (1 + iS) % 600;
   }
   for (int i = 0; i < NbActions; i++) {
@@ -233,18 +233,18 @@ void handleAjaxData() {  //Données page d'accueil
 void handleAjax_etatActions() {
   int Force = server.arg("Force").toInt();
   int NumAction = server.arg("NumAction").toInt();
-  if (Force !=0){
-    if (Force>0) {
-      if (LesActions[NumAction].tOnOff<0) {
-        LesActions[NumAction].tOnOff=0;
+  if (Force != 0) {
+    if (Force > 0) {
+      if (LesActions[NumAction].tOnOff < 0) {
+        LesActions[NumAction].tOnOff = 0;
       } else {
-      LesActions[NumAction].tOnOff +=30;
+        LesActions[NumAction].tOnOff += 30;
       }
     } else {
-      if (LesActions[NumAction].tOnOff>0) {
-        LesActions[NumAction].tOnOff=0;
+      if (LesActions[NumAction].tOnOff > 0) {
+        LesActions[NumAction].tOnOff = 0;
       } else {
-      LesActions[NumAction].tOnOff -=30;
+        LesActions[NumAction].tOnOff -= 30;
       }
     }
     LesActions[NumAction].Prioritaire();
@@ -312,7 +312,7 @@ void handleActionsUpdate() {
     ligne = s.substring(0, s.indexOf(GS));
     s = s.substring(s.indexOf(GS) + 1);
     LesActions[NbActions].Definir(ligne);
-    NbActions++;
+    NbActions = NbActions + 1;
   }
   adresse_max = EcritureEnROM();
   server.send(200, "text/plain", "OK" + String(adresse_max));
@@ -349,7 +349,7 @@ void handleParaUpdate() {
   EnphaseUser = Vp[7];
   EnphasePwd = Vp[8];
   EnphaseSerial = Vp[9];
-  TopicP= Vp[10];
+  TopicP = Vp[10];
   MQTTRepet = Vp[11].toInt();
   MQTTIP = strtoul(Vp[12].c_str(), NULL, 10);
   MQTTPort = Vp[13].toInt();  //2 bytes
@@ -389,9 +389,9 @@ void handleParaAjax() {
   S += EnphaseUser + RS + EnphasePwd + RS + EnphaseSerial + RS + TopicP;
   S += RS + String(MQTTRepet) + RS + String(MQTTIP) + RS + String(MQTTPort) + RS + MQTTUser + RS + MQTTPwd;
   S += RS + MQTTPrefix + RS + MQTTdeviceName + RS + String(subMQTT) + RS + nomRouteur + RS + nomSondeFixe + RS + nomSondeMobile;
-  S += RS + String(temperature) + RS + nomTemperature + RS + Source_Temp+ RS + TopicT + RS + String(IPtemp);
+  S += RS + String(temperature) + RS + nomTemperature + RS + Source_Temp + RS + TopicT + RS + String(IPtemp);
   S += RS + String(CalibU) + RS + String(CalibI);
-  S += RS + String(TempoEDFon) + RS + String(WifiSleep) +RS + String(pSerial) +RS + String(pTriac);
+  S += RS + String(TempoEDFon) + RS + String(WifiSleep) + RS + String(pSerial) + RS + String(pTriac);
   server.send(200, "text/html", S);
 }
 void handleParaRouteurAjax() {

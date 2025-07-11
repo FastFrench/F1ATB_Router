@@ -8,15 +8,22 @@ void LectureTemperature() {
   }
   if (Source_Temp == "tempInt") {
     if (!ds18b20_Init) {
-      ds18b20_Init=true;
+      ds18b20_Init = true;
       ds18b20.begin();
     }
     ds18b20.requestTemperatures();
     temperature_brute = ds18b20.getTempCByIndex(0);
     if (temperature_brute < -20 || temperature_brute > 130) {  //Invalide. Pas de capteur ou parfois mauvaise réponse
-      StockMessage("Mesure Température invalide ou pas de capteur DS18B20");
-    } 
-    temperature = temperature_brute;
+      if (TemperatureValide > 0) {
+        TemperatureValide = TemperatureValide - 1;  // Perte éventuels de quelques mesures
+      } else {
+        StockMessage("Mesure Température invalide ou pas de capteur DS18B20");  //Trop de pertes
+        temperature = temperature_brute;
+      }
+    } else {
+      TemperatureValide = 5;
+      temperature = temperature_brute;
+    }
   }
   if (Source_Temp == "tempExt") {
     String RMSExtTemp = "";
@@ -34,7 +41,11 @@ void LectureTemperature() {
       StockMessage("connection to ESP_RMS Temperature failed : " + host);
       delay(200);
       WIFIbug++;
-      temperature = temperature_brute;
+      if (TemperatureValide > 0) {
+        TemperatureValide = TemperatureValide - 1;  // Perte éventuels de quelques mesures
+      } else {                                      //Trop de pertes
+        temperature = temperature_brute;
+      }
       return;
     }
     String url = "/ajax_Temperature";
@@ -44,7 +55,11 @@ void LectureTemperature() {
       if (millis() - timeout > 5000) {
         StockMessage("client ESP_RMS Temperature Timeout !" + host);
         clientESP_RMS.stop();
-        temperature = temperature_brute;
+        if (TemperatureValide > 0) {
+          TemperatureValide = TemperatureValide - 1;  // Perte éventuels de quelques mesures
+        } else {                                      //Trop de pertes
+          temperature = temperature_brute;
+        }
         return;
       }
     }
@@ -61,9 +76,16 @@ void LectureTemperature() {
       RMSExtTemp = RMSExtTemp.substring(0, RMSExtTemp.indexOf(RS));
       temperature_brute = RMSExtTemp.toFloat();
       RMSExtTemp = "";
+      TemperatureValide =5;
+      temperature = temperature_brute;
     }
-    temperature = temperature_brute;
+    
   }
-  //Pour tmpMqtt voir MQTT.ino
-  if (temperature >-100)  StockMessage("Température :" + String(temperature));
+  if (Source_Temp == "tempMqtt") {
+     if (TemperatureValide > 0) {
+          TemperatureValide = TemperatureValide - 1;  // Watchdog pour verfier mesures arrivent voir MQTT.ino
+        } else {
+          temperature = temperature_brute;
+        }
+  }
 }

@@ -1,7 +1,7 @@
 /*
   PV Router / Routeur Solaire 
   ****************************************
-  Version V9.01_RMS 
+  Version V9.02_RMS 
 
   RMS=Routeur Multi Sources
 
@@ -27,8 +27,12 @@
     Source de puissance reçue via MQTT
     Souscription MQTT à une température externe
     Souscription MQTT pour forcer On ou Off les actionneurs.
-  - V9.01_RMS
+  - V9.01_RMS fonctionne avec la bibliothèque ESP32 Version 2.0.17
     Validation Pva_valide pour les Linky en CACSI
+  - V9.02_RMS fonctionne avec la bibliothèque ES¨P32 V 3.01 . 
+    Suite au passage de la bibliothèque ESP32 en Version 3.01 importants changement pour le routeur sur le WIFI, les Timers, Le Watchdog et la partition mémoire FLASH. 
+    Attention à ne pas utiliser la bibliothèque ESP32 en Version 3.00, elle est bugée et génère 20% de plus de code.
+    Filtrage des températures pour tolérer une perte éventuelle de mesure
   
               
   
@@ -42,12 +46,13 @@
 
 
 */
-#define Version "9.01_RMS"
+#define Version "9.02_RMS"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
 
 //Librairies
+#include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <ESPmDNS.h>
 #include <WebServer.h>
@@ -334,6 +339,7 @@ OneWire oneWire(pinTemp);
 DallasTemperature ds18b20(&oneWire);
 float temperature = -127;  // La valeur vaut -127 quand la sonde DS18B20 n'est pas présente
 bool ds18b20_Init = false;
+int TemperatureValide = 0;
 
 
 //MQTT
@@ -351,7 +357,7 @@ TaskHandle_t Task1;
 //Interruptions, Current Zero Crossing from Triac device and Internal Timer
 //*************************************************************************
 void IRAM_ATTR onTimer10ms() {  //Interruption interne toutes 10ms
-  ITmode--;
+  ITmode =ITmode - 1;
   if (ITmode < -5) ITmode = -5;
   if (ITmode < 0) GestionIT_10ms();  //IT non synchrone avec le secteur . Horloge interne
 }
@@ -359,12 +365,11 @@ void IRAM_ATTR onTimer10ms() {  //Interruption interne toutes 10ms
 
 // Interruption du Triac Signal Zc, toutes les 10ms
 void IRAM_ATTR currentNull() {
-  IT10ms += 1;
+  IT10ms = IT10ms + 1;
   if ((millis() - lastIT) > 2) {  // to avoid glitch detection during 2ms
-    ITmode++;
-    ITmode++;
+    ITmode = ITmode + 2;
     if (ITmode > 5) ITmode = 5;
-    IT10ms_in++;
+    IT10ms_in = IT10ms_in +1 ;
     lastIT = millis();
     if (ITmode > 0) GestionIT_10ms();  //IT synchrone avec le secteur signal Zc
   }
@@ -390,7 +395,7 @@ void GestionIT_10ms() {
           } else {
             digitalWrite(Gpio[i], OutOff[i]);  //Stop
           }
-          PulseComptage[i]++;
+          PulseComptage[i] = PulseComptage[i] +1 ;
           if (PulseComptage[i] >= PulseTotal[i]) {
             PulseComptage[i] = 0;
           }
@@ -403,7 +408,7 @@ void GestionIT_10ms() {
 // Interruption Timer interne toutes les 100 micro secondes
 void IRAM_ATTR onTimer() {  //Interruption every 100 micro second
   if (Actif[0] == 1) {      // Découpe Sinus
-    PulseComptage[0] += 1;
+    PulseComptage[0] =PulseComptage[0] + 1;
     if (PulseComptage[0] > Retard[0] && Retard[0] < 98 && ITmode > 0) {  //100 steps in 10 ms
       digitalWrite(pulseTriac, HIGH);                                    //Activate Triac
     } else {
@@ -427,7 +432,15 @@ void setup() {
 
 
   //Watchdog initialisation
-  esp_task_wdt_init(WDT_TIMEOUT, true);  //enable panic so ESP32 restarts
+ // Initialisation de la structure de configuration pour la WDT
+    esp_task_wdt_config_t wdt_config = {
+        .timeout_ms = WDT_TIMEOUT * 1000,  // Convertir le temps en millisecondes        
+        .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,    // Bitmask of all cores, https://github.com/espressif/esp-idf/blob/v5.2.2/examples/system/task_watchdog/main/task_watchdog_example_main.c
+        .trigger_panic = true // Enable panic to restart ESP32
+    };
+    // Initialisation de la WDT avec la structure de configuration
+    esp_task_wdt_init(&wdt_config);
+
 
   //Ports Série ESP
   Serial.begin(115200);
@@ -525,7 +538,8 @@ void setup() {
   //Heure / Hour . A Mettre en priorité avant WIFI (exemple ESP32 Simple Time)
   //External timer to obtain the Hour and reset Watt Hour every day at 0h
   sntp_set_time_sync_notification_cb(time_sync_notification);
-  sntp_servermode_dhcp(1);                                                               //Option
+  //sntp_servermode_dhcp(1);   Déprecié  
+  esp_sntp_servermode_dhcp(true)  ;                                                        //Option
   configTzTime("CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00", ntpServer1, ntpServer2);  //Voir Time-Zone: https://sites.google.com/a/usapiens.com/opnode/time-zones
 
 
@@ -656,16 +670,15 @@ if (pTriac >0){
   }
 
   //Hardware timer 100uS
-  timer = timerBegin(0, 80, true);  //Clock Divider, 1 micro second Tick
-  timerAttachInterrupt(timer, &onTimer, true);
-  timerAlarmWrite(timer, 100, true);  //Interrupt every 100 Ticks or microsecond
-  timerAlarmEnable(timer);
+  timer = timerBegin(1000000);  //Clock 1MHz
+  timerAttachInterrupt(timer, &onTimer);
+  timerAlarm(timer, 100, true,0);  //Interrupt every 100  microsecond
 
   //Hardware timer 10ms
-  timer10ms = timerBegin(1, 80, true);  //Clock Divider, 1 micro second Tick
-  timerAttachInterrupt(timer10ms, &onTimer10ms, true);
-  timerAlarmWrite(timer10ms, 10000, true);  //Interrupt every 10000 Ticks or microsecond
-  timerAlarmEnable(timer10ms);
+  timer10ms = timerBegin(1000000);  //Clock 1MHz
+  timerAttachInterrupt(timer10ms, &onTimer10ms);
+  timerAlarm(timer10ms, 10000, true,0);  //Interrupt every 10ms
+
 
   //Timers
   previousWifiMillis = millis() - 25000;
@@ -731,7 +744,7 @@ void Task_LectureRMS(void *pvParameters) {
       if (Source == "Enphase") {
         LectureEnphase();
         LastRMS_Millis = millis();
-        PeriodeProgMillis = 400 + ralenti;  //On s'adapte à la vitesse réponse Envoy-S metered
+        PeriodeProgMillis = 600 + ralenti;  //On s'adapte à la vitesse réponse Envoy-S metered
       }
       if (Source == "SmartG") {
         LectureSmartG();

@@ -97,6 +97,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
   String message = String(Message) + ",";
   if (String(topic) == TopicT && Source_Temp == "tempMqtt") {  //Temperature attendue
     temperature = ValJson("temperature", message);
+    TemperatureValide = 5;
   }
   if (String(topic) == TopicP && Source == "Pmqtt") {  //Mesure de puissance
     PwMQTT = ValJson("Pw", message);
