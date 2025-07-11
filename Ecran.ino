@@ -1,9 +1,10 @@
 #include <vector>
 #include <SPI.h>
 #include <cstdint>
-#include "Ecran.h"
 #define LIGHT_ADC 34
-
+#define LGFX_AUTODETECT // Autodetect board
+#define LGFX_USE_V1
+#include <LovyanGFX.hpp>
 
 LGFX lcd;
 unsigned long runtime_0 = 0, runtime_click = 0, runtime_On = 0;
@@ -23,6 +24,9 @@ void Ecran_Init(void) {
   pinMode(35, INPUT);   //Entrée capteur Infra-Rouge
   pinMode(21, OUTPUT);  //LED bleue non utilisée
   lcd.init();
+  // Réinitialiser le mode non miroir
+  lcd.writecommand(0x36); // Commande MADCTL
+  lcd.writedata(0x00); // Mode normal sans inversion
   lcd.setRotation(rotation);
   SetCouleurs();
   lcd.setFont(&fonts::AsciiFont8x16);
@@ -129,15 +133,15 @@ void SetCouleurs() {
     CoulGrFond = ConvCouleur(Couleurs.substring(120, 126));
     CoulTemp = ConvCouleur(Couleurs.substring(132, 138));
   } else {
-    CoulTexte = TFT_WHITE;
-    CoulFond = TFT_BLUE;
+    CoulTexte = TFT_BLACK;
+    CoulFond = TFT_LIGHTGREY;
     CoulBouton = TFT_WHITE;
-    CoulBoutFond = TFT_BLUE;
+    CoulBoutFond = TFT_LIGHTGREY;
     CoulBoutBord = TFT_DARKGREY;
     CoulW = TFT_RED;
     CoulWh = TFT_YELLOW;
-    CoulTabTexte = TFT_WHITE;
-    CoulTabFond = TFT_BLUE;
+    CoulTabTexte = TFT_BLACK;
+    CoulTabFond = TFT_LIGHTGREY;
     CoulTabBord = TFT_BLACK;
     CoulSaisieTexte = TFT_WHITE,
     CoulSaisieFond = TFT_DARKGREY;
@@ -740,9 +744,4 @@ String Ascii(String S) {
   S.replace("è", String(char(138)));
   S.replace("ù", String(char(151)));
   return S;
-}
-void SplitS(String Str, String& Before, String Separ, String& After) {
-  int p = Str.indexOf(Separ);
-  Before = Str.substring(0, p);
-  After = Str.substring(p + 1);
 }

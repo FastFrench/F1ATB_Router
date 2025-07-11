@@ -1,4 +1,4 @@
-#define Version "14.02"
+#define Version "14.03"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -123,13 +123,15 @@
     Correction bug MesurePower UxI
   - V14.02
     Re-introduction du Watchdog avec une table de partition personalisé fichier : partitions.csv
-    Correction bub absence lecture état actions
+    Correction bug absence lecture état actions
+  - V14.03
+    Forcer l'affichage normal, non miroir sur l'écran
             
   
   Les détails sont disponibles sur / Details are available here:
   https://f1atb.fr  Section Domotique / Home Automation
 
-  F1ATB Février 2025
+  F1ATB Mars 2025
 
   GNU Affero General Public License (AGPL) / AGPL-3.0-or-later
 
@@ -167,7 +169,7 @@
 //Watchdog for 180 seconds. The system resets if no dialogue with the Linky or  JSY-MK-194T/333 or Enphase-Envoy for 180s
 #define WDT_TIMEOUT 180
 
-//PINS - GPIO
+
 #define SER_BUF_SIZE 4096
 #define TEMPERATURE_PRECISION 12
 
@@ -230,29 +232,18 @@ int cptLEDyellow = 0;
 int cptLEDgreen = 0;
 
 
-int value0;
-int volt[100];
-int amp[100];
-float KV = 0.2083;  //Calibration coefficient for the voltage. Value for CalibU=1000 at startup
-float KI = 0.0642;  //Calibration coefficient for the current. Value for CalibI=1000 at startup
-float kV = 0.2083;  //Calibration coefficient for the voltage. Corrected value
-float kI = 0.0642;  //Calibration coefficient for the current. Corrected value
-float voltM[100];   //Voltage Mean value
-float ampM[100];
 
+//Paramètres écran
+byte rotation = 3;
+uint16_t Calibre[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+
+//Paramètres électriques
 bool EnergieActiveValide = false;
 long EAS_T_J0 = 0;
 long EAI_T_J0 = 0;
 long EAS_M_J0 = 0;  //Debut du jour energie active
 long EAI_M_J0 = 0;
-
-
-int adr_debut_para = 0;  //Adresses Para après le Wifi
-
-//Paramètres écran
-byte rotation = 3;
-uint16_t Calibre[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-//Paramètres électriques
 float Tension_T, Intensite_T, PowerFactor_T, Frequence;
 float Tension_M, Intensite_M, PowerFactor_M;
 long Energie_T_Soutiree = 0;
@@ -306,6 +297,15 @@ byte pUxI = 0;
 byte Analog0[] = { 0, 35, 35, 34 };
 byte Analog1[] = { 0, 32, 32, 32 };
 byte Analog2[] = { 0, 33, 34, 33 };
+int value0;
+int volt[100];
+int amp[100];
+float KV = 0.2083;  //Calibration coefficient for the voltage. Value for CalibU=1000 at startup
+float KI = 0.0642;  //Calibration coefficient for the current. Value for CalibI=1000 at startup
+float kV = 0.2083;  //Calibration coefficient for the voltage. Corrected value
+float kI = 0.0642;  //Calibration coefficient for the current. Corrected value
+float voltM[100];   //Voltage Mean value
+float ampM[100];
 
 //Parameters for JSY-MK-194T module
 byte ByteArray[130];
@@ -582,7 +582,6 @@ void IRAM_ATTR onTimer() {  //Interruption every 100 micro second
 void setup() {
   startMillis = millis();
   previousLEDsMillis = startMillis;
-
 
 
   //Ports Série ESP
@@ -1092,7 +1091,6 @@ void loop() {
       Serial.println("restart");
     }
     //Verification puissance reçue
-    Serial.print("Puissance reçue : ");
     String OK = "Non";
     if (PuissanceRecue) {
       OK = "Oui";

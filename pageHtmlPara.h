@@ -104,6 +104,16 @@ const char *ParaHtml = R"====(
             <label for='Rot3' style='text-align:right;'>Ecran paysage (270°)</label>
             <input type='radio' name='pRot' id='Rot3' value="3" checked  >
           </div>
+          <div class="ligne source" id="rotation2">
+            <label for='Rot0' style='text-align:right;'>Ecran miroir/ (0°)</label>
+            <input type='radio' name='pRot' id='Rot4' value="4"  >
+            <label for='Rot1' style='text-align:right;'>Ecran miroir (90°)</label>
+            <input type='radio' name='pRot' id='Rot5' value="5"  >
+            <label for='Rot2' style='text-align:right;'>Ecran miroir (180°)</label>
+            <input type='radio' name='pRot' id='Rot6' value="6"  >
+            <label for='Rot3' style='text-align:right;'>Ecran miroir (270°)</label>
+            <input type='radio' name='pRot' id='Rot7' value="7" checked  >
+          </div>
           <div class="ligne source">
             <label for='Serial0' style='text-align:right;'>Pas de port série 2</label>
             <input type='radio' name='pSerie' id='Serial0' value="0"  checked >
@@ -556,6 +566,7 @@ const char *ParaJS = R"====(
     GID("dhcp").style.visibility= (ModeWifi==2) ? "hidden" : "visible";
     GID("ipreset").style.display= (ModeWifi==2) ? "none" : "inherit";
     GID("rotation").style.display= (pESP==4) ? "table-row" : "none";
+    GID("rotation2").style.display= (pESP==4) ? "table-row" : "none";
     GID("l_wifi_0").style.display= (ModeWifi==2) ? "none": "table-row";
     GID("l_wifi_1").style.display= (ModeWifi==2 || ModePara==0) ? "none": "table-row";
     GID("l_wifi_2").style.display= (ModeWifi==2 || ModePara==0) ? "none": "table-row";

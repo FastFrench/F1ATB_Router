@@ -839,7 +839,11 @@ void ImportParametres(String Conf) {
   
   EcritureEnROM();
 }
-
+void SplitS(String Str, String& Before, String Separ, String& After) {
+  int p = Str.indexOf(Separ);
+  Before = Str.substring(0, p);
+  After = Str.substring(p + 1);
+}
 // Conversion des adresses IP suivant le coeur
 
 String IP2String(unsigned long IP) {
