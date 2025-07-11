@@ -21,7 +21,7 @@ void LectureShellyEm() {
   if (!clientESP_RMS.connect(host.c_str(), 80)) {
     StockMessage("connection to Shelly Em failed : " + host);
     delay(200);
-    WIFIbug++;
+    ComAbuge();
     return;
   }
   int voie = EnphaseSerial.toInt();
@@ -169,7 +169,7 @@ void LectureShellyEm() {
     }
   }
   filtre_puissance();
-  esp_task_wdt_reset();  //Reset du Watchdog à chaque trame du Shelly reçue
+  ComOK();  //Reset du Watchdog à chaque trame du Shelly reçue
   if (ShEm_comptage_appels > 1) EnergieActiveValide = true;
   if (cptLEDyellow > 30) {
     cptLEDyellow = 4;

@@ -40,7 +40,7 @@ void LectureTemperature() {
     if (!clientESP_RMS.connect(host.c_str(), 80)) {
       StockMessage("connection to ESP_RMS Temperature failed : " + host);
       delay(200);
-      WIFIbug++;
+      ComAbuge();
       if (TemperatureValide > 0) {
         TemperatureValide = TemperatureValide - 1;  // Perte éventuels de quelques mesures
       } else {                                      //Trop de pertes

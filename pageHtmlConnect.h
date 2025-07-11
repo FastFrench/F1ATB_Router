@@ -7,6 +7,8 @@ const char *ConnectAP_Html = R"====(
     <script src="/ParaRouteurJS"></script>
     <style>
       body {font-size:150%;text-align:center;width:1000px;margin:auto;background: linear-gradient(#003,#77b5fe,#003);background-attachment:fixed;color:white;padding:4px;}
+      a:link {color:#ccf;text-decoration: none;}
+      a:visited {color:#ccf;text-decoration: none;}
       #form-passe {display: none;padding:10px;text-align:center;margin:auto;width:100%;}
       label,input,.dB {display: table-cell;padding:2px;text-align:left;font-size:120%;}
       .l0{display:table-row;margin:auto;background-color:#333;padding:2px;}
@@ -14,9 +16,12 @@ const char *ConnectAP_Html = R"====(
       #ListeWifi{display:inline-block;margin:auto;}
       #envoyer{padding-top:20px;display:none;}
       #attente2{display:none;}
+      #onglets{margin-top:4px;left:0px;font-size:130%;display:none;}
+      .Baccueil,.Bbrut,.Bparametres,.Bactions{margin-left:20px;border:outset 4px grey;background-color:#333;border-radius:6px;padding-left:20px;padding-right:20px;display:inline-block;}
     </style>
 </head>
 <body>
+<div id='onglets'><div class='Baccueil'><a href='/'>Accueil</a></div><div class='Bbrut'><a href='/Brute'>Donn&eacute;es brutes</a></div><div class='Bparametres'><a href='/Para'>Param&egrave;tres</a></div><div class='Bactions'><a href='/Actions'>Actions</a></div></div>
 <h1>Routeur Solaire - RMS</h1><h4>Connexion au r&eacute;seau WIFI local</h4>
 <div id="ListeWifi"></div><br><br>
 <div id="scanReseau">
@@ -35,7 +40,7 @@ const char *ConnectAP_Html = R"====(
 <br>
 <script>
   function ScanWIFI(){
-    GH("ListeWifi", "Patientez 10s");
+    GH("ListeWifi", "Patientez 2s");
     var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() { 
           if (this.readyState == 4 && this.status == 200) {
@@ -51,7 +56,7 @@ const char *ConnectAP_Html = R"====(
                 S +="</div>";
               }
               
-              
+              S +="<div><small>Ne sont visibles que les réseaux scannés <br>à la mise sous tension de l'ESP32</small></div>";
              GH("ListeWifi", S);
           }         
         };
@@ -81,6 +86,9 @@ const char *ConnectAP_Html = R"====(
         xhttp.send();
         GID("form-passe").style.display = "none";
         GID("envoyer").style.display = "none";
+        if (window.location.href.indexOf("192.168.4.1")==-1) {
+          GH("attente2","Adresse IP reconduite ou pas suivant box internet");
+        }
         GID("attente2").style.display = "block";
   }
   ssid="";
@@ -89,6 +97,9 @@ const char *ConnectAP_Html = R"====(
       GH("nom_reseau",ssid);
       GID("envoyer").style.display = "inline-block";
       GID("form-passe").style.display = "inline-block";
+  }
+  if (window.location.href.indexOf("192.168.4.1")==-1) {
+          GID("onglets").style.display = "block";
   }
 </script>
 </body></html>

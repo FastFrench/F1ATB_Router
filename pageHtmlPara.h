@@ -241,7 +241,7 @@ const char *ParaHtml = R"====(
         <input type='button' onclick='Reset();' value='ESP32 Reset' >
     </div>
     <br>
-    <div class='pied'><div>Routeur Version : <span id='version'></span></div><div><a href='https:F1ATB.fr' >F1ATB.fr</a></div></div>
+    <div class='pied'><div>Routeur Version : <span id='version'></span></div><div><strong><a href='/OTA' >Mise à jour par OTA</a></strong></div><div><strong><a href='/Change_Wifi' >Modifie Wifi</a></strong></div><div><a href='https:F1ATB.fr' >F1ATB.fr</a></div></div>
     <br>
   </body></html>
 )====";

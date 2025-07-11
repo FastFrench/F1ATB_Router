@@ -39,6 +39,10 @@ void RAZ_Histo_Conso() {
 }
 
 void LectureConsoMatinJour(void) {
+
+  Energie_jour_Soutiree = 0; // en Wh
+  Energie_jour_Injectee = 0; // en Wh
+
   EAS_T_J0 = EEPROM.readULong(adr_E_T_soutire0);  //Triac
   EAI_T_J0 = EEPROM.readULong(adr_E_T_injecte0);
   EAS_M_J0 = EEPROM.readULong(adr_E_M_soutire0);  //Maison

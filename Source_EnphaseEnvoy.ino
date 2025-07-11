@@ -148,7 +148,7 @@ void LectureEnphase() {  //Lecture des consommations
     if (!clientFirmV5.connect(host.c_str(), 80)) {
       StockMessage("connection to client clientFirmV5 failed (call to Envoy-S)");
       delay(200);
-      WIFIbug++;
+      ComAbuge();
       return;
     }
     String url = "/ivp/meters/reports/consumption";
@@ -223,7 +223,7 @@ void LectureEnphase() {  //Lecture des consommations
   PactProd = PactConso_M - int(PactReseau);
   EnergieActiveValide = true;
   if (PactReseau != 0 || PvaReseau != 0) {
-    esp_task_wdt_reset();  //Reset du Watchdog à chaque trame  reçue de la passerelle Envoy-S metered
+    ComOK();  //Reset du Watchdog à chaque trame  reçue de la passerelle Envoy-S metered
   }
   if (cptLEDyellow > 30) {
     cptLEDyellow = 4;

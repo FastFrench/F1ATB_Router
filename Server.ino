@@ -28,9 +28,45 @@ void Init_Server() {
   server.on("/ajax_Temperature", handleAjaxTemperature);
   server.on("/SetGPIO", handleSetGpio);
   server.on("/restart", handleRestart);
+  server.on("/Change_Wifi", handleChange_Wifi);
   server.on("/AP_ScanWifi", handleAP_ScanWifi);
   server.on("/AP_SetWifi", handleAP_SetWifi);
   server.onNotFound(handleNotFound);
+
+  //SERVER OTA
+  server.on("/OTA", HTTP_GET, []() {
+    server.sendHeader("Connection", "close");
+    server.send(200, "text/html", OtaHtml);
+  });
+  /*handling uploading firmware file */
+  server.on(
+    "/update", HTTP_POST, []() {
+      server.sendHeader("Connection", "close");
+      server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
+      ESP.restart();
+    },
+    []() {
+      HTTPUpload& upload = server.upload();
+      if (upload.status == UPLOAD_FILE_START) {
+        Serial.printf("Update: %s\n", upload.filename.c_str());
+        if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {  //start with max available size
+          Update.printError(Serial);
+        }
+      } else if (upload.status == UPLOAD_FILE_WRITE) {
+        /* flashing firmware to ESP*/
+        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+          Update.printError(Serial);
+        }
+      } else if (upload.status == UPLOAD_FILE_END) {
+        if (Update.end(true)) {  //true to set the size to the current progress
+          Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+        } else {
+          Update.printError(Serial);
+        }
+      }
+    });
+
+
   server.begin();
 }
 
@@ -41,6 +77,9 @@ void handleRoot() {                  //Pages principales
   } else {  //Station Mode seul
     server.send(200, "text/html", String(MainHtml));
   }
+}
+void handleChange_Wifi(){
+  server.send(200, "text/html", String(ConnectAP_Html));
 }
 void handleMainJS() {                             //Code Javascript
   server.send(200, "text/html", String(MainJS));  // Javascript code
@@ -415,6 +454,7 @@ void handleAP_ScanWifi() {
 }
 void Liste_WIFI() {  //Doit être fait avant toute connection WIFI depuis biblio ESP32 3.0.1
   WIFIbug = 0;
+  ComBug=0;
   int n = 0;
   WiFi.disconnect();
   delay(100);
@@ -444,6 +484,7 @@ void Liste_WIFI() {  //Doit être fait avant toute connection WIFI depuis biblio
 }
 void handleAP_SetWifi() {
   WIFIbug = 0;
+  ComBug =0;
   Serial.println("Set Wifi");
   String NewSsid = server.arg("ssid");
   NewSsid.trim();
@@ -456,12 +497,13 @@ void handleAP_SetWifi() {
   StockMessage("Wifi Begin : " + ssid);
   WiFi.begin(ssid.c_str(), password.c_str());
   unsigned long newstartMillis = millis();
-  while (WiFi.status() != WL_CONNECTED && (millis() - newstartMillis < 15000)) {  // Attente connexion au Wifi
-    Serial.write('.');
+  while (WiFi.status() != WL_CONNECTED && (millis() - newstartMillis < 20000)) {  // Attente connexion au Wifi
+    Serial.write('!');
     Gestion_LEDs();
     Serial.print(WiFi.status());
     delay(300);
   }
+  Serial.println();
   String S = "";
   if (WiFi.status() == WL_CONNECTED) {
     Serial.print("IP address: ");

@@ -71,6 +71,8 @@ bool testMQTTconnected() {
     } else {  // si utilisateur pas connecté au mqtt
       StockMessage("Echec connexion MQTT : " + host);
       connecte = false;
+      delay(100);
+      previousMQTTMillis=millis();
     }
   }
   return connecte;

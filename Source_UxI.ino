@@ -72,5 +72,5 @@ void ComputePower() {
   }
   filtre_puissance();
   EnergieActiveValide = true;
-  esp_task_wdt_reset();
+  ComOK();
 }

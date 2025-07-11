@@ -18,9 +18,9 @@ void CallESP32_Externe() {
 
   String host = String(arr[3]) + "." + String(arr[2]) + "." + String(arr[1]) + "." + String(arr[0]);
   if (!clientESP_RMS.connect(host.c_str(), 80)) {
+    ComAbuge();
     StockMessage("connection to ESP_RMS : " + host +" failed");
     delay(200);
-    WIFIbug++;
     return;
   }
   String url = "/ajax_data";
@@ -28,7 +28,9 @@ void CallESP32_Externe() {
   unsigned long timeout = millis();
   while (clientESP_RMS.available() == 0) {
     if (millis() - timeout > 5000) {
+      
       StockMessage("client ESP_RMS Timeout !" + host);
+      
       clientESP_RMS.stop();
       return;
     }
@@ -105,7 +107,7 @@ void CallESP32_Externe() {
           break;
         case 13:
           Energie_M_Injectee = data_[i].toInt();
-          esp_task_wdt_reset();  //Reset du Watchdog à chaque trame du RMS reçue
+          ComOK();  //Reset du Watchdog à chaque trame du RMS reçue
           cptLEDyellow = 4;
           EnergieActiveValide=true;
           break;

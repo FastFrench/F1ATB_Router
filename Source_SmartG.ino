@@ -20,7 +20,7 @@ void LectureSmartG() {
   if (!clientESP_RMS.connect(host.c_str(), 82)) {  // PORT 82 pour Smlart Gateways
     StockMessage("connection to SmartGateways failed : " + host);
     delay(200);
-    WIFIbug++;
+    ComAbuge();
     return;
   }
   String url = "/smartmeter/api/read";
@@ -52,7 +52,7 @@ void LectureSmartG() {
   Energie_M_Injectee=EnergyReturnedTariff1+EnergyReturnedTariff2;
   SG_dataBrute=SmartG_Data;
   filtre_puissance();
-  esp_task_wdt_reset();  //Reset du Watchdog à chaque trame du SmartGateways reçue
+  ComOK();  //Reset du Watchdog à chaque trame du SmartGateways reçue
   EnergieActiveValide = true;
   
   if (cptLEDyellow > 30) {
