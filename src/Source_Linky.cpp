@@ -1,4 +1,4 @@
-#include "../include/globals.h"
+#include "globals.h"
 
 // ****************************
 // * Source de Mesures LINKY  *

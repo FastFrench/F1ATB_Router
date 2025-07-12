@@ -1,4 +1,4 @@
-#include "../include/globals.h"
+#include "globals.h"
 
 // ******************************
 // * Client d'un HomeWizard     *

@@ -1,4 +1,4 @@
-#include "../include/globals.h"
+#include "globals.h"
 
 // ******************************************************
 // * Informations de puissance reçue via un Broker MQTT *
@@ -7,11 +7,11 @@ void UpdatePmqtt() {
   float Pw = PfloatMax(PwMQTT);
   float Pf = 1;
   if (P_MQTT_Brute.indexOf("Pf") > 0) {
-    Pf = abs(PfMQTT);
+    Pf = abs(PfMQTT.toFloat());
   }
   if (P_MQTT_Brute.indexOf("Pva") > 0) {
-    if (PvaMQTT != 0) {
-      Pf = abs(Pw / PfloatMax(PvaMQTT));
+    if (PvaMQTT.toFloat() != 0) {
+      Pf = abs(Pw / PfloatMax(PvaMQTT.toFloat()));
     }
   }
   if (P_MQTT_Brute.indexOf("Pva") > 0 || P_MQTT_Brute.indexOf("Pf") > 0) {

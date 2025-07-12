@@ -1,4 +1,4 @@
-#include "../include/globals.h"
+#include "globals.h"
 #include <vector>
 #include <SPI.h>
 #include <cstdint>

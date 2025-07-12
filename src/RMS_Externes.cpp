@@ -1,4 +1,4 @@
-#include "../include/globals.h"
+#include "globals.h"
 
 // *********************************************************************************************
 // * Client d'autres ESP32 en charge de mesurer les températures ou donner l'état des routages *

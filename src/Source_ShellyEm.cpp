@@ -1,4 +1,4 @@
-#include "../include/globals.h"
+#include "globals.h"
 // ****************************************************
 // * Client d'un Shelly Em sur voie 0 ou 1 ou triphasé*
 // ****************************************************

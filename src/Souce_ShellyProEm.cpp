@@ -1,4 +1,4 @@
-#include "../include/globals.h"
+#include "globals.h"
 
 //*********************************************************************
 // Variante Shelly Pro Em proposé par Raphael591 (Juillet 2024)       *

@@ -1,4 +1,4 @@
-#include "../include/globals.h"
+#include "globals.h"
 
 //***********************************
 //* Source EnPhase Envoy V5 ou V7   *

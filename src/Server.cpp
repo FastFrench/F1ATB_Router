@@ -1,4 +1,61 @@
-#include "../include/globals.h"
+#include "globals.h"
+
+// Déclarations locales pour les fonctions de ce fichier
+void handleConnect();
+void handlePara();
+void handleParaJS();
+void handleRoot();
+void handleWifi();
+void handleMainJS();
+void handleBrute();
+void handleBruteJS();
+void handleAjaxRMS();
+void handleAjaxHisto48h();
+void handleAjaxESP32();
+void handleAjaxHisto1an();
+void handleAjaxData();
+void handleAjax_etatActions();
+void handleAjax_etatActionX();
+void handleForceAction();
+void handleAjaxTemperature();
+void handleRestart();
+void handleAjaxData10mn();
+void handleAjaxNoms();
+void handleActions();
+void handleActionsJS();
+void handleActionsUpdate();
+void handleActionsAjax();
+void handlePinsActionsJS();
+void handleParaUpdate();
+void handleCleUpdate();
+void handleParaRouteurJS();
+void handleParaAjax();
+void handleSetGpio();
+void handleExport();
+void handleExport_file();
+void handleAP_ScanWifi();
+void handleAP_SetWifi();
+void handleHeure();
+void handleHourUpdate();
+void handleCouleurs();
+void handleCommunCouleurJS();
+void handleCouleursAjax();
+void handleCouleurUpdate();
+void handleCommunCSS();
+void handleNotFound();
+void handleParaRouteurAjax(); // Manquante
+void handleajaxRAZhisto();    // Manquante
+void lectureCookie(String S); // Manquante
+void ImportParametres(String S); // Manquante
+void CacheEtClose(int16_t seconde); // Manquante
+String HistoriqueEnergie1An(); // Manquante
+String LesTemperatures();      // Manquante
+String Fichier_parametres(String ip, String para, String action); // Manquante
+void Liste_WIFI();             // Manquante
+void Gestion_LEDs();           // Manquante
+void Liste_des_Noms();         // Manquante
+void IndexSource();            // Manquante
+void RAZ_Histo_Conso();        // Manquante
 
 // ***************
 // *  WEB SERVER *
