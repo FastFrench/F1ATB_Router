@@ -1,3 +1,4 @@
+#include "../include/globals.h"
 
 // ******************************************************
 // * Informations de puissance reçue via un Broker MQTT *

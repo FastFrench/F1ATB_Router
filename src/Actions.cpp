@@ -1,7 +1,7 @@
 // ********************
 // Gestion des Actions
 // ********************
-#include <Arduino.h>
+#include "../include/globals.h"
 #include "Actions.h"
 #include "EEPROM.h"
 #include <WiFiClient.h>

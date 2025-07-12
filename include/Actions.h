@@ -8,9 +8,7 @@ private:
   int T_LastAction = 0;
   int tempoTimer = 0;
   int16_t Tseuil = 2000;
-
-
-
+  
 public:
   Action();  //Constructeur par defaut
   Action(int aIdx);

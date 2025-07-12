@@ -1,3 +1,5 @@
+#include "../include/globals.h"
+
 // ****************************
 // * Source de Mesures LINKY  *
 // ****************************

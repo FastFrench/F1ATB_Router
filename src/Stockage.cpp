@@ -1,3 +1,5 @@
+#include "../include/globals.h"
+
 // ***************************
 // Stockage des données en ROM
 // ***************************

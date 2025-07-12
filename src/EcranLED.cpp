@@ -1,3 +1,4 @@
+#include "../include/globals.h"
 #include "EcranLED.h"
 LGFXoled oled;
 void Init_LED_OLED(void) {

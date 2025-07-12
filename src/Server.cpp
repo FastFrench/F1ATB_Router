@@ -1,3 +1,5 @@
+#include "../include/globals.h"
+
 // ***************
 // *  WEB SERVER *
 // ***************

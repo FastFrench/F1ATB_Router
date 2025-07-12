@@ -1,3 +1,5 @@
+#include "../include/globals.h"
+
 // *************************************************
 // * Client lecture JSY-MK-333 * Triphasé *
 // * Développement initial de Pierre F (Mars 2024) *

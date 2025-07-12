@@ -1,3 +1,5 @@
+#include "../include/globals.h"
+
 // ******************************
 // * Client d'un Smart Gateways *
 // ******************************

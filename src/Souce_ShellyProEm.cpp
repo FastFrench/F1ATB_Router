@@ -1,3 +1,5 @@
+#include "../include/globals.h"
+
 //*********************************************************************
 // Variante Shelly Pro Em proposé par Raphael591 (Juillet 2024)       *
 //  + Correction Octobre 2024  et Janvier 2025                        *

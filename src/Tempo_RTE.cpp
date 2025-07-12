@@ -1,3 +1,5 @@
+#include "../include/globals.h"
+
 // *******************************************************
 // * Recherche Info Tempo RTE pour les sources non Linky *
 // *******************************************************
