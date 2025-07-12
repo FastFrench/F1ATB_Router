@@ -19,17 +19,10 @@ const char *BINS = "binary_sensor";
 const char *SWTC = "switch";
 const char *TXT = "text";
 void GestionMQTT() {
-
-  bool Temper = false;
-  if (ModeReseau < 2) {
-    for (int C = 0; C < 4; C++) {
-      if (Source_Temp[C] == "tempMqtt") Temper = true;
-    }
-    if (MQTTRepet > 0 || Temper || Source == "Pmqtt" || subMQTT == 1) {
-      if (testMQTTconnected()) {
-        clientMQTT.loop();
-        envoiVersMQTT();
-      }
+  if (WiFi.status() == WL_CONNECTED || ModeReseau > 9) {
+    if (testMQTTconnected()) {
+      // clientMQTT.loop(); // Ligne originale
+      client.loop(); // Ligne corrigée
     }
   }
 }

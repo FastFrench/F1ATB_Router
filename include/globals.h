@@ -18,6 +18,7 @@
 // -- Système & Réseau --
 extern byte ModeReseau;
 extern byte Horloge;
+extern int ESP32_Type; // Ajouté
 extern String ssid;
 extern String password;
 extern String hostname;
@@ -32,7 +33,9 @@ extern float PmaxReseau;
 extern bool LissageLong;
 extern WebServer server;
 extern PubSubClient client;
+extern PubSubClient clientMQTT; 
 extern WiFiClientSecure clientSecu;
+extern const char OtaHtml[]; // Ajouté
 
 // -- Écran & LED --
 extern byte LEDgroupe;
@@ -81,6 +84,7 @@ extern String nomTemperature[4];
 // -- Actions & Triac --
 extern Action LesActions[100];
 extern volatile int NbActions;
+extern int8_t Retard[8]; // Ajouté
 extern bool erreurTriac;
 extern byte pTriac;
 extern int8_t pulseTriac, zeroCross;
@@ -91,6 +95,8 @@ extern int8_t tabPulseSinusTotal[101];
 extern HardwareSerial MySerial;
 extern const int SER_BUF_SIZE;
 extern int8_t RXD2, TXD2;
+extern volatile char DataRawLinky[10000]; // Ajouté
+extern volatile int IdxDataRawLinky;      // Ajouté
 extern TInfo tinfo;
 extern bool LFon;
 extern String LTARF;
@@ -152,6 +158,7 @@ extern void handleRoot();
 // -- Fonctions des autres fichiers --
 extern void Actions_Loop(); // Actions.cpp
 extern void Setup_Actions(); // Actions.cpp
+extern void AccueilForceClick(); // Ajouté (défini dans EcranLCD.cpp)
 extern void PrintCentreO(String text, int x, int y, int size); // EcranLED.cpp
 extern bool testMQTTconnected(); // MQTT.cpp
 extern void Liste_NomsEtats(int index); // RMS_Externes.cpp
@@ -167,6 +174,7 @@ extern void LectureShellyProEm(); // Source_ShellyProEm.cpp
 extern void LectureSmartG(); // Source_SmartG.cpp
 extern void LectureUxI(); // Source_UxI.cpp
 extern void checkTempo(); // Tempo.cpp
+extern String StringJson(String key, String json); // Ajouté (défini dans UxI.cpp)
 extern void Triac_loop(); // Triac.cpp
 extern void MesurePower(); // UxI.cpp
 
