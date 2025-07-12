@@ -38,6 +38,8 @@ extern WiFiClientSecure clientSecu;
 extern const char OtaHtml[]; // Ajouté
 
 // -- Écran & LED --
+extern bool EthernetBug; // Ajouté
+extern String Couleurs; // Ajouté
 extern byte LEDgroupe;
 extern byte LEDyellow[14];
 extern byte LEDgreen[14];
@@ -105,6 +107,7 @@ extern String JourLinky;
 extern int16_t Int_HeureLinky, Int_MinuteLinky, Int_SecondeLinky;
 
 // -- MQTT --
+extern unsigned long MQTTIP; // Ajouté
 extern unsigned int MQTTRepet;
 extern int subMQTT;
 extern String P_MQTT_Brute;
@@ -114,6 +117,7 @@ extern String PfMQTT;
 extern unsigned long LastPwMQTTMillis;
 
 // -- Sources Spécifiques (Enphase, Shelly, etc.) --
+extern String Session_id; // Ajouté
 extern String EnphaseUser, EnphasePwd, EnphaseSerial, JsonToken;
 extern String HW_dataBrute;
 extern String ShEm_dataBrute;
@@ -175,6 +179,7 @@ extern void LectureSmartG(); // Source_SmartG.cpp
 extern void LectureUxI(); // Source_UxI.cpp
 extern void checkTempo(); // Tempo.cpp
 extern String StringJson(String key, String json); // Ajouté (défini dans UxI.cpp)
+extern String PrefiltreJson(String key, String separator, String json); // Ajouté (défini dans UxI.cpp)
 extern void Triac_loop(); // Triac.cpp
 extern void MesurePower(); // UxI.cpp
 
