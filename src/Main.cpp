@@ -147,7 +147,7 @@
     Choix d'affichage des courbes de VA
     RAZ pour JSY-MK-333G
   - V14.22
-    Distintinction des ESP32U en version "ESP32-D0WD" et WT-ETH01 (Ethernet)
+    Distintiction des ESP32U en version "ESP32-D0WD" et WT-ETH01 (Ethernet)
   - V14.23
     MQTT : envoi facteur de puissance sans unité et envoi STGE du Linky
   - V14.24
@@ -175,7 +175,7 @@
 #include "UrlEncode.h"
 #include <Update.h>
 #include <esp_task_wdt.h>  //Pour deinitialiser le watchdog. Nécessaire pour les gros program en ROM. Mystère non élucidé
-#include <EthernetESP32.h>
+#include <ETH.h> // <== CORRECT INCLUDE
 
 
 //Watchdog de 180 secondes. Le systeme se Reset si pas de dialoque avec le LINKY ou JSY-MK-194T/333 ou Enphase-Envoy pendant 180s
@@ -331,40 +331,6 @@ float Energie_jour_Soutiree = 0;
 float Energie_jour_Injectee = 0;
 long Temps_precedent = 0;  // mesure précise du temps entre deux appels au JSY-MK-333
 
-//Parameters for Linky
-bool LFon = false;
-bool EASTvalid = false;
-bool EAITvalid = false;
-volatile int IdxDataRawLinky = 0;
-volatile int IdxBufDecodLinky = 0;
-volatile char DataRawLinky[10000];  //Buffer entrée données Linky
-float moyPWS = 0;
-float moyPWI = 0;
-float moyPVAS = 0;
-float moyPVAI = 0;
-float COSphiS = 1;
-float COSphiI = 1;
-long TlastEASTvalide = 0;
-long TlastEAITvalide = 0;
-String LTARF = "";  //Option tarifaire RTE
-String STGE = "";   //Status Linky
-String STGEt = "";   //Status Tempo uniquement RTE
-String NGTF = "";   //Calendrier tarifaire
-String JourLinky = "";
-int16_t Int_HeureLinky = 0;  //Heure interne
-int16_t Int_MinuteLinky = 0;
-int16_t Int_SecondeLinky = 0;
-long EASF01 = 0;
-long EASF02 = 0;
-long EASF03 = 0;
-long EASF04 = 0;
-long EASF05 = 0;
-long EASF06 = 0;
-long EASF07 = 0;
-long EASF08 = 0;
-long EASF09 = 0;
-long EASF10 = 0;
-
 //Paramètres for Enphase-Envoy-Smetered
 String TokenEnphase = "";
 String EnphaseUser = "";
@@ -460,7 +426,7 @@ volatile int Gpio[LesActionsLength];
 volatile int OutOn[LesActionsLength];
 volatile int OutOff[LesActionsLength];
 
-EMACDriver driver(ETH_PHY_LAN8720, 23, 18, 16);
+// EMACDriver driver(ETH_PHY_LAN8720, 23, 18, 16); // <== SUPPRIMEZ CETTE LIGNE
 WebServer server(80);  // Simple Web Server on port 80
 
 //Port Serie 2 - Remplace Serial2 qui bug
@@ -522,8 +488,6 @@ int8_t RMS_Note[LesRouteursMax];
 int8_t RMS_NbCx[LesRouteursMax];
 int RMS_Noms_idx = 0;
 
-//Adressage IP coeur0 et coeur1
-byte arrIP[4];
 
 //Multicoeur - Processeur 0 - Collecte données RMS local ou distant
 TaskHandle_t Task1;
@@ -683,12 +647,16 @@ void setup() {
   }
   Serial.printf("Chip Model: %s\n", ESP.getChipModel());
   delay(100);
-  Ethernet.init(driver);
+  // Ethernet.init(driver); // <== SUPPRIMEZ CETTE LIGNE
   if (String(ESP.getChipModel()) == "ESP32-D0WD") { //certains ESP32U et WT32-ETH01
     Serial.println("\nAncien modèle d'ESP32 que l'on trouve sur les cartes Ethernet WT32-ETH01 (branchez le câble) et certains ESP32U");
-    if (Ethernet.begin() != 0) { //C'est une carte WT-ETH01
-      Serial.println("Carte WT32-ETH01 qui Crash en Wifi. On force Ethernet.\n");
-      ESP32_Type = 10;  //On force Ethernet
+    // For a standard WT32-ETH01, the pins are often standard and ETH.begin() is enough.
+    // If your board is custom, you might need to provide pin definitions here.
+    if (ETH.begin()) { // <== MODIFIED LINE
+      if (ETH.hardwareAddress() != 0) { //C'est une carte WT-ETH01
+        Serial.println("Carte WT32-ETH01 qui Crash en Wifi. On force Ethernet.\n");
+        ESP32_Type = 10;  //On force Ethernet
+      }
     }
   }
   Serial.println("InitGPIO");
@@ -722,25 +690,21 @@ void setup() {
   Serial.println(hostname);    //optional
   if (ESP32_Type == 10) {  //Ethernet (avant Horloge)
     PrintScroll("Lancement de la liaison Ethernet");
-    if (Ethernet.linkStatus() == LinkOFF) {
+    if (ETH.linkUp() == false) { // <== MODIFIED LINE
       PrintScroll("Câble Ethernet non connecté.");
     }
-    //Ethernet.hostname(hostname);
+    //Ethernet.hostname(hostname); // This function is handled by WiFi.hostname() globally now.
     if (dhcpOn == 0) {  //Static IP
-                        //optional
-                        //Adresse IP eventuelles
-                        //optional
-      Ethernet.begin(local_IP, primaryDNS, gateway, subnet);
+      ETH.config(local_IP, gateway, subnet, primaryDNS); // <== MODIFIED LINE
       delay(100);
-      Ethernet.begin(local_IP, primaryDNS, gateway, subnet);  //On s'y prend 2 fois. Parfois ne reussi pas au premier coup
-      delay(100);
-      StockMessage("Adresse IP Ethernet fixe : : " + Ethernet.localIP().toString());
-      RMS_IP[0] = String2IP(Ethernet.localIP().toString());
+      StockMessage("Adresse IP Ethernet fixe : : " + ETH.localIP().toString()); // <== MODIFIED LINE
+      RMS_IP[0] = String2IP(ETH.localIP().toString()); // <== MODIFIED LINE
     } else {
       Serial.println("Initialisation Ethernet par DHCP:");
-      if (Ethernet.begin()) {
-        StockMessage("Adresse IP Ethernet assignée par DHCP : " + Ethernet.localIP().toString());
-        RMS_IP[0] = String2IP(Ethernet.localIP().toString());
+      // The ETH.begin() was already called above, we just check the result.
+      if (ETH.localIP().toString() != "0.0.0.0") {
+        StockMessage("Adresse IP Ethernet assignée par DHCP : " + ETH.localIP().toString()); // <== MODIFIED LINE
+        RMS_IP[0] = String2IP(ETH.localIP().toString()); // <== MODIFIED LINE
       } else {
         Serial.println("Failed to configure Ethernet using DHCP");
         delay(1);
@@ -1152,8 +1116,8 @@ void loop() {
         infoSerie();
       }
     } else {  //ESP32 Ethernet
-      PrintScroll("IP :"+Ethernet.localIP().toString() );
-      if (Ethernet.linkStatus() == LinkOFF) {
+      PrintScroll("IP :"+ETH.localIP().toString() ); // <== MODIFIED LINE
+      if (ETH.linkUp() == false) { // <== MODIFIED LINE
         PrintScroll("Câble Ethernet non connecté.");
         EthernetBug++;
       } else {

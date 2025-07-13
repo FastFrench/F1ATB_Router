@@ -1,5 +1,39 @@
 #include "globals.h"
 
+//Parameters for Linky
+bool LFon = false;
+bool EASTvalid = false;
+bool EAITvalid = false;
+volatile int IdxDataRawLinky = 0;
+volatile int IdxBufDecodLinky = 0;
+volatile char DataRawLinky[10000];  //Buffer entrée données Linky
+float moyPWS = 0;
+float moyPWI = 0;
+float moyPVAS = 0;
+float moyPVAI = 0;
+float COSphiS = 1;
+float COSphiI = 1;
+long TlastEASTvalide = 0;
+long TlastEAITvalide = 0;
+String LTARF = "";  //Option tarifaire RTE
+String STGE = "";   //Status Linky
+String STGEt = "";   //Status Tempo uniquement RTE
+String NGTF = "";   //Calendrier tarifaire
+String JourLinky = "";
+int16_t Int_HeureLinky = 0;  //Heure interne
+int16_t Int_MinuteLinky = 0;
+int16_t Int_SecondeLinky = 0;
+long EASF01 = 0;
+long EASF02 = 0;
+long EASF03 = 0;
+long EASF04 = 0;
+long EASF05 = 0;
+long EASF06 = 0;
+long EASF07 = 0;
+long EASF08 = 0;
+long EASF09 = 0;
+long EASF10 = 0;
+
 // ****************************
 // * Source de Mesures LINKY  *
 // ****************************

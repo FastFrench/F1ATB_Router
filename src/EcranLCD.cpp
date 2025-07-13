@@ -14,6 +14,9 @@ int16_t ClickX = 0, ClickY = 0, ClickCount = 0;
 int LigneTotalOld, LigneTotal, LigneIdx;
 bool ReDraw = false, ScreenOn = true;
 int16_t ForceIPidx = 0, ForceIdx = 0, ForceOnOff = 0;
+unsigned long CoulTexte, CoulFond, CoulBouton, CoulBoutFond, CoulBoutBord, CoulW, CoulWh, CoulTabTexte, CoulTabFond, CoulTabBord;
+unsigned long CoulSaisieTexte, CoulSaisieFond, CoulSaisieBord, CoulTemp, CoulGrTexte, CoulGrFond;
+int H_Onglet = 30;
 
 void AccueilTrace();
 void TraceMessages();
@@ -23,6 +26,7 @@ void TraceCalibr();
 void AccueilForceClick();
 void OngletsTrace(int page);
 void GrapheTrace(int param);
+void AccueilCadrage(int& WE, int& HE, int& W, int& W2, int& H, int& Hconso, int& H1, int& H2, int& H3, int& Hact, int& Hdelta, int& Hbas, float& F0, float& F1, float& F2);
 
 void GoPage(int N) {
   if (ScreenOn) {
@@ -52,9 +56,6 @@ void GoPage(int N) {
     }
   }
 }
-unsigned long CoulTexte, CoulFond, CoulBouton, CoulBoutFond, CoulBoutBord, CoulW, CoulWh, CoulTabTexte, CoulTabFond, CoulTabBord;
-unsigned long CoulSaisieTexte, CoulSaisieFond, CoulSaisieBord, CoulTemp, CoulGrTexte, CoulGrFond;
-int H_Onglet = 30;
 void Ecran_Init(void) {
   pinMode(17, OUTPUT);  //LED bleue non utilisée
   digitalWrite(17, 1);  //Extinction
@@ -615,7 +616,7 @@ void GrapheTrace(int8_t gr) {
     }
   } else {
     delta = (WE - 50) / 48;
-    int mn = (HeureCouranteDeci % 100) * delta;
+    int mn = ((int)(HeureCouranteDeci * delta)) % 100;
     mn = WE - 10 - int(mn / 100);
     int h = int(HeureCouranteDeci / 100);
     for (int i = 0; i < 48; i++) {

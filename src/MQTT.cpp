@@ -1,5 +1,5 @@
 #include "globals.h"
-#include <Ethernet.h> // <== AJOUTEZ CETTE LIGNE
+//#include <Ethernet.h> // <== AJOUTEZ CETTE LIGNE
 
 // **********************************************************************************************
 // *                        MQTT AUTO-DISCOVERY POUR HOME ASSISTANT ou DOMOTICZ                            *

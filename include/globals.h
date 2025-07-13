@@ -26,8 +26,8 @@
 // -- Système & Réseau --
 extern byte ModeReseau;
 extern byte Horloge;
-extern unsigned long LastRMS_Millis; // Ajouté
-extern int ESP32_Type; // Ajouté
+extern unsigned long LastRMS_Millis; 
+extern byte ESP32_Type; 
 extern String ssid;
 extern String password;
 extern String hostname;
@@ -45,6 +45,10 @@ extern PubSubClient client;
 extern PubSubClient clientMQTT; 
 extern WiFiClientSecure clientSecu;
 extern const char OtaHtml[]; // Ajouté
+extern const char *MainHtml;
+extern unsigned long PeriodeProgMillis;
+//Adressage IP coeur0 et coeur1
+extern byte arrIP[4];
 
 // Internal Timers
 extern unsigned long previousTimeRMS;
@@ -66,7 +70,8 @@ extern int idxMessage;
 extern int cptLEDyellow;
 extern int cptLEDgreen;
 extern int8_t NumPage; // Ajouté
-//extern LGFX lcd;
+extern void Ecran_Loop();
+extern void Init_LED_OLED(); 
 
 // -- Puissance & Énergie --
 extern String Source;
@@ -75,6 +80,10 @@ extern bool Pva_valide;
 extern bool EnergieActiveValide;
 extern int Energie_M_Soutiree;
 extern int Energie_M_Injectee;
+extern long EnergieJour_T_Injectee;
+extern long EnergieJour_M_Injectee;
+extern long EnergieJour_T_Soutiree;
+extern long EnergieJour_M_Soutiree;
 extern int PuissanceS_M;
 extern int PuissanceI_M;
 extern int PVAS_M;
@@ -87,6 +96,7 @@ extern float PuissanceS_M_inst; // Ajouté
 extern float PuissanceI_M_inst; // Ajouté
 extern float PVAS_M_inst; // Ajouté
 extern float PVAI_M_inst; // Ajouté
+extern float PVA_T_moy, PVA_M_moy;
 
 // -- Historique --
 extern int16_t tabPw_Maison_5mn[600];
@@ -126,14 +136,14 @@ extern TInfo tinfo;
 extern bool LFon;
 extern String LTARF;
 extern String STGEt;
-extern unsigned long TlastEASTvalide; // Ajouté
 extern String JourLinky;
 extern int16_t Int_HeureLinky, Int_MinuteLinky, Int_SecondeLinky;
+extern void Call_RTE_data();
 
 // -- MQTT --
 extern unsigned long MQTTIP; // Ajouté
 extern unsigned int MQTTRepet;
-extern int subMQTT;
+extern byte subMQTT;
 extern String MQTTPrefix; // Ajouté
 extern String MQTTPrefixEtat; // Ajouté
 extern String MQTTUser; // Ajouté
@@ -158,6 +168,8 @@ extern int ShEm_comptage_appels;
 extern String Shelly_Name, Shelly_Profile;
 extern float Tension_T, Intensite_T, PowerFactor_T, Frequence;
 extern float Tension_M, Intensite_M, PowerFactor_M;
+extern void LectureUxIx2(); 
+extern void Lecture_JSY333();
 
 // -- RMS (Routeurs Externes) --
 //extern unsigned long RMS_IP[8];
@@ -200,13 +212,18 @@ extern void TraceCalibr();
 extern void ClickPreCalibr();
 extern void filtre_puissance();
 extern void handleRoot();
+extern void PrintScroll(String m);
 
 // -- Fonctions des autres fichiers --
 extern void Actions_Loop(); // Actions.cpp
 extern void Setup_Actions(); // Actions.cpp
 extern void AccueilForceClick(); // Ajouté (défini dans EcranLCD.cpp)
 extern void OngletsTrace(int page); // Ajouté (défini dans EcranLCD.cpp)
+extern void PrintCentre(String S, int X, int Y, float Sz);
+extern void PrintGauche(String S, int X, int Y, float Sz);
+extern void PrintDroite(String S, int X, int Y, float Sz);
 extern void PrintCentreO(String text, int x, int y, int size);
+extern void PrintGaucheO(String text, int x, int y, int size);
 extern void PrintDroiteO(String text, int x, int y, int size); // Ajouté (défini dans EcranLED.cpp)
 extern bool testMQTTconnected(); // MQTT.cpp
 extern void Liste_NomsEtats(int index); // RMS_Externes.cpp
@@ -225,7 +242,12 @@ extern String StringJson(String key, String json); // Ajouté (défini dans UxI.
 extern String PrefiltreJson(String key, String separator, String json); // Ajouté (défini dans UxI.cpp)
 extern void Triac_loop(); // Triac.cpp
 extern void MesurePower(); // UxI.cpp
-
+extern void JourHeureChange();
+extern void GestionMQTT();
+extern void Gestion_LEDs(); 
+extern void LectureTemperature();
+extern void InfoActionExterne();
+extern void LireSerial();
 
 // -- Fonctions de utils.cpp --
 extern float PfloatMax(float value);
@@ -234,4 +256,12 @@ extern int PintMax(int value);
 extern float ValJsonSG(String key, String json); // Source_JSY.cpp
 extern float ValJson(String key, String json); // Source_JSY.cpp
 extern String Ascii(String S);
+
+// -- Fonctions de utils.cpp (JSon) --
+extern String AddInt(String nom, int valeur);
+extern String AddByte(String nom, byte valeur);
+extern String AddUlong(String nom, unsigned long valeur);
+extern String AddUshort(String nom, unsigned short valeur);
+extern String AddStr(String nom, String valeur);
+
 #endif // GLOBALS_H
