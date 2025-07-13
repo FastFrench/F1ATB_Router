@@ -1,4 +1,7 @@
 #include "globals.h"
+#include <Update.h>
+#include <LovyanGFX.hpp>
+extern LGFX lcd;
 
 // Déclarations locales pour les fonctions de ce fichier
 void handleConnect();

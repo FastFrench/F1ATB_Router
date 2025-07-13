@@ -1,6 +1,9 @@
 #include "globals.h"
+#include <LovyanGFX.hpp>
 #include "EcranLED.h"
+
 LGFXoled oled;
+extern LGFX lcd;
 void Init_LED_OLED(void) {
   //LEDs et OLRD
   //LEDgroupe = 0;   //0:pas de LED,1à 9 LEDs, 10 et 11 écran OLED SSD1306 , 12 et  13 OLED SH1106

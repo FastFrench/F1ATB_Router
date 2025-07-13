@@ -74,7 +74,7 @@ void Liste_NomsEtats(int Idx_RMS) {
     RMSExtDataB = RMSExtDataB.substring(p + 1);
     if (RMSExtDataB.indexOf(US) > 0) {  //Trame semble OK
       if (RMS_Note[Idx_RMS] <100) RMS_Note[Idx_RMS]++;
-      RMS_NbCx[Idx_RMS]=max(RMS_NbCx[Idx_RMS],RMS_Note[Idx_RMS]);
+      if (RMS_Note[Idx_RMS]>RMS_NbCx[Idx_RMS]) RMS_NbCx[Idx_RMS] = RMS_Note[Idx_RMS];
       RMS_NomEtat[Idx_RMS] = RMSExtDataB;
     }
   }

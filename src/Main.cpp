@@ -187,10 +187,6 @@
 #define TEMPERATURE_PRECISION 12
 
 
-//Nombre Actions Max
-#define LesActionsLength 10  //Ne pas toucher -Javascript connais pas
-//Nombre Routeurs réseau Max
-#define LesRouteursMax 8  //Ne pas toucher -Javascript connais pas
 //VARIABLES
 const char *ap_default_ssid;        // Mode Access point  IP: 192.168.4.1
 const char *ap_default_psk = NULL;  // Pas de mot de passe en AP,

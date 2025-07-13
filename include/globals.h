@@ -1,14 +1,23 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 #define Version "14.25"
+//Nombre Actions Max
+#define LesActionsLength 10  //Ne pas toucher -Javascript connais pas
+//Nombre Routeurs réseau Max
+#define LesRouteursMax 8  //Ne pas toucher -Javascript connais pas
 
 #include <Arduino.h>
+#define LIGHT_ADC 34
+#define LGFX_AUTODETECT  // Autodetect board
+#define LGFX_USE_V1
+#include <LovyanGFX.hpp>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h> //Librairie pour la gestion Mqtt
 #include "Actions.h"
 #include "teleinfo.h"
+
 
 // =================================================================
 // VARIABLES GLOBALES
@@ -17,6 +26,7 @@
 // -- Système & Réseau --
 extern byte ModeReseau;
 extern byte Horloge;
+extern unsigned long LastRMS_Millis; // Ajouté
 extern int ESP32_Type; // Ajouté
 extern String ssid;
 extern String password;
@@ -43,6 +53,7 @@ extern float previousTimeRMSMax;
 extern float previousTimeRMSMoy;
 
 // -- Écran & LED --
+extern LGFX lcd;
 extern bool EthernetBug; // Ajouté
 extern String Couleurs; // Ajouté
 extern byte LEDgroupe;
@@ -54,6 +65,8 @@ extern String MessageH[10];
 extern int idxMessage;
 extern int cptLEDyellow;
 extern int cptLEDgreen;
+extern int8_t NumPage; // Ajouté
+//extern LGFX lcd;
 
 // -- Puissance & Énergie --
 extern String Source;
@@ -70,6 +83,10 @@ extern float EASfloat;
 extern float EAIfloat;
 extern bool PuissanceRecue;
 extern int PactConso_M, PactProd;
+extern float PuissanceS_M_inst; // Ajouté
+extern float PuissanceI_M_inst; // Ajouté
+extern float PVAS_M_inst; // Ajouté
+extern float PVAI_M_inst; // Ajouté
 
 // -- Historique --
 extern int16_t tabPw_Maison_5mn[600];
@@ -109,6 +126,7 @@ extern TInfo tinfo;
 extern bool LFon;
 extern String LTARF;
 extern String STGEt;
+extern unsigned long TlastEASTvalide; // Ajouté
 extern String JourLinky;
 extern int16_t Int_HeureLinky, Int_MinuteLinky, Int_SecondeLinky;
 
@@ -142,7 +160,6 @@ extern float Tension_T, Intensite_T, PowerFactor_T, Frequence;
 extern float Tension_M, Intensite_M, PowerFactor_M;
 
 // -- RMS (Routeurs Externes) --
-extern const int LesRouteursMax;
 extern unsigned long RMS_IP[8];
 extern String RMS_NomEtat[8];
 extern int8_t RMS_Note[8];
@@ -150,6 +167,17 @@ extern int RMSextIdx;
 extern unsigned long RMSextIP;
 extern int RMS_NbCx[8];
 
+// Routeurs du réseau
+unsigned long RMS_IP[LesRouteursMax];  //RMS_IP[0] = adresse IP de cet ESP32
+String RMS_NomEtat[LesRouteursMax];
+int8_t RMS_Note[LesRouteursMax];
+int8_t RMS_NbCx[LesRouteursMax];
+int RMS_Noms_idx = 0;
+int RMS_Datas_idx = 0;
+
+// -- Tempo --
+extern int TempoRTEon; // Ajouté
+extern String TempoToday, TempoTomorrow;
 
 // =================================================================
 // FONCTIONS GLOBALES
