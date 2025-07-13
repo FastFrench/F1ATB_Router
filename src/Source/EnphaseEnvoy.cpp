@@ -243,21 +243,6 @@ String SubJson(String F1, String F2, String Json) {
   return Json;
 }
 
-float ValJson(String nom, String Json) {
-  int p = Json.indexOf(nom + "\":");
-  Json = Json.substring(p);
-  p = Json.indexOf(":");
-  Json = Json.substring(p + 1);
-  int q = Json.indexOf(",");
-  p = Json.indexOf("}");
-  p = min(p, q);
-  float val = 0;
-  if (p > 0) {
-    Json = Json.substring(0, p);
-    val = Json.toFloat();
-  }
-  return val;
-}
 long LongJson(String nom, String Json) {  // Pour éviter des problèmes d'overflow
   int p = Json.indexOf(nom + "\":");
   Json = Json.substring(p);
@@ -375,15 +360,3 @@ short ShortJson(String nom, String Json) {  // Pour éviter des problèmes d'ove
   return val;
 }
 
-
-String StringJson(String nom, String Json) {
-  int p = Json.indexOf(nom + "\":");
-  Json = Json.substring(p);
-  p = Json.indexOf(":");
-  Json = Json.substring(p + 1);
-  p = Json.indexOf("\"");
-  Json = Json.substring(p + 1);
-  p = Json.indexOf("\"");
-  Json = Json.substring(0, p);
-  return Json;
-}

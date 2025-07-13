@@ -55,17 +55,3 @@ void LectureSmartG() {
   }
 }
 
-float ValJsonSG(String nom, String Json) {
-  int p = Json.indexOf(nom);
-  Json = Json.substring(p);
-  p = Json.indexOf(":");
-  Json = Json.substring(p + 1);
-  Json.trim();
-  p = Json.indexOf(",");
-  float val = 0;
-  if (p > 0) {
-    Json = Json.substring(0, p);
-    val = Json.toFloat();
-  }
-  return val;
-}

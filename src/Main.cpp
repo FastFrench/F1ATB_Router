@@ -183,15 +183,6 @@
 //#include <EthernetESP32.h>
 
 //Program routines
-#include "pageHtmlBrute.h"
-#include "pageHtmlMain.h"
-#include "pageHtmlConnect.h"
-#include "pageHtmlPara.h"
-#include "pageHtmlActions.h"
-#include "pageHtmlOTA.h"
-#include "pageHtmlExport.h"
-#include "pageHtmlHeure.h"
-#include "pageHtmlCouleurs.h"
 #include "Actions.h"
 
 //Watchdog de 180 secondes. Le systeme se Reset si pas de dialoque avec le LINKY ou JSY-MK-194T/333 ou Enphase-Envoy pendant 180s
@@ -1430,17 +1421,3 @@ void time_sync_notification(struct timeval *tv) {
 
 
 
-//*************
-//* Test Pmax *
-//*************
-float PfloatMax(float Pin) {
-  float P = max(-PmaxReseau, Pin);
-  P = min(PmaxReseau, P);
-  return P;
-}
-int PintMax(int Pin) {
-  int M = int(PmaxReseau);
-  int P = max(-M, Pin);
-  P = min(M, P);
-  return P;
-}

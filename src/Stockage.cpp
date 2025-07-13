@@ -718,22 +718,6 @@ String Fichier_parametres(String ip, String para, String action) {
   return S;
 }
 
-String AddInt(String nom, int valeur) {
-  return ",\"" + nom + "\":" + String(valeur);
-}
-String AddByte(String nom, byte valeur) {
-  return ",\"" + nom + "\":" + String(valeur);
-}
-String AddUlong(String nom, unsigned long valeur) {
-  return ",\"" + nom + "\":" + String(valeur);
-}
-String AddUshort(String nom, unsigned short valeur) {
-  return ",\"" + nom + "\":" + String(valeur);
-}
-
-String AddStr(String nom, String valeur) {
-  return ",\"" + nom + "\":\"" + valeur + "\"";
-}
 //Importation des paramètres
 //***************************
 void ImportParametres(String Conf) {
@@ -848,47 +832,4 @@ void ImportParametres(String Conf) {
   }
   
   EcritureEnROM();
-}
-void SplitS(String Str, String& Before, String Separ, String& After) {
-  int p = Str.indexOf(Separ);
-  Before = Str.substring(0, p);
-  After = Str.substring(p + 1);
-}
-// Conversion des adresses IP suivant le coeur
-
-String IP2String(unsigned long IP) {
-  byte arr[4];
-  arr[0] = IP & 0xFF;            // 0x78
-  arr[1] = (IP >> 8) & 0xFF;     // 0x56
-  arr[2] = (IP >> 16) & 0xFF;    // 0x34
-  arr[3] = (IP >> 24) & 0xFF;    // 0x12
-  for (int i = 0; i < 4; i++) {  //Pour eviter corruption données entre coeur 0 et coeur1 (arr en variable local)
-    arrIP[i] = arr[i];           //Pour le WIFI au setup
-  }
-  return String(arr[3]) + "." + String(arr[2]) + "." + String(arr[1]) + "." + String(arr[0]);
-}
-unsigned long String2IP(String S) {
-  unsigned long IP = 0;
-  for (int i = 0; i < 3; i++) {
-    int p = S.indexOf(".");
-    String s = S.substring(0, p);
-    S = S.substring(p + 1);
-    IP += s.toInt();
-    IP = IP * 256;
-  }
-  IP += S.toInt();
-  return IP;
-}
-
-//Gestion couleurs
-String ULtoHex(unsigned long x) {
-  char buffer[15];
-  ltoa(x, buffer, 16);
-  String S = "000000" + String(buffer);
-  int p = S.length();
-  S = "#" + S.substring(p - 6);  //Format pour HTML color
-  return S;
-}
-unsigned long ConvCouleur(String V) {  //Notation CSS en UL
-  return strtoul(V.c_str(), NULL, 16);
 }

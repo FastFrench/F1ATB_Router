@@ -46,7 +46,7 @@ void CallESP32_Externe() {
     RMSExtDataB = RMSExtDataB.substring(RMSExtDataB.indexOf("Deb") + 4);
     RMSExtDataB = RMSExtDataB.substring(0, RMSExtDataB.indexOf("Fin") + 3);
     if (RMS_Note[RMSextIdx] < 100) RMS_Note[RMSextIdx]++;
-    RMS_NbCx[RMSextIdx] = max(RMS_NbCx[RMSextIdx], RMS_Note[RMSextIdx]);
+    RMS_NbCx[RMSextIdx] = max(RMS_NbCx[RMSextIdx], (int)RMS_Note[RMSextIdx]);
     String Sval = "";
     int idx = 0;
     while (RMSExtDataB.indexOf(GS) > 0) {

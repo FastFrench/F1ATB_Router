@@ -37,6 +37,12 @@ extern PubSubClient clientMQTT;
 extern WiFiClientSecure clientSecu;
 extern const char OtaHtml[]; // Ajouté
 
+// Internal Timers
+extern unsigned long previousTimeRMS;
+extern float previousTimeRMSMin;
+extern float previousTimeRMSMax;
+extern float previousTimeRMSMoy;
+
 // -- Écran & LED --
 extern bool EthernetBug; // Ajouté
 extern String Couleurs; // Ajouté
@@ -99,6 +105,7 @@ extern const int SER_BUF_SIZE;
 extern int8_t RXD2, TXD2;
 extern volatile char DataRawLinky[10000]; // Ajouté
 extern volatile int IdxDataRawLinky;      // Ajouté
+extern volatile int IdxBufDecodLinky; // Ajouté
 extern TInfo tinfo;
 extern bool LFon;
 extern String LTARF;
@@ -110,6 +117,14 @@ extern int16_t Int_HeureLinky, Int_MinuteLinky, Int_SecondeLinky;
 extern unsigned long MQTTIP; // Ajouté
 extern unsigned int MQTTRepet;
 extern int subMQTT;
+extern String MQTTPrefix; // Ajouté
+extern String MQTTPrefixEtat; // Ajouté
+extern String MQTTUser; // Ajouté
+extern String MQTTPwd; // Ajouté
+extern String MQTTdeviceName; // Ajouté
+extern unsigned int MQTTPort; // Ajouté
+extern String TopicT[4]; // Ajouté
+extern String TopicP; // Ajouté
 extern String P_MQTT_Brute;
 extern String PwMQTT;
 extern String PvaMQTT;
@@ -119,6 +134,7 @@ extern unsigned long LastPwMQTTMillis;
 // -- Sources Spécifiques (Enphase, Shelly, etc.) --
 extern String Session_id; // Ajouté
 extern String EnphaseUser, EnphasePwd, EnphaseSerial, JsonToken;
+extern String TokenEnphase; // Ajouté
 extern String HW_dataBrute;
 extern String ShEm_dataBrute;
 extern int ShEm_comptage_appels;
@@ -134,6 +150,7 @@ extern int8_t RMS_Note[8];
 extern int RMSextIdx;
 extern unsigned long RMSextIP;
 extern int RMS_NbCx[8];
+
 
 // =================================================================
 // FONCTIONS GLOBALES
@@ -155,7 +172,6 @@ extern void TraceReseau();
 extern void TraceTarif();
 extern void TraceCalibr();
 extern void ClickPreCalibr();
-extern float PfloatMax(float value);
 extern void filtre_puissance();
 extern void handleRoot();
 
@@ -163,14 +179,15 @@ extern void handleRoot();
 extern void Actions_Loop(); // Actions.cpp
 extern void Setup_Actions(); // Actions.cpp
 extern void AccueilForceClick(); // Ajouté (défini dans EcranLCD.cpp)
-extern void PrintCentreO(String text, int x, int y, int size); // EcranLED.cpp
+extern void OngletsTrace(int page); // Ajouté (défini dans EcranLCD.cpp)
+extern void PrintCentreO(String text, int x, int y, int size);
+extern void PrintDroiteO(String text, int x, int y, int size); // Ajouté (défini dans EcranLED.cpp)
 extern bool testMQTTconnected(); // MQTT.cpp
 extern void Liste_NomsEtats(int index); // RMS_Externes.cpp
 extern void Init_Server(); // Server.cpp
 extern void LectureEnphase(); // Source_EnphaseEnvoy.cpp
 extern void CallESP32_Externe(); // Source_Externe.cpp
 extern void LectureHomeW(); // Source_HomeWizard.cpp
-extern String ValJsonSG(String key, String json); // Source_JSY.cpp
 extern void LectureLinky(); // Source_Linky.cpp
 extern void UpdatePmqtt(); // Source_MQTT.cpp
 extern void LectureShellyEm(); // Source_ShellyEm.cpp
@@ -183,4 +200,11 @@ extern String PrefiltreJson(String key, String separator, String json); // Ajout
 extern void Triac_loop(); // Triac.cpp
 extern void MesurePower(); // UxI.cpp
 
+
+// -- Fonctions de utils.cpp --
+extern float PfloatMax(float value);
+extern float PfloatMax(const String& value);
+extern int PintMax(int value);
+extern float ValJsonSG(String key, String json); // Source_JSY.cpp
+extern float ValJson(String key, String json); // Source_JSY.cpp
 #endif // GLOBALS_H

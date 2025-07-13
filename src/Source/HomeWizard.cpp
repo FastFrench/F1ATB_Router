@@ -39,11 +39,11 @@ void LectureHomeW() {
   p = HomeW_Data.indexOf("}");
   HomeW_Data = HomeW_Data.substring(0, p);
   if (PfloatMax(ValJsonSG("active_power_w", HomeW_Data)) > 0) {
-    PuissanceS_M_inst = PfloatMax(ValJsonSG("active_power_w", HomeW_Data));
+    PuissanceS_M_inst = PfloatMax(ValJsonSG("active_power_w", HomeW_Data).toFloat());
     PuissanceI_M_inst = 0;
   } else {
     PuissanceS_M_inst = 0;
-    PuissanceI_M_inst = -PfloatMax(ValJsonSG("active_power_w", HomeW_Data));
+    PuissanceI_M_inst = -PfloatMax(ValJsonSG("active_power_w", HomeW_Data).toFloat());
   }
   long EnergyDeliveredTariff1 = int(1000 * ValJsonSG("total_power_import_t1_kwh", HomeW_Data));
   long EnergyDeliveredTariff2 = int(1000 * ValJsonSG("total_power_import_t2_kwh", HomeW_Data));

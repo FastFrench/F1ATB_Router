@@ -87,3 +87,6 @@ void ComputePower() {
   EnergieActiveValide = true;
   PuissanceRecue = true;
 }
+
+
+
