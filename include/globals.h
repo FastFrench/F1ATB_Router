@@ -5,9 +5,8 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
-#include <HardwareSerial.h>
 #include <WiFiClientSecure.h>
-#include <PubSubClient.h>
+#include <PubSubClient.h> //Librairie pour la gestion Mqtt
 #include "Actions.h"
 #include "teleinfo.h"
 
@@ -207,4 +206,5 @@ extern float PfloatMax(const String& value);
 extern int PintMax(int value);
 extern float ValJsonSG(String key, String json); // Source_JSY.cpp
 extern float ValJson(String key, String json); // Source_JSY.cpp
+extern String Ascii(String S);
 #endif // GLOBALS_H

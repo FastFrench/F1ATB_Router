@@ -15,6 +15,7 @@ int LigneTotalOld, LigneTotal, LigneIdx;
 bool ReDraw = false, ScreenOn = true;
 int16_t ForceIPidx = 0, ForceIdx = 0, ForceOnOff = 0;
 
+void AccueilTrace();
 
 unsigned long CoulTexte, CoulFond, CoulBouton, CoulBoutFond, CoulBoutBord, CoulW, CoulWh, CoulTabTexte, CoulTabFond, CoulTabBord;
 unsigned long CoulSaisieTexte, CoulSaisieFond, CoulSaisieBord, CoulTemp, CoulGrTexte, CoulGrFond;
@@ -738,13 +739,3 @@ void PrintDroite(String S, int X, int Y, float Sz) {
   lcd.print(S);
 }
 
-String Ascii(String S) {
-  S.replace("é", String(char(130)));
-  S.replace("â", String(char(131)));
-  S.replace("à", String(char(133)));
-  S.replace("ç", String(char(135)));
-  S.replace("ê", String(char(136)));
-  S.replace("è", String(char(138)));
-  S.replace("ù", String(char(151)));
-  return S;
-}

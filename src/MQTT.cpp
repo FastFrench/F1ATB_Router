@@ -10,6 +10,7 @@ char PrefixMQTT[25];
 char PrefixMQTTEtat[25];
 char AvailableTopic[60];
 
+void callback(char *topic, byte *payload, unsigned int length);
 
 // Types de composants reconnus par HA et obligatoires pour l'Auto-Discovery.
 const char *SSR = "sensor";

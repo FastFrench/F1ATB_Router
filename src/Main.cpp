@@ -166,24 +166,17 @@
 */
 
 //Librairies
-#include <WiFi.h>
-#include <WiFiClientSecure.h>
 #include <ESPmDNS.h>
-#include <WebServer.h>
 #include <ArduinoOTA.h>    //Modification On The Air
-#include <PubSubClient.h>  //Librairie pour la gestion Mqtt
 #include "EEPROM.h"        //Librairie pour le stockage en EEPROM historique quotidien
 #include "esp_sntp.h"
 #include "OneWire.h"
 #include "DallasTemperature.h"
 #include "UrlEncode.h"
-#include <HardwareSerial.h>
 #include <Update.h>
 #include <esp_task_wdt.h>  //Pour deinitialiser le watchdog. Nécessaire pour les gros program en ROM. Mystère non élucidé
-//#include <EthernetESP32.h>
+#include <EthernetESP32.h>
 
-//Program routines
-#include "Actions.h"
 
 //Watchdog de 180 secondes. Le systeme se Reset si pas de dialoque avec le LINKY ou JSY-MK-194T/333 ou Enphase-Envoy pendant 180s
 //Watchdog for 180 seconds. The system resets if no dialogue with the Linky or  JSY-MK-194T/333 or Enphase-Envoy for 180s
