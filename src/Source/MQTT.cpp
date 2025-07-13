@@ -7,11 +7,11 @@ void UpdatePmqtt() {
   float Pw = PfloatMax(PwMQTT);
   float Pf = 1;
   if (P_MQTT_Brute.indexOf("Pf") > 0) {
-    Pf = abs(PfMQTT.toFloat());
+    Pf = abs(PfMQTT);
   }
   if (P_MQTT_Brute.indexOf("Pva") > 0) {
-    if (PvaMQTT.toFloat() != 0) {
-      Pf = abs(Pw / PfloatMax(PvaMQTT.toFloat()));
+    if (PvaMQTT != 0) {
+      Pf = abs(Pw / PfloatMax(PvaMQTT));
     }
   }
   if (P_MQTT_Brute.indexOf("Pva") > 0 || P_MQTT_Brute.indexOf("Pf") > 0) {
