@@ -1,4 +1,5 @@
 #include "globals.h"
+#include <esp_task_wdt.h> // <== AJOUTEZ CETTE LIGNE
 
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
@@ -575,13 +576,11 @@ void setup() {
   esp_task_wdt_deinit();
   // Initialisation de la structure de configuration pour la WDT
   esp_task_wdt_config_t wdt_config = {
-    .timeout_ms = WDT_TIMEOUT * 1000,                 // Convertir le temps en millisecondes
-    .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,  // Bitmask of all cores, https://github.com/espressif/esp-idf/blob/v5.2.2/examples/system/task_watchdog/main/task_watchdog_example_main.c
-    .trigger_panic = true                             // Enable panic to restart ESP32
-  };
-  // Initialisation de la WDT avec la structure de configuration
-  ESP32_ERROR = esp_task_wdt_init(&wdt_config);
-  Serial.println("Dernier Reset : " + String(esp_err_to_name(ESP32_ERROR)));
+    .timeout_ms = 10000,
+    .idle_core_mask = (1 << 0) | (1 << 1),
+    .trigger_panic = false
+   };
+   esp_task_wdt_init(&wdt_config); // <== CORRIGEZ CETTE LIGNE
   esp_task_wdt_add(NULL);  //add current thread to WDT watch
   esp_task_wdt_reset();
   delay(1);  //VERY VERY IMPORTANT for Watchdog Reset
@@ -653,7 +652,9 @@ void setup() {
     // For a standard WT32-ETH01, the pins are often standard and ETH.begin() is enough.
     // If your board is custom, you might need to provide pin definitions here.
     if (ETH.begin()) { // <== MODIFIED LINE
-      if (ETH.hardwareAddress() != 0) { //C'est une carte WT-ETH01
+      byte mac_addr[6];
+      ETH.macAddress(mac_addr); // <== MODIFIEZ CETTE LIGNE
+      if (mac_addr[0] != 0x00) { //C'est une carte WT-ETH01
         Serial.println("Carte WT32-ETH01 qui Crash en Wifi. On force Ethernet.\n");
         ESP32_Type = 10;  //On force Ethernet
       }
@@ -846,14 +847,16 @@ void setup() {
   }
 
   //Hardware timer 100uS
-  timer = timerBegin(1000000);  //Clock 1MHz
-  timerAttachInterrupt(timer, &onTimer);
-  timerAlarm(timer, 100, true, 0);  //Interrupt every 100  microsecond
+  timer = timerBegin(0, 80, true);  // Timer 0, prescaler 80 (pour 1MHz), count up
+  timerAttachInterrupt(timer, &onTimer, true);
+  timerAlarmWrite(timer, 100, true);  // Interrupt every 100 microsecond
+  timerAlarmEnable(timer); // Active l'alarme
 
   //Hardware timer 10ms
-  timer10ms = timerBegin(1000000);  //Clock 1MHz
-  timerAttachInterrupt(timer10ms, &onTimer10ms);
-  timerAlarm(timer10ms, 10000, true, 0);  //Interrupt every 10ms
+  timer10ms = timerBegin(1, 80, true);  // Timer 1, prescaler 80
+  timerAttachInterrupt(timer10ms, &onTimer10ms, true);
+  timerAlarmWrite(timer10ms, 10000, true); // Interrupt every 10ms
+  timerAlarmEnable(timer10ms); // Active l'alarme
 
 
   //Timers
