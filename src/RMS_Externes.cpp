@@ -79,6 +79,9 @@ void Liste_NomsEtats(int Idx_RMS) {
     }
   }
 }
+
+int RMS_Datas_idx = 0;
+
 void InfoActionExterne() {  //Relevé périodique etat des actions internes et externes
   if (NbActions > 0) {
     RMS_Datas_idx = (RMS_Datas_idx + 1) % NbActions;

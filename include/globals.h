@@ -160,20 +160,19 @@ extern float Tension_T, Intensite_T, PowerFactor_T, Frequence;
 extern float Tension_M, Intensite_M, PowerFactor_M;
 
 // -- RMS (Routeurs Externes) --
-extern unsigned long RMS_IP[8];
-extern String RMS_NomEtat[8];
-extern int8_t RMS_Note[8];
+//extern unsigned long RMS_IP[8];
+//extern String RMS_NomEtat[8];
+//extern int8_t RMS_Note[8];
 extern int RMSextIdx;
 extern unsigned long RMSextIP;
-extern int RMS_NbCx[8];
+//extern int RMS_NbCx[8];
 
 // Routeurs du réseau
-unsigned long RMS_IP[LesRouteursMax];  //RMS_IP[0] = adresse IP de cet ESP32
-String RMS_NomEtat[LesRouteursMax];
-int8_t RMS_Note[LesRouteursMax];
-int8_t RMS_NbCx[LesRouteursMax];
-int RMS_Noms_idx = 0;
-int RMS_Datas_idx = 0;
+extern unsigned long RMS_IP[LesRouteursMax];  //RMS_IP[0] = adresse IP de cet ESP32
+extern String RMS_NomEtat[LesRouteursMax];
+extern int8_t RMS_Note[LesRouteursMax];
+extern int8_t RMS_NbCx[LesRouteursMax];
+extern int RMS_Datas_idx ;
 
 // -- Tempo --
 extern int TempoRTEon; // Ajouté

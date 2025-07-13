@@ -521,7 +521,6 @@ String RMS_NomEtat[LesRouteursMax];
 int8_t RMS_Note[LesRouteursMax];
 int8_t RMS_NbCx[LesRouteursMax];
 int RMS_Noms_idx = 0;
-int RMS_Datas_idx = 0;
 
 //Adressage IP coeur0 et coeur1
 byte arrIP[4];

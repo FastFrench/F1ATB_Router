@@ -16,7 +16,42 @@ bool ReDraw = false, ScreenOn = true;
 int16_t ForceIPidx = 0, ForceIdx = 0, ForceOnOff = 0;
 
 void AccueilTrace();
+void TraceMessages();
+void TracePreCalibr();
+void TraceReseau();
+void TraceCalibr();
+void AccueilForceClick();
+void OngletsTrace(int page);
+void GrapheTrace(int param);
 
+void GoPage(int N) {
+  if (ScreenOn) {
+    NumPage = N;
+    lcd.fillScreen(CoulFond);
+    OngletsTrace(NumPage0);
+    lcd.setTextColor(CoulTexte, CoulFond);
+    switch (NumPage) {
+      case 0:
+        AccueilTrace();
+        break;
+      case 1:
+        GrapheTrace(10);
+        break;
+      case 2:
+        GrapheTrace(48);
+        break;
+      case 3:
+        TraceMessages();
+        break;
+      case 4:
+        TraceReseau();
+        break;
+      case 5:
+        TracePreCalibr();
+        break;
+    }
+  }
+}
 unsigned long CoulTexte, CoulFond, CoulBouton, CoulBoutFond, CoulBoutBord, CoulW, CoulWh, CoulTabTexte, CoulTabFond, CoulTabBord;
 unsigned long CoulSaisieTexte, CoulSaisieFond, CoulSaisieBord, CoulTemp, CoulGrTexte, CoulGrFond;
 int H_Onglet = 30;
@@ -153,34 +188,7 @@ void SetCouleurs() {
   lcd.fillScreen(CoulFond);
   lcd.setTextColor(CoulTexte, CoulFond);
 }
-void GoPage(int N) {
-  if (ScreenOn) {
-    NumPage = N;
-    lcd.fillScreen(CoulFond);
-    OngletsTrace(NumPage0);
-    lcd.setTextColor(CoulTexte, CoulFond);
-    switch (NumPage) {
-      case 0:
-        AccueilTrace();
-        break;
-      case 1:
-        GrapheTrace(10);
-        break;
-      case 2:
-        GrapheTrace(48);
-        break;
-      case 3:
-        TraceMessages();
-        break;
-      case 4:
-        TraceReseau();
-        break;
-      case 5:
-        TracePreCalibr();
-        break;
-    }
-  }
-}
+
 void OngletsTrace(int8_t page) {
   String Titre[] = { "Accueil", "Gr.10mn", "Gr.48h", "Messages", "Réseau", "Calibr." };
   lcd.fillRect(0, 0, lcd.width(), H_Onglet, CoulBoutFond);
