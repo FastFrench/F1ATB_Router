@@ -76,8 +76,8 @@ bool testMQTTconnected() {
       if (ESP32_Type < 10) {
         WiFi.macAddress(mac);
       } else {
-        Ethernet.macAddress(mac);
-        cu = "http://" + Ethernet.localIP().toString();
+        ETH.macAddress(mac);
+        cu = "http://" + ETH.localIP().toString();
       }
       sprintf(ESP_ID, "%02x%02x%02x%02x%02x", mac[4], mac[3], mac[2], mac[1], mac[0]);  // ID de l'entité pour HA
       sprintf(mdl, "%s%s", "ESP32 - ", ESP_ID);                                         // ID de l'entité pour HA

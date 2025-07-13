@@ -107,7 +107,7 @@ extern int idxMessage;
 extern int cptLEDyellow;
 extern int cptLEDgreen;
 extern int8_t NumPage;
-extern int WIFIbug; // Ajouté
+extern int WIFIbug; // CORRIGÉ: int -> int16_t
 
 // -- Puissance & Énergie --
 extern String Source;
@@ -133,7 +133,7 @@ extern float PuissanceI_M_inst;
 extern float PVAS_M_inst;
 extern float PVAI_M_inst;
 extern float PVA_T_moy, PVA_M_moy;
-extern long PuissanceS_T, PuissanceI_T, PVAS_T, PVAI_T; // CORRIGÉ: int -> long
+extern int PuissanceS_T, PuissanceI_T, PVAS_T, PVAI_T; // CORRIGÉ: long -> int
 extern long Energie_T_Soutiree, Energie_T_Injectee; // CORRIGÉ: int -> long
 extern float Puissance_M_moy;
 
@@ -326,6 +326,14 @@ extern void LectureUxI();
 extern void checkTempo();
 extern String StringJson(String key, String json);
 extern String PrefiltreJson(String key, String separator, String json);
+extern  long LongJson(String nom, String Json);  // Pour éviter des problèmes d'overflow
+extern long myLongJson(String nom, String Json);  // Alternative a LongJson au dessus pour extraire chez RTE nb jour Tempo  https://particulier.RTE.fr/services/rest/referentiel/getNbTempoDays?TypeAlerte=TEMPO
+extern unsigned long ULongJson(String nom, String Json);  // Alternative a LongJson au dessus pour extraire chez RTE nb jour Tempo  https://particulier.RTE.fr/services/rest/referentiel/getNbTempoDays?TypeAlerte=TEMPO
+extern int IntJson(String nom, String Json);  // Pour éviter des problèmes d'overflow
+extern unsigned short UShortJson(String nom, String Json);  // Pour éviter des problèmes d'overflow
+extern short ShortJson(String nom, String Json);  // Pour éviter des problèmes d'overflow
+extern byte ByteJson(String nom, String Json);  // Pour éviter des problèmes d'overflow
+
 extern void Triac_loop();
 extern void MesurePower();
 extern void GestionMQTT();

@@ -1,5 +1,5 @@
 #include "globals.h"
-#include <esp_task_wdt.h> // <== AJOUTEZ CETTE LIGNE
+#include <esp_task_wdt.h>
 
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
@@ -180,9 +180,7 @@
 
 
 //Watchdog de 180 secondes. Le systeme se Reset si pas de dialoque avec le LINKY ou JSY-MK-194T/333 ou Enphase-Envoy pendant 180s
-//Watchdog for 180 seconds. The system resets if no dialogue with the Linky or  JSY-MK-194T/333 or Enphase-Envoy for 180s
-#define WDT_TIMEOUT 180
-
+#define WDT_TIMEOUT_MS (180 * 1000) // Timeout en millisecondes (180 secondes)
 
 #define SER_BUF_SIZE 4096
 #define TEMPERATURE_PRECISION 12
@@ -574,13 +572,12 @@ void setup() {
 
   //Watchdog initialisation
   esp_task_wdt_deinit();
-  // Initialisation de la structure de configuration pour la WDT
   esp_task_wdt_config_t wdt_config = {
-    .timeout_ms = 10000,
-    .idle_core_mask = (1 << 0) | (1 << 1),
+    .timeout_ms = WDT_TIMEOUT_MS,
+    .idle_core_mask = (1 << portNUM_PROCESSORS) - 1, // <== VOTRE CODE, QUI EST LE BON.
     .trigger_panic = false
    };
-   esp_task_wdt_init(&wdt_config); // <== CORRIGEZ CETTE LIGNE
+   esp_task_wdt_init(&wdt_config);
   esp_task_wdt_add(NULL);  //add current thread to WDT watch
   esp_task_wdt_reset();
   delay(1);  //VERY VERY IMPORTANT for Watchdog Reset
