@@ -57,7 +57,7 @@ void Ecran_Loop() {
 
     runtime_0 = millis();
   }
-  if ((millis() - runtime_On) > 30000) {
+  if ((millis() - runtime_On) > DurEcran) {
     lcd.clear(TFT_BLACK);
     ReDraw = true;
     ScreenOn = false;

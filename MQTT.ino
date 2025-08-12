@@ -65,10 +65,10 @@ bool testMQTTconnected() {
         clientMQTT.subscribe(Topicp);
       }
       if (subMQTT == 1) {
+        char TopicAct[60];
         for (int i = 0; i < NbActions; i++) {
-          if (LesActions[i].Actif > 0) {
-            char TopicAct[50];
-            sprintf(TopicAct, "%s", LesActions[i].Titre.c_str());
+          if (LesActions[i].Titre.length() > 0) {
+            sprintf(TopicAct, "%s/%s", MQTTdeviceName.c_str(),LesActions[i].Titre.c_str());
             clientMQTT.subscribe(TopicAct);
           }
         }
@@ -118,6 +118,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
   }
   Message[length] = '\0';
   String message = String(Message) + ",";
+  Serial.println("Mqtt::"+message);
   for (int canal = 0; canal < 4; canal++) {
     if (String(topic) == TopicT[canal] && Source_Temp[canal] == "tempMqtt") {
       temperature[canal] = ValJson("temperature", message);
@@ -133,10 +134,37 @@ void callback(char *topic, byte *payload, unsigned int length) {
     if (message.indexOf("Pw") > 0) LastPwMQTTMillis = millis();
   }
   if (subMQTT == 1) {
+    char TopicAct[60];
     for (int i = 0; i < NbActions; i++) {
-      if (LesActions[i].Actif > 0 && LesActions[i].Titre == String(topic)) {
-        LesActions[i].tOnOff = ValJson("tOnOff", message);
-        LesActions[i].Prioritaire();
+      if (LesActions[i].Titre.length() > 0) {
+        sprintf(TopicAct, "%s/%s", MQTTdeviceName.c_str(),LesActions[i].Titre.c_str());
+        if ( strcmp(TopicAct , topic)==0) {
+          if (message.indexOf("tOnOff\":") > 0) LesActions[i].tOnOff = int(ValJson("tOnOff", message));
+          if (message.indexOf("Mode\":") > 0){
+              String modeRecu = StringJson("Mode", message); 
+              if (modeRecu == "Inactif") {
+                  LesActions[i].Actif = 0;
+              } else if (modeRecu == "Decoupe" || modeRecu == "OnOff") {
+                  LesActions[i].Actif = 1;
+              } else if (modeRecu == "Multi") {
+                  LesActions[i].Actif = 2;
+              } else if (modeRecu == "Train") {
+                  LesActions[i].Actif = 3;
+              } else if (modeRecu == "PWM") {
+                  LesActions[i].Actif = 4;
+              }
+          }
+          if (message.indexOf("Periode\":") > 0) {
+            int periodeRecu = int(ValJson("Periode", message));
+            if (periodeRecu>=0 && periodeRecu<LesActions[i].NbPeriode){
+              if (message.indexOf("SeuilOn\":") > 0) LesActions[i].Vmin[periodeRecu]  = int(ValJson("SeuilOn", message));
+              if (message.indexOf("SeuilOff\":") > 0) LesActions[i].Vmax[periodeRecu]  = int(ValJson("SeuilOff", message)); //Mode OnOff
+              if (message.indexOf("OuvreMax\":") > 0) LesActions[i].Vmax[periodeRecu]  = int(ValJson("OuvreMax", message)); //Autre Modes
+            }
+          }
+          LesActions[i].Prioritaire();
+          StockMessage("Action MQTT : " + String(topic) + " | " +String(Message));
+        }
       }
     }
   }
@@ -168,7 +196,7 @@ void sendMQTTDiscoveryMsg_global() {
   for (int canal = 0; canal < 4; canal++) {
     if (Source_Temp[canal] != "tempNo") DeviceToDiscover("Temperature_" + String(canal), nomTemperature[canal], "°C", "temperature", "1");
   }
-  DeviceToDiscover("Temperature_CPU", "Température CPU ESP32", "°C", "temperature", "1");
+
 
   if (Source == "Linky" || TempoRTEon == 1) {
     DeviceTextToDiscover("LTARF", "Option Tarifaire");
@@ -312,7 +340,7 @@ void SendDataToHomeAssistant() {
       sprintf(value, "%s,\"Temperature_%s\": %.1f", value, String(canal), temperature[canal]);
     }
   }
-  sprintf(value, "%s,\"Temperature_CPU\": %.1f", value, temperatureRead());
+
   if (Source == "Linky" || TempoRTEon == 1) {
     int code = 0;
     if (LTARF.indexOf("HEURE  CREUSE") >= 0) code = 1;  //Code Linky

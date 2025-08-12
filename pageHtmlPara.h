@@ -8,7 +8,8 @@ const char *ParaHtml = R"====(
   <style>    
     .form {margin:auto;padding:5px;display: table;text-align:left;width:100%;}
     .form2 {margin:2px;padding:2px;display: block;width:100%;}
-    .ligne {display: table-row;padding:10px;}
+    .ligne {display: table-row;}
+    .ligneF {display: table-row;background: rgba(50, 50, 50, 0.2);}
     .ligne3 {display:flex;justify-content: center;padding:0px;margin: 0px;}
     .cadre {border-top:1px solid azure;}
     .canalT {display: table;}
@@ -95,17 +96,25 @@ const char *ParaHtml = R"====(
             <label for='ESP10' style='text-align:right;'>ESP32/WT32-ETH01</label>
             <input type='radio' name='pESP' id='ESP10' value="10"  onclick="checkDisabled();">
           </div>
-        </div>
-        <div class="form"  >
-          <div class="ligne source" id="rotation">
-            <label for='Rot0' style='text-align:right;'>Ecran portait (0°)</label>
+          <div class="ligneF source" id="rotation">
+            <label for='Rot0' style='text-align:right;'>Ecran portrait (0°)</label>
             <input type='radio' name='pRot' id='Rot0' value="0"  >
             <label for='Rot1' style='text-align:right;'>Ecran paysage (90°)</label>
             <input type='radio' name='pRot' id='Rot1' value="1"  >
-            <label for='Rot2' style='text-align:right;'>Ecran portait (180°)</label>
+            <label for='Rot2' style='text-align:right;'>Ecran portrait (180°)</label>
             <input type='radio' name='pRot' id='Rot2' value="2"  >
             <label for='Rot3' style='text-align:right;'>Ecran paysage (270°)</label>
             <input type='radio' name='pRot' id='Rot3' value="3" checked  >
+          </div>
+          <div class="ligneF source" id="dureeOn">
+            <label for='Ec10000' style='text-align:right;'>Ecran On 10s</label>
+            <input type='radio' name='pDurEcran' id='Ec10000' value="10000"  >
+            <label for='Ec30000' style='text-align:right;'>Ecran On 30s</label>
+            <input type='radio' name='pDurEcran' id='Ec30000' value="30000" checked >
+            <label for='Ec300000' style='text-align:right;'>Ecran On 5mn</label>
+            <input type='radio' name='pDurEcran' id='Ec300000' value="300000"  >
+            <label for='Ec54000000' style='text-align:right;'>Ecran On 15h</label>
+            <input type='radio' name='pDurEcran' id='Ec54000000' value="54000000"   >
           </div>
           
           <div class="ligne source">
@@ -147,7 +156,7 @@ const char *ParaHtml = R"====(
         </div>
         <div class="form"  >
           
-          <div class="ligne source">
+          <div class="ligneF source">
             <label for='LED0' style='text-align:right;'>Pas de LED / OLED</label>
             <input type='radio' name='pLED' id='LED0' value="0"  >
             <label for='LED1' style='text-align:right;'>LEDs  gpio 18, gpio 19</label>
@@ -157,7 +166,7 @@ const char *ParaHtml = R"====(
             <label for='LED3' style='text-align:right;'>LEDs gpio 2, gpio 4</label>
             <input type='radio' name='pLED' id='LED3' value="3"  >
           </div>
-          <div class="ligne source">
+          <div class="ligneF source">
             <label for='LED10' style='text-align:right;'>SSD1306/1309 OLED<br>sda=gpio 18, scl=gpio 19</label>
             <input type='radio' name='pLED' id='LED10' value="10"  >
             <label for='LED11' style='text-align:right;'>SSD1306/1309 OLED<br>sda=gpio 4, scl=gpio 32</label>
@@ -167,6 +176,8 @@ const char *ParaHtml = R"====(
             <label for='LED13' style='text-align:right;'>SH1106 OLED<br>sda=gpio 4, scl=gpio 32</label>
             <input type='radio' name='pLED' id='LED13' value="13"  >
           </div>
+        </div>
+        <div class="form"  >
           <div class="ligne source" id="pTemp">
             <label for='pTemp0' style='text-align:right;'>Pas de capteur de température</label>
             <input type='radio' name='pTemp' id='pTemp0' value="0"  >
@@ -222,6 +233,18 @@ const char *ParaHtml = R"====(
             <label for='Hor2' style='text-align:right;'>Interne</label><input type='radio' name='Horlo' id='Hor2' value="2" onclick="checkDisabled();"  >
             <label for='Hor3' style='text-align:right;'>IT 10ms/100Hz (Triac)</label><input type='radio' name='Horlo' id='Hor3' value="3" onclick="checkDisabled();"  >
             <label for='Hor4' style='text-align:right;'>IT 20ms/50Hz</label><input type='radio' name='Horlo' id='Hor4' value="4" onclick="checkDisabled();"  >                 
+        </div>
+      </div>
+    </div>
+    <div class="Zone" id="SurvCom">
+      <div class="boldT">Surveillance Communications du Routeur <span class="fsize10"> Reset si coupure de : </span></div>
+      <div class="form"  >
+        <div class="ligne source">        
+            <label for='ComSurv6' style='text-align:right;' >3mn</label><input type='radio' name='ComSurv' id='ComSurv6' value="6" checked  >
+            <label for='ComSurv60' style='text-align:right;'>30mn</label><input type='radio' name='ComSurv' id='ComSurv60' value="60" >
+            <label for='ComSurv360' style='text-align:right;'>3h</label><input type='radio' name='ComSurv' id='ComSurv360' value="360" >
+            <label for='ComSurv1440' style='text-align:right;'>12h</label><input type='radio' name='ComSurv' id='ComSurv1440' value="1440" >
+            <label for='ComSurv2880' style='text-align:right;'>24h</label><input type='radio' name='ComSurv' id='ComSurv2880' value="2880" >                 
         </div>
       </div>
     </div>
@@ -484,13 +507,15 @@ const char *ParaJS = R"====(
              GID("CalibI").value=Para[27];
              GID("TempoRTEon").checked = Para[28]==1  ? true:false;
              GID("WifiSleep").checked = Para[29]==1  ? true:false;
-             GID("Serial" + Para[30]).checked = true;
-             GID("Triac" + Para[31]).checked = true;
-             GID("ESP" + Para[32]).checked = true;
-             GID("LED" + Para[33]).checked = true;
-             GID("Rot" + Para[34]).checked = true;
-             GID("pUxI" + Para[35]).checked = true;
-             GID("pTemp" + Para[36]).checked = true;
+             GID("ComSurv" + Para[30]).checked = true;
+             GID("Serial" + Para[31]).checked = true;
+             GID("Triac" + Para[32]).checked = true;
+             GID("ESP" + Para[33]).checked = true;
+             GID("LED" + Para[34]).checked = true;
+             GID("Rot" + Para[35]).checked = true;
+             GID("Ec" + Para[36]).checked = true;
+             GID("pUxI" + Para[37]).checked = true;
+             GID("pTemp" + Para[38]).checked = true;
              for (var c=0;c<4;c++){
                 var ParaT=LesParas[c+1].split(RS);
                 GID("nomTemperature"+c).value=ParaT[0];
@@ -512,6 +537,7 @@ const char *ParaJS = R"====(
     var dhcp = GID("dhcp").checked ? 1:0;
     var TempoRTEon = GID("TempoRTEon").checked ? 1:0;
     var Source_new = document.querySelector('input[name="sources"]:checked').value;
+    var ComSurv = document.querySelector('input[name="ComSurv"]:checked').value;
     var subMQTT = GID("subMQTT").checked ? 1:0;
     var WifiSleep = GID("WifiSleep").checked ? 1:0;
     var Serial = document.querySelector('input[name="pSerie"]:checked').value;
@@ -522,6 +548,7 @@ const char *ParaJS = R"====(
     var pESP  = document.querySelector('input[name="pESP"]:checked').value;
     var pLED  = document.querySelector('input[name="pLED"]:checked').value;
     var pRot  = document.querySelector('input[name="pRot"]:checked').value;
+    var pDurEcran  = document.querySelector('input[name="pDurEcran"]:checked').value;
     var pUxI  = document.querySelector('input[name="pUxI"]:checked').value;
     var pTemp  = document.querySelector('input[name="pTemp"]:checked').value;
     if (ModePara==0) { //Non Expert
@@ -533,8 +560,8 @@ const char *ParaJS = R"====(
     S +=RS+GID("MQTTRepete").value +RS+ip2int(GID("MQTTIP").value) +RS+GID("MQTTPort").value +RS+GID("MQTTUser").value.trim()+RS+GID("MQTTpwd").value.trim();
     S +=RS+GID("MQTTPrefix").value.trim()+RS+GID("MQTTPrefixEtat").value.trim()+RS+GID("MQTTdeviceName").value.trim() + RS + subMQTT;
     S +=RS+GID("nomRouteur").value.trim()+RS+GID("nomSondeFixe").value.trim()+RS+GID("nomSondeMobile").value.trim();
-    S +=RS+GID("CalibU").value+RS+GID("CalibI").value + RS + TempoRTEon + RS + WifiSleep + RS + Serial + RS + pTriac;
-    S +=RS + pESP + RS + pLED +RS + pRot + RS + pUxI + RS + pTemp;
+    S +=RS+GID("CalibU").value+RS+GID("CalibI").value + RS + TempoRTEon + RS + WifiSleep + RS + ComSurv + RS + Serial + RS + pTriac;
+    S +=RS + pESP + RS + pLED +RS + pRot + RS + pDurEcran + RS + pUxI + RS + pTemp;
     for (var c=0;c<4;c++){
       var QS='input[name="srcTemp' + c + '"]:checked';
       var Source_Temp = (ModePara==0) ? "tempNo":document.querySelector(QS).value;
@@ -583,6 +610,7 @@ const char *ParaJS = R"====(
     GID("dhcp").style.visibility= (ModeReseau==2) ? "hidden" : "visible";
     GID("ipreset").style.display= (ModeReseau==2) ? "none" : "inherit";
     GID("rotation").style.display= (pESP==4) ? "table-row" : "none";
+    GID("dureeOn").style.display= (pESP==4) ? "table-row" : "none";
     GID("l_wifi_0").style.display= (ModeReseau==2) ? "none": "table-row";
     GID("l_wifi_1").style.display= (ModeReseau==2 || ModePara==0) ? "none": "table-row";
     GID("l_wifi_2").style.display= (ModeReseau==2 || ModePara==0 || ESP32_Type>=10) ? "none": "table-row";
@@ -604,6 +632,7 @@ const char *ParaJS = R"====(
     GID("Zmqtt").style.display = ((GID("MQTTRepete").value != 0  || GID("Pmqtt").checked ||  GID("subMQTT").checked) && ModePara>0) ? "block" : "none";
     GID("LesSourcesTemp").style.display= (ModePara==0) ? "none": "block";
     GID("pTemp").style.display= (ModePara==0) ? "none": "table-row";
+    GID("SurvCom").style.display= (ModePara==0) ? "none": "block";
     for (var c=0;c<4;c++){
       GID('ligneTemperature'+c).style.display = (GID("tempNo"+c).checked) ? "none" : "table";
       GID('ligneTopicT'+c).style.display = (GID("tempMqtt"+c).checked) ? "table-row" : "none";
@@ -637,19 +666,7 @@ const char *ParaJS = R"====(
   }
  
   
-  function Reset(){
-      GID("attente").style="visibility: visible;";
-      var xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function() { 
-          if (this.readyState == 4 && this.status == 200) {
-            GID('BoutonsBas').innerHTML=this.responseText;
-            GID("attente").style="visibility: hidden;";
-            setTimeout(location.reload(),1000);
-          }         
-        };
-        xhttp.open('GET', 'restart', true);
-        xhttp.send();
-  }
+  
   function AdaptationSource(){
       GID('ligneFixe').style.display = (Source_data=='UxIx2' || ((Source_data=='ShellyEm' || Source_data=='ShellyPro') && GID("EnphaseSerial").value !=3 ))? "table-row" : "none";
       GID('Zcalib').style.display=(Source_data=='UxI' && Source=='UxI' ) ? "table" : "none";
@@ -813,6 +830,19 @@ const char *ParaRouteurJS = R"====(
     var h = Math.floor(100*parseInt(val[0]) + 0.4 + 100*parseInt(val[1])/60);
     h=Math.max(0,h);h=Math.min(2400,h);
     return h;  
+  }
+  function Reset(){
+      GID("attente").style="visibility: visible;";
+      var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() { 
+          if (this.readyState == 4 && this.status == 200) {
+            GID('BoutonsBas').innerHTML=this.responseText;
+            GID("attente").style="visibility: hidden;";
+            setTimeout(location.reload(),1000);
+          }         
+        };
+        xhttp.open('GET', 'restart', true);
+        xhttp.send();
   }
 
 )====";

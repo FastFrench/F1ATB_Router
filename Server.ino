@@ -47,6 +47,7 @@ void Init_Server() {
   server.on("/CouleursAjax", handleCouleursAjax);
   server.on("/CouleurUpdate", handleCouleurUpdate);
   server.on("/commun.css", handleCommunCSS);
+  server.on("/favicon.ico", handleFavicon);
   server.onNotFound(handleNotFound);
 
   //SERVER OTA
@@ -250,6 +251,7 @@ void handleAjaxHisto48h() {  // Envoi Historique de 50h (600points) toutes les 5
   String T = "";
   String U = "";
   String Ouverture = "";
+  String Pmaxi= String(PuisMaxS_M ) +RS + String(PuisMaxI_M ) +RS +String(PuisMaxS_T ) +RS + String(PuisMaxI_T ) ;
   int iS = IdxStockPW;
   for (int i = 0; i < 600; i++) {
     S += String(tabPw_Maison_5mn[iS]) + ",";
@@ -280,7 +282,7 @@ void handleAjaxHisto48h() {  // Envoi Historique de 50h (600points) toutes les 5
   }
 
   server.sendHeader("Connection", "close");
-  server.send(200, "text/html", Source_data + GS + S + GS + T + GS + U + Ouverture);
+  server.send(200, "text/html", Pmaxi + GS + S + GS + T + GS + U + Ouverture);
 }
 void handleAjaxESP32() {  // Envoi des dernières infos sur l'ESP32
   IT10ms = 0;
@@ -316,8 +318,7 @@ void handleAjaxESP32() {  // Envoi des dernières infos sur l'ESP32
     S += RS + "Horloge ESP";
   }
   S += RS + String(Nbr_DS18B20);
-  S += RS + AllTemp;
-  S += RS + String(temperatureRead()) + GS;  //Temperature CPU
+  S += RS + AllTemp + GS;
   int j = idxMessage;
   for (int i = 0; i < 10; i++) {
     S += RS + MessageH[j];
@@ -479,6 +480,8 @@ void handleActionsJS() {
 
 void handleActionsUpdate() {
   int adresse_max = 0;
+  ReacCACSI = byte(server.arg("ReacCACSI").toInt());
+  Fpwm =server.arg("Fpwm").toInt();
   String s = server.arg("actions");
   String ligne = "";
   InitGPIOs();  //RAZ anciennes actions
@@ -500,7 +503,7 @@ void handleActionsAjax() {
   for (int c = 0; c < 4; c++) {
     S += nomTemperature[c] + US;
   }
-  S = S + RS + String(LTARFbin) + RS + String(pTriac) + GS;
+  S = S + RS + String(LTARFbin) + RS + String(pTriac) + RS + String(ReacCACSI)+ RS + String(Fpwm) + RS + String(ModePara) + GS;
   for (int i = 0; i < NbActions; i++) {
     S += LesActions[i].Lire();
   }
@@ -524,7 +527,7 @@ void handlePara() {
 void handleParaUpdate() {
   lectureCookie("");
   CleAccesRef = CleAcces;  //Nouvelle cle d'accès ou mise à jour
-  String Vp[69];
+  String Vp[71];
   String lesparas = server.arg("lesparas") + RS;
   int idx = 0;
   while (lesparas.length() > 0) {
@@ -563,26 +566,28 @@ void handleParaUpdate() {
   CalibI = Vp[27].toInt();  //2 bytes
   TempoRTEon = byte(Vp[28].toInt());
   WifiSleep = byte(Vp[29].toInt());
-  pSerial = byte(Vp[30].toInt());
-  pTriac = byte(Vp[31].toInt());
-  ESP32_Type = byte(Vp[32].toInt());
-  LEDgroupe = byte(Vp[33].toInt());
-  rotation = byte(Vp[34].toInt());
-  pUxI = byte(Vp[35].toInt());
-  pTemp = byte(Vp[36].toInt());
+  ComSurv = Vp[30].toInt();
+  pSerial = byte(Vp[31].toInt());
+  pTriac = byte(Vp[32].toInt());
+  ESP32_Type = byte(Vp[33].toInt());
+  LEDgroupe = byte(Vp[34].toInt());
+  rotation = byte(Vp[35].toInt());
+  DurEcran = strtoul(Vp[36].c_str(), NULL, 10);
+  pUxI = byte(Vp[37].toInt());
+  pTemp = byte(Vp[38].toInt());
   int canal = 0;
   for (int c = 0; c < 4; c++) {
-    nomTemperature[c] = Vp[37 + 6 * c];
-    Source_Temp[c] = Vp[38 + 6 * c];
-    TopicT[c] = Vp[39 + 6 * c];
-    refTempIP[c] = byte(Vp[40 + 6 * c].toInt());
-    canalTempExterne[c] = byte(Vp[41 + 6 * c].toInt());
-    offsetTemp[c] = Vp[42 + 6 * c].toInt();
+    nomTemperature[c] = Vp[39 + 6 * c];
+    Source_Temp[c] = Vp[40 + 6 * c];
+    TopicT[c] = Vp[41 + 6 * c];
+    refTempIP[c] = byte(Vp[42 + 6 * c].toInt());
+    canalTempExterne[c] = byte(Vp[43 + 6 * c].toInt());
+    offsetTemp[c] = Vp[44 + 6 * c].toInt();
   }
   int j = 1;
   for (int i = 1; i < LesRouteursMax; i++) {
     RMS_IP[i] = 0;
-    unsigned long IP = strtoul(Vp[61 + i].c_str(), NULL, 10);
+    unsigned long IP = strtoul(Vp[63 + i].c_str(), NULL, 10);
     if (IP > 0 && ModeReseau < 2) {
       RMS_IP[j] = IP;
       j++;
@@ -625,8 +630,8 @@ void handleParaAjax() {
   S += RS + String(MQTTRepet) + RS + String(MQTTIP) + RS + String(MQTTPort) + RS + MQTTUser + RS + MQTTPwd;
   S += RS + MQTTPrefix + RS + MQTTPrefixEtat + RS + MQTTdeviceName + RS + String(subMQTT) + RS + nomRouteur + RS + nomSondeFixe + RS + nomSondeMobile;
   S += RS + String(CalibU) + RS + String(CalibI);
-  S += RS + String(TempoRTEon) + RS + String(WifiSleep) + RS + String(pSerial) + RS + String(pTriac);
-  S += RS + String(ESP32_Type) + RS + String(LEDgroupe) + RS + String(rotation) + RS + String(pUxI) + RS + String(pTemp);
+  S += RS + String(TempoRTEon) + RS + String(WifiSleep) + RS + String(ComSurv) + RS + String(pSerial) + RS + String(pTriac);
+  S += RS + String(ESP32_Type) + RS + String(LEDgroupe) + RS + String(rotation) + RS + String(DurEcran) + RS + String(pUxI) + RS + String(pTemp);
   for (int c = 0; c < 4; c++) {
     S += GS + nomTemperature[c] + RS + Source_Temp[c] + RS + TopicT[c] + RS + String(refTempIP[c]) + RS + String(canalTempExterne[c]) + RS + String(offsetTemp[c]);
   }
@@ -820,7 +825,9 @@ void handleCommunCSS() {
   server.send(200, "text/css", S + CommunCSS);
 }
 
-
+void handleFavicon() {
+  server.send(200, "image/svg+xml", Favicon);
+}
 void handleNotFound() {  //Page Web pas trouvé
   String message = "Fichier non trouvé\n\n";
   message += "URI: ";

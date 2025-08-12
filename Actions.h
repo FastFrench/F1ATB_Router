@@ -27,8 +27,8 @@ public:
   byte SelActEnCours(int Heure);
   int Valmin(int Heure);
   int Valmax(int Heure);
-  void InitGpio();
-  byte Actif;  //0=Inactif,1=Decoupe ou On/Off, 2=Multi, 3= Train
+  void InitGpio(int FreqPWM);
+  byte Actif;  //0=Inactif,1=Decoupe ou On/Off, 2=Multi, 3= Train, 4=PWM (sauf Triac)
   int Port;
   int Repet;
   int Tempo;
@@ -53,7 +53,7 @@ public:
   int16_t Hdeb[8];
   int16_t Hfin[8];
   int16_t Vmin[8];  //Seuil Pw On ou decoupe
-  int16_t Vmax[8];  //Seuil Pw Off ou ouverture max triac
+  int16_t Vmax[8];  //Seuil Pw Off ou ouverture max 
   int16_t Tinf[8];  //Temperarure * 10
   int16_t Tsup[8];
   int16_t Hmin[8];  //Heure deci *100 Min pour actif. 0=non utilisé

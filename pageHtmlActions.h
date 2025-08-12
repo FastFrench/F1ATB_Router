@@ -11,11 +11,14 @@ const char *ActionsHtml = R"====(
    
     .Bactions{border:inset 8px azure;}
     .cadre{width:100%;max-width:1200px;margin:auto;}
-    .form{width:100%;text-align:left;}
+    .form{width:100%;text-align:left;} 
+    .form2 {margin:auto;padding:5px;display: table;text-align:left;width:100%;}
     .titre{display:flex;justify-content:center;cursor:pointer;color:black;font-weight:bold;font-size:110%;}
     .slideTriac{width:100%;position:relative;margin:4px;padding:4px;border:2px inset grey;background-color:#fff8f8;color:black;font-size:14px;}
     .slideTriacIn{display:flex;justify-content:center;width:100%;}
-    .planning{width:100%;position:relative;margin:4px;padding:2px;border:2px inset grey;background-color:white;color:black;border-radius:8px;}
+    .planning,#CACSI,#Freq_PWM{width:100%;position:relative;margin:4px;padding:2px;border:2px inset grey;background-color:white;color:black;border-radius:8px;}
+    #CACSI,#Freq_PWM{background-color:#ffa;}
+    #commun{display:none;}
     .periode{position:absolute;height:100%;border:outset 4px;border-radius:10px;display:flex;justify-content:space-between;align-items: center;color:white;cursor:ew-resize;}
     .curseur{position:relative;width:100%;height:30px;}
     .infoAction{position:relative;display:flex;width:100%;min-height:40px;font-size:20px;}
@@ -36,11 +39,12 @@ const char *ActionsHtml = R"====(
     .fcontleft{display:flex;justify-content: space-around;flex-direction: column;}
     .tm{width:60px;text-align:left;}
     .tbut{width:40px;padding-left:10px;padding-right:10px;text-align:center;font-weight:bold;font-size:24px;cursor:pointer;display:inline-flex;}
-    .ligne {display: table-row;padding:10px;}
+    .ligne {display: table-row;padding:10px;} 
     tr {margin: 2px;text-align:left;font-size:20px;}
     h4{padding:2px;margin:0px;}
     h5{text-align:left;padding:2px;margin:0px;}
     label{text-align:right;}
+    .source label{display: table-cell;margin: 5px;text-align:left;font-size:20px;height:26px;width:initial;}
     input {margin: 5px;text-align:left;font-size:15px;max-width:150px;}
     #message{position:fixed;border:inset 4px grey;top:2px;right:2px;background-color:#333;color:white;font-size:16px;display:none;text-align:left;padding:5px;}
     .bord1px{border:solid 1px grey; margin:4px;padding:2px;border-radius:4px;}
@@ -64,9 +68,47 @@ const char *ActionsHtml = R"====(
       <div class="form"   >
         <div id="plannings"></div>
       </div> 
-      <div  style='text-align:right;padding-top:20px;'>
-        <input class='bouton' type='button' value='Sauvegarder' onclick="SendValues();">
+      <div id="commun"> 
+        <br>
+        <h4>Paramètres communs aux Actions</h4>   
+        <div id="CACSI"> 
+          <div>Réactivité CACSI <span class='fsize10'>Augmentée pour les valeurs de puissance inférieures au seuil Pw. Pour tous les SSR ou Triac.</span></div>
+          <div class="form2"  >
+            <div class="ligne source">
+              <label for='CACSI1' style='text-align:right;'>Pas de CACSI</label>
+              <input type='radio' name='ReacCACSI' id='CACSI1' value="1" checked>
+              <label for='CACSI2' style='text-align:right;'>Réactivité x 2</label>
+              <input type='radio' name='ReacCACSI' id='CACSI2' value="2" >
+              <label for='CACSI4' style='text-align:right;'>Réactivité x 4</label>
+              <input type='radio' name='ReacCACSI' id='CACSI4' value="4" >
+              <label for='CACSI8' style='text-align:right;'>Réactivité x 8</label>
+              <input type='radio' name='ReacCACSI' id='CACSI8' value="8" >
+            </div>
+          </div>
+        </div>
+        <div id="Freq_PWM"> 
+          <div>Fréquence signaux PWM <span class='fsize10'> Nécessite un Reset de l'ESP32</span></div>
+          <div class="form2"  >
+            <div class="ligne source">
+              <label for='Fpwm5' style='text-align:right;'>5 Hz</label>
+              <input type='radio' name='Fpwm' id='Fpwm5' value="5" >
+              <label for='Fpwm50' style='text-align:right;'>50 Hz</label>
+              <input type='radio' name='Fpwm' id='Fpwm50' value="50" >
+              <label for='Fpwm500' style='text-align:right;'>500 Hz</label>
+              <input type='radio' name='Fpwm' id='Fpwm500' value="500" checked>
+              <label for='Fpwm5000' style='text-align:right;'>5000 Hz</label>
+              <input type='radio' name='Fpwm' id='Fpwm5000' value="5000" >
+              <label for='Fpwm50000' style='text-align:right;'>50000 Hz</label>
+              <input type='radio' name='Fpwm' id='Fpwm50000' value="50000" >
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div  id='BoutonsBas'>        
+        <br><input  class='bouton' type='button' onclick="SendValues();" value='Sauvegarder' >
         <div class="lds-dual-ring" id="attente"></div>
+        <input  class='bouton' type='button' onclick='Reset();' value='ESP32 Reset' >
       </div>
     </div>
     <div id="message"></div><br>
@@ -115,6 +157,7 @@ const char *ActionsJS = R"====(
       if (iAct > 0){Radio1 = "<div ><input type='radio' name='modeactif" + iAct +"' id='radio" + iAct +"-1'  onclick='checkDisabled();'>On/Off</div>";}
       Radio1 += "<div ><input type='radio' name='modeactif" + iAct +"' id='radio" + iAct +"-2'  onclick='checkDisabled();'>Multi-sinus</div>";
       Radio1 += "<div ><input type='radio' name='modeactif" + iAct +"' id='radio" + iAct +"-3'  onclick='checkDisabled();'>Train de sinus</div>";
+      Radio1 += "<div id='Pwm" + iAct + "'><input type='radio' name='modeactif" + iAct +"' id='radio" + iAct +"-4'  onclick='checkDisabled();'>PWM</div>";
       var SelectPin="<div>Gpio <select id='selectPin"+iAct +"' onchange='checkDisabled();' onmousemove='Disp(this)'>";
       for (var i=0;i<Pins.length;i++){
         var v="gpio:"+Pins[i];
@@ -342,7 +385,7 @@ const char *ActionsJS = R"====(
               if (Tinf>1500 || Tinf<-500) TinfC=""; //Temperature entre -50 et 150° représenté en dixième
               if (Tsup>1500 || Tsup<-500) TsupC=""; //Temperature entre -50 et 150
               if (iAct > 0) {
-                  var Routage=["","Routage ON/Off","Routage Multi-sinus","Routage Train de Sinus"];
+                  var Routage=["","Routage ON/Off","Routage Multi-sinus","Routage Train de Sinus","PWM"];
                   S += "<div class='zPw' ><div class='radioC' ><input type='radio'  name='R" + idZ +"' onclick='selectZ(3," + i + "," + iAct + ");' " + check +">" +Routage[LesActions[iAct].Actif] + "</div>";
                   if (LesActions[iAct].Actif<=1) {
                       S += "<div><small>On : &nbsp;</small>Pw &lt;<input id='Pw_min_"+idZ+"' onmousemove='Disp(this)' type='number' value='"+Vmin+"' onchange='NewVal(this)' >W</div>";
@@ -507,9 +550,10 @@ const char *ActionsJS = R"====(
   }
   function checkDisabled(){
     GID("sortie0").style.display ="none";
+    GID("Freq_PWM").style.display="none";
     for (var iAct = 0; iAct < LesActions.length; iAct++) {
-        for (var i=0;i<=3;i++){
-            if( GID("radio" + iAct +"-"+ i).checked ) { LesActions[iAct].Actif =i;} //0=Inactif,1=Decoupe ou On/Off, 2=Multi, 3= Train
+        for (var i=0;i<=4;i++){
+            if( GID("radio" + iAct +"-"+ i).checked ) { LesActions[iAct].Actif =i;} //0=Inactif,1=Decoupe ou On/Off, 2=Multi, 3= Train, 4= PWM
         }
         if (GID("selectPin"+iAct).value==-1 && LesActions[iAct].Actif>1 && iAct>0){LesActions[iAct].Actif=1;GID("radio" + iAct +"-" +LesActions[iAct].Actif).checked = true;}  
         TracePeriodes(iAct);
@@ -527,12 +571,15 @@ const char *ActionsJS = R"====(
         GID("Repet"+iAct).style.display =visible;   
         GID("radio" + iAct +"-2").disabled = disable; 
         GID("radio" + iAct +"-3").disabled = disable;
+        GID("radio" + iAct +"-4").disabled = disable;
         GID("ordreoff"+iAct).style.display=disp;  
         GID("ordreon"+iAct).style.display =disp;
         if (GID("selectPin"+iAct).value==-1 && GID("ordreOn"+iAct).value.indexOf(IS)>0) GID("ordreOn"+iAct).value="";                   
         GID("ligne_bas"+iAct).style.display  =( LesActions[iAct].Actif==1 && GID("selectPin"+iAct).value<=0 && iAct>0) ?  "flex" :"none";
         GID("fen_slide"+iAct).style.display = (LesActions[iAct].Actif== 1 && iAct>0  ) ? "none" : "block";
+        if( GID("radio" + iAct +"-4").checked) GID("Freq_PWM").style.display="block";
     }
+    GID("Pwm0").style.display = "none"; //Pas de PWM sur la sortie Triac
   }
 
   function LoadActions() {
@@ -546,6 +593,9 @@ const char *ActionsJS = R"====(
               NomTemperatures = LesParas[1].split(US);
               LTARFbin = parseInt(LesParas[2]);
               pTriac = parseInt(LesParas[3]);
+              GID("CACSI" + LesParas[4]).checked = true;
+              GID("Fpwm" + LesParas[5]).checked = true;
+              if (LesParas[4]>1 || LesParas[6]>0) GID("commun").style = "display:block;";
               LesActions.splice(0,LesActions.length);
               for (var iAct=1;iAct<Les_ACTIONS.length-1;iAct++){
                 var champs=Les_ACTIONS[iAct].split(RS);
@@ -612,7 +662,7 @@ const char *ActionsJS = R"====(
   function SendValues() {
       GID("attente").style="visibility: visible;";
       for (var iAct = 0; iAct < LesActions.length; iAct++) {
-        for (var i=0;i<=3;i++){
+        for (var i=0;i<=4;i++){
             if( GID("radio" + iAct +"-"+ i).checked ) { LesActions[iAct].Actif =i;}
         }
         LesActions[iAct].Titre = GID("titre" + iAct).innerHTML.trim();
@@ -649,8 +699,10 @@ const char *ActionsJS = R"====(
             S +=GS;
         }
       }
+      var ReacCACSI  = document.querySelector('input[name="ReacCACSI"]:checked').value;
+      var Fpwm  = document.querySelector('input[name="Fpwm"]:checked').value;
       S=clean(S);
-      S = "?actions="+S+"|"; //On ne peut pas terminer par GS
+      S = "?ReacCACSI=" + ReacCACSI + "&Fpwm=" + Fpwm +"&actions="+S+"|"; //On ne peut pas terminer par GS
       
       var xhttp = new XMLHttpRequest();
       xhttp.onreadystatechange = function () {

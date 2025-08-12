@@ -1,4 +1,4 @@
-#define Version "14.25"
+#define Version "15.00"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -153,12 +153,23 @@
     Bug affichage ouverture action 2s
     Bug affichage puissance HomeWizard. Modif ValJsonSG().
   - V14.25
-    Affichage des autres routeurs en page d'accueil         
+    Affichage des autres routeurs en page d'accueil 
+  - V15.00
+    Retrait température CPU dans les données brutes. Plus défini par Espressif
+    Reaction plus dynamique à choisir dans le cas d'un CACSI et légère surproduction 
+    Si source de données de puissance externe, le nom du routeur s'affiche en plus de l'IP 
+    Correction décodage Smart Gateway  ValJsonSG  
+    Choix durée allumage écran LCD
+    Affichage des puissances Max du jour 
+    Sortie au format PWM pour les Actions
+    Choix du Timeout en cas de coupure de la communication
+    Pilotage des Actions par MQTT : tOnOff,Mode,SeuilOn,SeuilOff,OuvreMax,Periode (Topic=DeviceName/Nom_Action)
   
   Les détails sont disponibles sur / Details are available here:
   https://f1atb.fr  Section Domotique / Home Automation
 
-  F1ATB Mars 2025
+  
+  F1ATB Juillet 2025
 
   GNU Affero General Public License (AGPL) / AGPL-3.0-or-later
 
@@ -222,13 +233,13 @@ String Source_data = "UxI";
 String SerialIn = "";
 String hostname = "";
 byte dhcpOn = 1;
-byte ModePara = 0;    //0 = Minimal, 1= Expert
-byte ModeReseau = 0;  //0 = Internet, 1= LAN only, 2 =AP pas de réseau
-byte Horloge = 0;     //0=Internet, 1=Linky, 2=Interne, 3=IT 10ms/triac, 4=IT 20ms
-byte ESP32_Type = 0;  //0=Inconnu,1=Wroom seul,2=Wroom 1 relais,3=Wroom 4 relais,4=Wroom+Ecran320*240,10=ESP32-ETH01
-byte LEDgroupe = 0;   //0:pas de LED,1à9 pour les LED. 10 et 11 pour les écrans  OLED 
-byte LEDyellow[] = { 0, 18, 4, 2 ,0 , 0 ,0 ,0 ,0, 0, 18, 4, 18, 4}; //Ou SDA pour OLED
-byte LEDgreen[] = { 0, 19, 16, 4 ,0 ,0 ,0 ,0 ,0 ,0 ,19 ,32,19 ,32};  //ou SCL pour OLED
+byte ModePara = 0;                                                     //0 = Minimal, 1= Expert
+byte ModeReseau = 0;                                                   //0 = Internet, 1= LAN only, 2 =AP pas de réseau
+byte Horloge = 0;                                                      //0=Internet, 1=Linky, 2=Interne, 3=IT 10ms/triac, 4=IT 20ms
+byte ESP32_Type = 0;                                                   //0=Inconnu,1=Wroom seul,2=Wroom 1 relais,3=Wroom 4 relais,4=Wroom+Ecran320*240,10=ESP32-ETH01
+byte LEDgroupe = 0;                                                    //0:pas de LED,1à9 pour les LED. 10 et 11 pour les écrans  OLED
+byte LEDyellow[] = { 0, 18, 4, 2, 0, 0, 0, 0, 0, 0, 18, 4, 18, 4 };    //Ou SDA pour OLED
+byte LEDgreen[] = { 0, 19, 16, 4, 0, 0, 0, 0, 0, 0, 19, 32, 19, 32 };  //ou SCL pour OLED
 unsigned long Gateway = 0;
 unsigned long masque = 4294967040;
 unsigned long dns = 0;
@@ -264,6 +275,7 @@ int cptLEDgreen = 0;
 //Paramètres écran
 byte rotation = 3;
 uint16_t Calibre[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned long DurEcran = 30000;
 
 
 //Paramètres électriques
@@ -283,6 +295,7 @@ long EnergieJour_M_Injectee = 0;
 long EnergieJour_T_Soutiree = 0;
 long EnergieJour_M_Soutiree = 0;
 int PuissanceS_T, PuissanceS_M, PuissanceI_T, PuissanceI_M;
+int PuisMaxS_T = 0, PuisMaxS_M = 0, PuisMaxI_T = 0, PuisMaxI_M = 0;
 int PVAS_T, PVAS_M, PVAI_T, PVAI_M;
 float PuissanceS_T_inst, PuissanceS_M_inst, PuissanceI_T_inst, PuissanceI_M_inst;
 float PVAS_T_inst, PVAS_M_inst, PVAI_T_inst, PVAI_M_inst;
@@ -367,7 +380,7 @@ long TlastEASTvalide = 0;
 long TlastEAITvalide = 0;
 String LTARF = "";  //Option tarifaire RTE
 String STGE = "";   //Status Linky
-String STGEt = "";   //Status Tempo uniquement RTE
+String STGEt = "";  //Status Tempo uniquement RTE
 String NGTF = "";   //Calendrier tarifaire
 String JourLinky = "";
 int16_t Int_HeureLinky = 0;  //Heure interne
@@ -426,6 +439,8 @@ int8_t RMSextIdx = 0;
 //Actions
 Action LesActions[LesActionsLength];  //Liste des actions
 volatile int NbActions = 0;
+byte ReacCACSI = 1;
+unsigned int Fpwm=500; // Frequence signaux PWM en Hz
 
 
 
@@ -468,6 +483,7 @@ volatile unsigned short CptIT = 0;  //Compeur IT Triac ou 20ms;
 volatile unsigned short StepIT = 1;
 hw_timer_t *timer = NULL;
 hw_timer_t *timer10ms = NULL;
+
 
 
 volatile int Retard[LesActionsLength];
@@ -527,6 +543,7 @@ bool Discovered = false;
 
 //WIFI
 int16_t WIFIbug = 0;
+int16_t ComSurv = 6; //Timeout sans Wifi par pas de 30s
 WiFiClientSecure clientSecu;
 WiFiClientSecure clientSecuRTE;
 String Liste_AP = "";
@@ -544,6 +561,7 @@ int RMS_Datas_idx = 0;
 
 //Adressage IP coeur0 et coeur1
 byte arrIP[4];
+
 
 //Multicoeur - Processeur 0 - Collecte données RMS local ou distant
 TaskHandle_t Task1;
@@ -587,6 +605,9 @@ void GestionIT_10ms() {
           digitalWrite(pulseTriac, LOW);  //Stop Découpe Triac
         }
         break;
+      case 4: //PWM ne depend pas IT 10ms
+
+        break;
       default:              // Multi Sinus ou Train de sinus
         if (Gpio[i] > 0) {  //Gpio valide
           if (PulseComptage[i] < PulseOn[i]) {
@@ -622,6 +643,7 @@ void setup() {
   startMillis = millis();
   previousLEDsMillis = startMillis;
 
+ 
 
   //Ports Série ESP
   Serial.begin(115200);
@@ -704,9 +726,9 @@ void setup() {
   Serial.printf("Chip Model: %s\n", ESP.getChipModel());
   delay(100);
   Ethernet.init(driver);
-  if (String(ESP.getChipModel()) == "ESP32-D0WD") { //certains ESP32U et WT32-ETH01
+  if (String(ESP.getChipModel()) == "ESP32-D0WD") {  //certains ESP32U et WT32-ETH01
     Serial.println("\nAncien modèle d'ESP32 que l'on trouve sur les cartes Ethernet WT32-ETH01 (branchez le câble) et certains ESP32U");
-    if (Ethernet.begin() != 0) { //C'est une carte WT-ETH01
+    if (Ethernet.begin() != 0) {  //C'est une carte WT-ETH01
       Serial.println("Carte WT32-ETH01 qui Crash en Wifi. On force Ethernet.\n");
       ESP32_Type = 10;  //On force Ethernet
     }
@@ -740,7 +762,7 @@ void setup() {
   }
   hostname += String(chipId);  //Add chip ID to hostname
   Serial.println(hostname);    //optional
-  if (ESP32_Type == 10) {  //Ethernet (avant Horloge)
+  if (ESP32_Type == 10) {      //Ethernet (avant Horloge)
     PrintScroll("Lancement de la liaison Ethernet");
     if (Ethernet.linkStatus() == LinkOFF) {
       PrintScroll("Câble Ethernet non connecté.");
@@ -1080,7 +1102,7 @@ void loop() {
     }
 
 
-    if (tps - previousTimer2sMillis > 2000) { 
+    if (tps - previousTimer2sMillis > 2000) {
       unsigned long dt = tps - previousTimer2sMillis;
       previousTimer2sMillis += 2000;  //Pou caler exactement à 2s
       tabPw_Maison_2s[IdxStock2s] = PuissanceS_M - PuissanceI_M;
@@ -1095,6 +1117,10 @@ void loop() {
         }
       }
       IdxStock2s = (IdxStock2s + 1) % 300;
+      PuisMaxS_T = max(PuisMaxS_T, PuissanceS_T);
+      PuisMaxS_M = max(PuisMaxS_M, PuissanceS_M);
+      PuisMaxI_T = max(PuisMaxI_T, PuissanceI_T);
+      PuisMaxI_M = max(PuisMaxI_M, PuissanceI_M);
       JourHeureChange();
       EnergieQuotidienne();
       H_Ouvre_Equivalent(dt);
@@ -1138,7 +1164,7 @@ void loop() {
     InfoActionExterne();
   }
   //Vérification Ethernet, WIFI et de la puissance
-  //********************
+  //*********************************************
   if (tps - previousWifiMillis > 30000) {  //Test présence WIFI toutes les 30s et autres
     previousWifiMillis = tps;
     JourHeureChange();
@@ -1151,11 +1177,11 @@ void loop() {
         } else {
           WIFIbug = 0;
         }
-       
-        PrintScroll("Signal WiFi: " +String(WiFi.RSSI())+"dBm");
-        PrintScroll("IP :"+WiFi.localIP().toString() );
-        if (WIFIbug > 0) PrintScroll("WiFi Bug # :"+String(WIFIbug) );
-        if (WIFIbug > 2880) {  //24h sans WIFI Reset
+
+        PrintScroll("Signal WiFi: " + String(WiFi.RSSI()) + "dBm");
+        PrintScroll("IP :" + WiFi.localIP().toString());
+        if (WIFIbug > 0) PrintScroll("WiFi Bug # :" + String(WIFIbug));
+        if (WIFIbug > ComSurv) {  //Timeout sans WIFI =Reset
           delay(5000);
           ESP.restart();
         }
@@ -1165,21 +1191,21 @@ void loop() {
       } else {
         if (ModeReseau < 2) {  //Normalement connecté au réseau
           WIFIbug++;
-          if (WIFIbug > 120) {  // 1h en mode AP Reset
+          if (WIFIbug > ComSurv) {  // TimeOut en mode AP Reset
             ESP.restart();
           }
         }
         infoSerie();
       }
     } else {  //ESP32 Ethernet
-      PrintScroll("IP :"+Ethernet.localIP().toString() );
+      PrintScroll("IP :" + Ethernet.localIP().toString());
       if (Ethernet.linkStatus() == LinkOFF) {
         PrintScroll("Câble Ethernet non connecté.");
         EthernetBug++;
       } else {
         EthernetBug = 0;
       }
-      if (EthernetBug > 1200) {  // 10h sans réseau
+      if (EthernetBug > ComSurv) {  // TimeOut sans réseau
         ESP.restart();
       }
     }
@@ -1215,7 +1241,7 @@ void loop() {
       if (LTARF.indexOf("BLANC") >= 0) Ltarf += 8;
       if (LTARF.indexOf("ROUGE") >= 0) Ltarf += 16;
       LTARFbin = Ltarf;
-      if (LTARF!="") PrintScroll(LTARF);
+      if (LTARF != "") PrintScroll(LTARF);
     }
     //Test pulse Zc Triac
     if (ITmode < 0 && pTriac > 0) {
@@ -1243,6 +1269,7 @@ void GestionOverproduction() {
   float SeuilPw;
   float MaxTriacPw;
   float GainBoucle;
+  float GainCACSI = float(ReacCACSI);
   int Type_En_Cours = 0;
   int LeCanalTemp;
   float laTemperature;
@@ -1253,8 +1280,8 @@ void GestionOverproduction() {
   float Puissance = float(PuissanceS_M - PuissanceI_M);
   if (NbActions == 0) LissageLong = true;  //Cas d'un capteur seul et actions déporté sur autre ESP
   for (int i = 0; i < NbActions; i++) {
-    Actif[i] = LesActions[i].Actif;     //0=Inactif,1=Decoupe ou On/Off, 2=Multi, 3= Train
-    if (Actif[i] >= 2) lissage = true;  //En RAM
+    Actif[i] = LesActions[i].Actif;     //0=Inactif,1=Decoupe ou On/Off, 2=Multi, 3= Train , 4=PWM
+    if (Actif[i] == 2 || Actif[i] == 3) lissage = true;  //En RAM
     forceOff = false;
     LeCanalTemp = LesActions[i].CanalTempEnCours(HeureCouranteDeci);
     float laTemperature = -120;
@@ -1276,13 +1303,14 @@ void GestionOverproduction() {
       } else {  // 3 ou 4
         SeuilPw = float(LesActions[i].Valmin(HeureCouranteDeci));
         MaxTriacPw = float(LesActions[i].Valmax(HeureCouranteDeci));
-        GainBoucle = float(LesActions[i].Reactivite);                              //Valeur stockée dans Port
-        if (Actif[i] == 1 && i > 0) {                                              //Les relais en On/Off
-          if (Puissance > MaxTriacPw) { RetardF[i] = 100; }                        //OFF
-          if (Puissance < SeuilPw) { RetardF[i] = 0; }                             //On
-        } else {                                                                   // le Triac ou les relais en sinus
-          RetardF[i] = RetardF[i] + 0.0001;                                        //On ferme très légèrement si pas de message reçu. Sécurité
-          RetardF[i] = RetardF[i] + (Puissance - SeuilPw) * GainBoucle / 10000.0;  // Gain de boucle de l'asservissement
+        GainBoucle = float(LesActions[i].Reactivite);                                     //Valeur stockée dans Port
+        if (Actif[i] == 1 && i > 0) {                                                     //Les relais en On/Off
+          if (Puissance > MaxTriacPw) { RetardF[i] = 100; }                               //OFF
+          if (Puissance < SeuilPw) { RetardF[i] = 0; }                                    //On
+        } else {                                                                          // le Triac ou les relais en sinus
+          RetardF[i] = RetardF[i] + 0.0001;                                               //On ferme très légèrement si pas de message reçu. Sécurité
+          if (Puissance < SeuilPw && ReacCACSI > 1) GainBoucle = GainBoucle * GainCACSI;  //On boost si besoin l'écart
+          RetardF[i] = RetardF[i] + (Puissance - SeuilPw) * GainBoucle / 10000.0;         // Gain de boucle de l'asservissement
           if (RetardF[i] < 100 - MaxTriacPw) { RetardF[i] = 100 - MaxTriacPw; }
           if (ITmode < 0 && i == 0) RetardF[i] = 100;  //Triac pas possible sur synchro interne
         }
@@ -1293,6 +1321,7 @@ void GestionOverproduction() {
       RetardF[i] = 100;
     }
     Retard[i] = int(RetardF[i]);  //Valeure entiere pour piloter le Triac et les relais
+    
     if (Retard[i] == 100) {       // Force en cas d'arret des IT
       LesActions[i].Arreter();
       PulseOn[i] = 0;  //Stop Triac ou relais
@@ -1310,6 +1339,10 @@ void GestionOverproduction() {
           PulseOn[i] = 100 - Retard[i];
           PulseTotal[i] = 99;  //Nombre impair pour éviter courant continu
           break;
+        case 4: //PWM
+          int Vout=int(RetardF[i]*2.55);
+          if (OutOn[i]==1) Vout=255-Vout;
+          ledcWrite(Gpio[i], Vout);
       }
     }
   }
@@ -1320,7 +1353,7 @@ void InitGPIOs() {
   if (ESP32_Type > 0) {
     //En premier pour affecter le GPIO au constructeur OneWire
     for (int i = 1; i < NbActions; i++) {
-      LesActions[i].InitGpio();
+      LesActions[i].InitGpio(Fpwm);
       Gpio[i] = LesActions[i].Gpio;
       OutOn[i] = LesActions[i].OutOn;
       OutOff[i] = LesActions[i].OutOff;
@@ -1343,7 +1376,7 @@ void InitGPIOs() {
   LesActions[0].Gpio = pulseTriac;
 
   Init_LED_OLED();
-  
+
   if (pSerial > 0) {
     if (ESP32_Type == 2) pSerial = 2;  //Obligatoire carte 1 relais
     if (ESP32_Type == 4) pSerial = 3;  //Obligatoire carte écran

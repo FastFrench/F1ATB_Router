@@ -97,19 +97,7 @@ const char *ExportHtml = R"====(
           GID("Bwifi").style.display= (ESP32_Type<10) ? "inline-block": "none";
           LoadCouleurs();
         };
-        function Reset(){
-          GID("attente").style="visibility: visible;";
-            var xhttp = new XMLHttpRequest();
-              xhttp.onreadystatechange = function() { 
-                if (this.readyState == 4 && this.status == 200) {
-                  GID('BoutonsBas').innerHTML=this.responseText;
-                  GID("attente").style="visibility: hidden;";
-                  setTimeout(location.reload(),1000);
-                }         
-              };
-              xhttp.open('GET', 'restart', true);
-              xhttp.send();
-        }
+        
     </script>
     <br>
     <div id='pied'></div>

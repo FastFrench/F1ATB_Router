@@ -134,6 +134,11 @@ void JourHeureChange() {
       EEPROM.commit();
       LectureConsoMatinJour();
     }
+    //Puissance Max du jour à zero
+    PuisMaxS_T = 0; 
+    PuisMaxS_M = 0;
+    PuisMaxI_T = 0; 
+    PuisMaxI_M = 0;
   }
 }
 String HistoriqueEnergie1An(void) {
@@ -204,6 +209,8 @@ void LectureEnROM() {
     address += sizeof(byte);
     rotation = EEPROM.readByte(address);
     address += sizeof(byte);
+    DurEcran = EEPROM.readULong(address);
+    address += sizeof(unsigned long);
     for (int i = 0; i < 8; i++) {
       Calibre[i] = EEPROM.readShort(address);
       address += sizeof(unsigned short);
@@ -274,12 +281,18 @@ void LectureEnROM() {
     address += sizeof(byte);
     WifiSleep = EEPROM.readByte(address);
     address += sizeof(byte);
+    ComSurv = EEPROM.readShort(address);
+    address += sizeof(short);
     pSerial = EEPROM.readByte(address);
     address += sizeof(byte);
     pTriac = EEPROM.readByte(address);
     address += sizeof(byte);
 
     //Zone des actions
+    ReacCACSI = EEPROM.readByte(address);
+    address += sizeof(byte);
+    Fpwm = EEPROM.readUShort(address);
+    address += sizeof(unsigned short);
     NbActions = EEPROM.readUShort(address);
     address += sizeof(unsigned short);
     for (int iAct = 0; iAct < NbActions; iAct++) {
@@ -378,7 +391,9 @@ int EcritureEnROM() {
   EEPROM.writeByte(address, LEDgroupe);
   address += sizeof(byte);
   EEPROM.writeByte(address, rotation);
-  address += sizeof(byte);
+  address += sizeof(byte); 
+  EEPROM.writeULong(address, DurEcran);
+  address += sizeof(unsigned long);
   for (int i = 0; i < 8; i++) {
     EEPROM.writeShort(address, Calibre[i]);
     address += sizeof(unsigned short);
@@ -453,11 +468,17 @@ int EcritureEnROM() {
   address += sizeof(byte);
   EEPROM.writeByte(address, WifiSleep);
   address += sizeof(byte);
+  EEPROM.writeShort(address, ComSurv);
+  address += sizeof(unsigned short);
   EEPROM.writeByte(address, pSerial);
   address += sizeof(byte);
   EEPROM.writeByte(address, pTriac);
   address += sizeof(byte);
   //Enregistrement des Actions
+  EEPROM.writeByte(address, ReacCACSI);
+  address += sizeof(byte);
+  EEPROM.writeUShort(address, Fpwm);
+  address += sizeof(short);
   EEPROM.writeUShort(address, NbActions);
   address += sizeof(unsigned short);
   for (int iAct = 0; iAct < NbActions; iAct++) {
@@ -667,7 +688,7 @@ String Fichier_parametres(String ip, String para, String action) {
   if (para == "true") {
     S += AddStr("CleAccesRef", CleAccesRef) + AddStr("Couleurs", Couleurs);
     S += AddByte("ModePara", ModePara) + AddByte("ModeReseau", ModeReseau) + AddByte("Horloge", Horloge);
-    S += AddByte("ESP32_Type", ESP32_Type) + AddByte("LEDgroupe", LEDgroupe) + AddByte("rotation", rotation);
+    S += AddByte("ESP32_Type", ESP32_Type) + AddByte("LEDgroupe", LEDgroupe) + AddByte("rotation", rotation) + AddUlong("DurEcran", DurEcran);
     for (int i = 0; i < 8; i++) {
       S += AddUshort("Calibre" + String(i), Calibre[i]);
     }
@@ -685,9 +706,10 @@ String Fichier_parametres(String ip, String para, String action) {
       S += AddStr("TopicT" + String(c), TopicT[c]) + AddByte("canalTempExterne" + String(c), canalTempExterne[c]) + AddInt("offsetTemp" + String(c), offsetTemp[c]);
     }
     S += AddUshort("CalibU", CalibU) + AddUshort("CalibI", CalibI);
-    S += AddByte("TempoRTEon", TempoRTEon) + AddByte("WifiSleep", WifiSleep) + AddByte("pSerial", pSerial) + AddByte("pTriac", pTriac);
+    S += AddByte("TempoRTEon", TempoRTEon) + AddByte("WifiSleep", WifiSleep) + AddInt("ComSurv" , ComSurv)+ AddByte("pSerial", pSerial) + AddByte("pTriac", pTriac);
   }
-  if (action == "true") {
+  if (action == "true") {    
+    S += AddByte("ReacCACSI", ReacCACSI) + AddUshort("Fpwm", Fpwm);
     S += AddUshort("NbActions", NbActions) + ",\"Actions\":[";
     for (int iAct = 0; iAct < NbActions; iAct++) {
       S += "{\"Action\":" + String(iAct) + AddByte("Actif", LesActions[iAct].Actif) + AddStr("Titre", LesActions[iAct].Titre);
@@ -755,6 +777,7 @@ void ImportParametres(String Conf) {
     ESP32_Type = ByteJson("ESP32_Type", Conf);
     LEDgroupe = ByteJson("LEDgroupe", Conf);
     rotation = ByteJson("rotation", Conf);
+    DurEcran = ULongJson("DurEcran", Conf);
     for (int i = 0; i < 8; i++) {
       Calibre[i] = UShortJson("Calibre" + String(i), Conf);
     }
@@ -804,10 +827,16 @@ void ImportParametres(String Conf) {
     CalibI = UShortJson("CalibI", Conf);
     TempoRTEon = ByteJson("TempoRTEon", Conf);
     WifiSleep = ByteJson("WifiSleep", Conf);
+    ComSurv = ShortJson("ComSurv", Conf);
+    if (ComSurv<6) ComSurv=6;
     pSerial = ByteJson("pSerial", Conf);
     pTriac = ByteJson("pTriac", Conf);
   }
   if (Conf.indexOf("\"NbActions\":") > 0) {  //ACTIONS
+    ReacCACSI = ByteJson("ReacCACSI", Conf);
+    if (ReacCACSI<1) ReacCACSI=1;
+    Fpwm = UShortJson("Fpwm", Conf);
+    if (Fpwm <5) Fpwm=500;
     NbActions = UShortJson("NbActions", Conf);
     for (int iAct = 0; iAct < NbActions; iAct++) {
       int p = Conf.indexOf("{\"Action\":");

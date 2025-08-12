@@ -47,6 +47,7 @@ const char *MainHtml = R"====(
       <tr><th></th><th>Soutirée</th><th>Injectée</th><th class='dispT'>Conso.</th><th class='dispT' id="produite">Produite</th><th id='couleurTarif_J1'></th></tr>
       <tr class='W'><td>Puissance Active <small>(Pw)</small></td><td id='PwS_M' class='ri'></td><td class='ri' id='PwI_M'></td><td class='dispT ri' id='PwS_T'></td><td class='dispT ri' id='PwI_T'></td><td>W</td></tr>
       <tr class='VA'  id='ligneVA'><td>Puissance Apparente</td><td id='PVAS_M' class='ri'></td><td class='ri'  id='PVAI_M'></td><td class='dispT ri' id='PVAS_T'></td><td class='dispT ri'  id='PVAI_T'></td><td>VA</td></tr>
+      <tr class='W'><td>Puissance Active Max du jour</td><td id='PMS_M' class='ri'></td><td class='ri' id='PMI_M'></td><td class='dispT ri' id='PMS_T'></td><td class='dispT ri' id='PMI_T'></td><td>W</td></tr>
       <tr class='Wh'><td>Energie Active du jour</td><td id='EAJS_M' class='ri'></td><td id='EAJI_M' class='ri'></td><td class='dispT ri' id='EAJS_T'></td><td class='dispT ri' id='EAJI_T'></td><td>Wh</td></tr>
       <tr class='Wh'><td>Energie Active Totale</td><td id='EAS_M' class='ri'></td><td id='EAI_M' class='ri'></td><td class='dispT ri' id='EAS_T'></td><td class='dispT ri' id='EAI_T'></td><td>Wh</td></tr>
     </table></div></div>
@@ -81,6 +82,10 @@ const char *MainJS = R"====(
     var LastPW_T=0;
     var LastPVA_T=0;
     var LastActOuvre=[];
+    var PuisMaxS_M =0;
+    var PuisMaxI_M =0;
+    var PuisMaxS_T =0;
+    var PuisMaxI_T =0;
 
     var initUxIx2=false;
     var biSonde=false;
@@ -123,6 +128,10 @@ const char *MainJS = R"====(
             GID('EAJI_M').innerHTML = LaVal(G1[5]);
             GID('EAS_M').innerHTML = LaVal(G1[6]); 
             GID('EAI_M').innerHTML = LaVal(G1[7]); 
+            PuisMaxS_M =Math.max(PuisMaxS_M,parseInt(G1[0]));
+            PuisMaxI_M =Math.max(PuisMaxI_M,parseInt(G1[1]));
+            GID('PMS_M').innerHTML = LaVal(PuisMaxS_M);
+            GID('PMI_M').innerHTML = LaVal(PuisMaxI_M);
 
             LastPW_M=parseFloat(G1[0]-G1[1]);
             LastPVA_M=parseFloat(G1[2]-G1[3]);
@@ -160,6 +169,11 @@ const char *MainJS = R"====(
             GID('EAJI_T').innerHTML = LaVal(G2[5]);      
             GID('EAS_T').innerHTML = LaVal(G2[6]);
             GID('EAI_T').innerHTML = LaVal(G2[7]); 
+            PuisMaxS_T =Math.max(PuisMaxS_T,parseInt(G2[0]));
+            PuisMaxI_T =Math.max(PuisMaxI_T,parseInt(G2[1]));
+            GID('PMS_T').innerHTML = LaVal(PuisMaxS_T);
+            GID('PMI_T').innerHTML = LaVal(PuisMaxI_T);
+
             LastPW_T = parseFloat(G2[0]-G2[1]);
             LastPVA_T = parseFloat(G2[2]-G2[3]);
             
@@ -169,6 +183,7 @@ const char *MainJS = R"====(
               GID('PVAI_T').innerHTML='';
               GID('EAJI_T').innerHTML='';
               GID('EAI_T').innerHTML='';
+              GID('PMI_T').innerHTML='';
             }
             biSonde=true;
           } else{
@@ -223,6 +238,11 @@ const char *MainJS = R"====(
         if (this.readyState == 4 && this.status == 200) {
           var retour=this.responseText;
           var groupes=retour.split(GS);
+          var Pmaxi= groupes[0].split(RS);
+          PuisMaxS_M =Pmaxi[0];
+          PuisMaxI_M =Pmaxi[1];
+          PuisMaxS_T =Pmaxi[2];
+          PuisMaxI_T =Pmaxi[3];
           var tabPWM=groupes[1].split(',');
           tabPWM.pop();
           Plot('SVG_PW48hM',tabPWM,Koul[Coul_W][3],'Puissance Active '+GID("nomSondeMobile").innerHTML+' sur 48h en W','','');
@@ -280,9 +300,21 @@ const char *MainJS = R"====(
         S +="<div class='autreRif' id='autreRif" + C +"'></div>";    
       }
       GH("autresRMS",S);
+      var IPextDisp=int2ip(RMSextIP);
+      var IdsxSource=-1;
       for (var C=1;C<IP_RMS.length;C++) {
+        if (IP_RMS[C]==IPextDisp) IdsxSource=C;
         autreRaffiche(C);
       }
+      var S='Source : ' 
+      if(Source=="Ext"){  
+        S +='ESP distant '+IPextDisp ;
+        if (IdsxSource>-1) S +=" "+ nomRMS[IdsxSource];
+        GID("donneeDistante").style.display="block";
+      }else {
+        S +='ESP local';
+      }
+      GH('source',S);
     }
     function autreRclick(C){
       var S="";
@@ -706,15 +738,7 @@ const char *MainJS = R"====(
       for (let i = 0; i < collection.length; i++) {
         collection[i].style.display = d;
       } 
-      
-      var S='Source : ' 
-      if(Source=="Ext"){  
-        S +='ESP distant '+int2ip(RMSextIP);
-        GID("donneeDistante").style.display="block";
-      }else {
-        S +='ESP local';
-      }
-      GH('source',S);
+ 
     }
     function Init(){
       SetHautBas();
@@ -737,4 +761,16 @@ const char *MainJS = R"====(
       setInterval(Refresh_2s, 2000);
     
     }
+)====";
+// icône panneaux solaire et soleil (Merci michy)
+const char *Favicon = R"====(
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="15 20 42 40">
+<path d="m16 36h19l16 20h-20z" fill="#92d3f5"></path>
+<circle cx="48" cy="32" fill="#fcea2b" r="8"></circle>
+<g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+  <path d="m16 36h19l16 20h-20z"></path><path d="m17 43v13h10"></path>
+  <path d="m24 46h19"></path><path d="m26 36 16 20"></path>
+  <circle cx="48" cy="32" r="8"></circle>
+</g>
+</svg>
 )====";

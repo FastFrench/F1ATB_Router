@@ -63,6 +63,7 @@ float ValJsonSG(String nom, String Json) {
   float val = 0;
   if (p > 0) {
     Json = Json.substring(0, p);
+    Json = Json.substring(1, Json.length()-1); 
     val = Json.toFloat();
   }
   return val;

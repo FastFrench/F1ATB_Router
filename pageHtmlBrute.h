@@ -221,7 +221,6 @@ const char *PageBruteJS = R"====(
               var Stemp=message[16];
               if (message[16]>0) Stemp +='<span class="fsize10">' + message[17] +'</span>';
               S+="<tr><td>Nombre de capteurs de température DS18B20 :</td><td>"+Stemp+'</td></tr>';
-              S+='<tr><td>Température CPU ESP32</td><td>'+message[18]+'°C</td></tr>';
               S +='<tr><td style="text-align:center;"><strong>Messages</strong></td><td></td></tr>';
               var message1=Messages[1].split(RS);
               for (var i=1;i<=10;i++){
