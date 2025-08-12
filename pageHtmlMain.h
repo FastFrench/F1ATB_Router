@@ -4,8 +4,8 @@
 const char *MainHtml = R"====(
  <!doctype html>
   <html><head><meta charset="UTF-8">
-  <link rel="stylesheet" href="commun.css">
-  
+  <link rel="stylesheet" href="/commun.css">
+  <title>RMS F1ATB</title>
   <style>
     .ri { text-align: right;}
     .ce { text-align: center;}
@@ -76,7 +76,7 @@ const char *MainHtml = R"====(
 const char *MainJS = R"====(
     var tabPW2sM=[];
     var tabPW2sT=[];
-    var tabActOuvre=[]
+    var tabActOuvre=[];
     var LastPW_M=0;
     var LastPVA_M=0;
     var LastPW_T=0;
@@ -197,7 +197,7 @@ const char *MainJS = R"====(
         }
         
       };
-      xhttp.open('GET', 'ajax_data', true);
+      xhttp.open('GET', '/ajax_data', true);
       xhttp.send();
     }
     
@@ -229,7 +229,7 @@ const char *MainJS = R"====(
         }
         
       };
-      xhttp.open('GET', 'ajax_data10mn', true);
+      xhttp.open('GET', '/ajax_data10mn', true);
       xhttp.send();
     }
     function LoadHisto48h() {
@@ -270,7 +270,7 @@ const char *MainJS = R"====(
         }
         
       };
-      xhttp.open('GET', 'ajax_histo48h', true);
+      xhttp.open('GET', '/ajax_histo48h', true);
       xhttp.send();
     }
     function LoadHisto1an() {
@@ -286,7 +286,7 @@ const char *MainJS = R"====(
         }
         
       };
-      xhttp.open('GET', 'ajax_histo1an', true);
+      xhttp.open('GET', '/ajax_histo1an', true);
       xhttp.send();
     }
     function FinParaRouteur(){
@@ -306,7 +306,7 @@ const char *MainJS = R"====(
         if (IP_RMS[C]==IPextDisp) IdsxSource=C;
         autreRaffiche(C);
       }
-      var S='Source : ' 
+      var S='Source : ' ;
       if(Source=="Ext"){  
         S +='ESP distant '+IPextDisp ;
         if (IdsxSource>-1) S +=" "+ nomRMS[IdsxSource];
@@ -456,7 +456,7 @@ const char *MainJS = R"====(
             S +="<line x1='100' y1='"+Y2+"' x2='1000' y2='"+Y2+"' style='stroke:" + cT +";stroke-width:1;stroke-dasharray:2 10;' />";
             Y2=Y2+7;
             var T=cadrageMax*y/10;T=T.toString();
-            var X=90-9*T.length;LoadData
+            var X=90-9*T.length;
             S +="<text x='"+X+"' y='"+Y2+"' style='font-size:16px;fill:" + cT +";'>"+T+"</text>";
           }
         }
@@ -486,7 +486,7 @@ const char *MainJS = R"====(
         S += "' style='fill:none;stroke:"+couleur1+";stroke-width:2' />";
         S += "</svg>";
         GID(SVG).innerHTML = S;
-        TabVal["S_" + SVG]=[TabY0,TabY1];; //Sauvegarde valeurs
+        TabVal["S_" + SVG]=[TabY0,TabY1]; //Sauvegarde valeurs
         TabCoul["S_" + SVG]=[couleur1, couleur2];
         
     }
@@ -697,7 +697,7 @@ const char *MainJS = R"====(
         }
         
       };
-      xhttp.open('GET', 'ajax_etatActions?Force=' +Force + '&NumAction=' + NumAction, true);
+      xhttp.open('GET', '/ajax_etatActions?Force=' +Force + '&NumAction=' + NumAction, true);
       xhttp.send();
     }
     function Refresh_2s(){ //Rafraichit exactement toutes les 2s les graphiques de 10mn avec les dernieres valeur connues

@@ -5,7 +5,7 @@
 const char *ActionsHtml = R"====(
    <!doctype html>
   <html><head><meta charset="UTF-8">
-  <link rel="stylesheet" href="commun.css">
+  <link rel="stylesheet" href="/commun.css">
   
   <style>
    
@@ -55,6 +55,7 @@ const char *ActionsHtml = R"====(
     .minmax{display: flex;  justify-content: center;align-items: center;}
     .minmax div{margin-right:5px;margin-left:5px;}
   </style>
+  <title>Actions</title>
   </head>
   <body onLoad="SetHautBas();Init();" onmouseup='mouseClick=false;' >
     <div class="cadre">
@@ -114,8 +115,8 @@ const char *ActionsHtml = R"====(
     <div id="message"></div><br>
     <div id='pied'></div> 
     <script src="/ParaRouteurJS"></script>
-    <script src="ActionsJS"></script>
-    <script src="PinsActionsJS"></script>
+    <script src="/ActionsJS"></script>
+    <script src="/PinsActionsJS"></script>
     <script src="/CommunCouleurJS"></script>
   </body></html>
 )====";
@@ -262,14 +263,15 @@ const char *ActionsJS = R"====(
           }
           TxtTarif ="<div>" + TxtTarif +"</div>";
         }
+        let TexteMinMax="";
         var condition= (temperature!="" || H_Ouvert!="" || TxtTarif !="" )?  "<div>Condition(s) :</div>" + temperature +H_Ouvert+ TxtTarif:""; 
         if (LesActions[iAct].Actif<=1 && iAct>0){
           LesActions[iAct].Periodes[i].Vmax=Math.max(LesActions[iAct].Periodes[i].Vmin,LesActions[iAct].Periodes[i].Vmax);
-		      var TexteMinMax="<div>Off si Pw&gt;"+LesActions[iAct].Periodes[i].Vmax+"W</div><div>On si Pw&lt;"+LesActions[iAct].Periodes[i].Vmin+"W</div>"+condition;
+		      TexteMinMax="<div>Off si Pw&gt;"+LesActions[iAct].Periodes[i].Vmax+"W</div><div>On si Pw&lt;"+LesActions[iAct].Periodes[i].Vmin+"W</div>"+condition;
         } else {
           LesActions[iAct].Periodes[i].Vmax=Math.max(0,LesActions[iAct].Periodes[i].Vmax);
           LesActions[iAct].Periodes[i].Vmax=Math.min(100,LesActions[iAct].Periodes[i].Vmax);
-          var TexteMinMax="<div>Seuil Pw : "+LesActions[iAct].Periodes[i].Vmin+"W</div>" + "<div>Ouvre Max : "+LesActions[iAct].Periodes[i].Vmax+"%</div>"+condition;
+          TexteMinMax="<div>Seuil Pw : "+LesActions[iAct].Periodes[i].Vmin+"W</div>" + "<div>Ouvre Max : "+LesActions[iAct].Periodes[i].Vmax+"%</div>"+condition;
         }
 		    var TexteTriac="<div>Seuil Pw : "+LesActions[iAct].Periodes[i].Vmin+"W</div>" + "<div>Ouvre Max : "+LesActions[iAct].Periodes[i].Vmax+"%</div>"+condition;
         var paras = ["Pas de contr&ocirc;le", "OFF", "<div>ON</div>" +condition, TexteMinMax, TexteTriac];
@@ -279,7 +281,7 @@ const char *ActionsJS = R"====(
         fs = Math.max(8, Math.min(16, w/2)) + "px";
         Sinfo += "<div class='infoZone' style='width:" + w + "%;border-color:" + color + ";font-size:" + fs + "'  onclick='infoZclicK(" + i + "," + iAct + ")'  >"
         Sinfo += "<div class='Hfin'>" + Hmn + "</div>" + para + "</div>";
-        SinfoClick +="<div id='info" + iAct + "Z" + i + "' class='infoZ' ></div>"
+        SinfoClick +="<div id='info" + iAct + "Z" + i + "' class='infoZ' ></div>";
       }
       GH("curseurs" + iAct, S);
       GH("infoAction" + iAct, SinfoClick + Sinfo);
@@ -304,7 +306,7 @@ const char *ActionsJS = R"====(
       var idxClick = 0;
       var deltaX = 999999;
       for (var i = 0; i < LesActions[iAct].Periodes.length - 1; i++) {
-          var dist = Math.abs(HeureMouse - LesActions[iAct].Periodes[i].Hfin)
+          let dist = Math.abs(HeureMouse - LesActions[iAct].Periodes[i].Hfin)
               if (dist < deltaX) {
                   idxClick = i;
                   deltaX = dist;
@@ -469,7 +471,7 @@ const char *ActionsJS = R"====(
   function infoZclose(idx) {
       var champs=idx.split("info");
 	    var idx=champs[1].split("Z");
-      S="TracePeriodes("+idx[0]+");"
+      S="TracePeriodes("+idx[0]+");";
       setTimeout(S, 100);
   }
   function selectZ(T, i, iAct) {
@@ -654,7 +656,7 @@ const char *ActionsJS = R"====(
               LoadParaRouteur();
           }
       };
-      xhttp.open('GET', 'ActionsAjax', true);
+      xhttp.open('GET', '/ActionsAjax', true);
       xhttp.send();
   }
   
@@ -711,7 +713,7 @@ const char *ActionsJS = R"====(
              location.reload();
           }
       };
-      xhttp.open('GET', 'ActionsUpdate' + S, true);
+      xhttp.open('GET', '/ActionsUpdate' + S, true);
       xhttp.send();
       
   }
@@ -730,68 +732,69 @@ const char *ActionsJS = R"====(
   
   function Disp(t) {
     if ( t!="zOn" && t!="zOff" && t!="pwTr" && t!="mxTr"  && t!="tmpr" && t!="tarif"  && t!="sAct" ) t=t.id.substr(0, 4);
+      let m="";
       switch (t) { 
       case "mode":
-          var m = "D&eacute;sactivation du routage ou mode de découpe du secteur 230V."
-              break;
+          m = "D&eacute;sactivation du routage ou mode de découpe du secteur 230V.";
+          break;
       case "opti":
-          var m = "Critères d'activation."
-              break;
+          m = "Critères d'activation.";
+          break;
       case "titr":
-          var m = "Nom ou Titre";
+          m = "Nom ou Titre";
           break;
       case "slid":
-          var m = "Gain de la boucle d'asservissement. Faible, la r&eacute;gulation est lente mais stable. Elev&eacute;, la r&eacute;gulation est rapide mais risque d'oscillations. A ajuster suivant la charge branch&eacute;e au triac.";
+          m = "Gain de la boucle d'asservissement. Faible, la r&eacute;gulation est lente mais stable. Elev&eacute;, la r&eacute;gulation est rapide mais risque d'oscillations. A ajuster suivant la charge branch&eacute;e au triac.";
           break;
       case "host":
-          var m = "Adresse IP machine sur réseau LAN, nom de domaine ou rien pour l'ESP32.<br>Ex : <b>192.168.1.25</b> ou <b>machine.local</b> .";
+          m = "Adresse IP machine sur réseau LAN, nom de domaine ou rien pour l'ESP32.<br>Ex : <b>192.168.1.25</b> ou <b>machine.local</b> .";
           break;
       case "port":
-          var m = "Port d'acc&egrave;s via le protocole http , uniquement pour machine distante. En g&eacute;n&eacute;ral <b>80</b>.";
+          m = "Port d'acc&egrave;s via le protocole http , uniquement pour machine distante. En g&eacute;n&eacute;ral <b>80</b>.";
           break;
       case "ordr":
-          var m = "Ordre à passer à la machine distante. <br>";
-          m += "Ex. pour une machine sur le r&eacute;seau :<br><b>/commande?idx=23&position=on</b>. Se r&eacute;f&eacute;rer &agrave; la documentation constructeur."
+          m = "Ordre à passer à la machine distante. <br>";
+          m += "Ex. pour une machine sur le r&eacute;seau :<br><b>/commande?idx=23&position=on</b>. Se r&eacute;f&eacute;rer &agrave; la documentation constructeur.";
           break;
       case "sele":
-          var m = "Sélection du GPIO. <br>";
-          m += "Choix de l'état de sortie haut ou bas quand l'action est 'On'"
+          m = "Sélection du GPIO. <br>";
+          m += "Choix de l'état de sortie haut ou bas quand l'action est 'On'";
           break;
       case "repe":
-          var m = "P&eacute;riode en s de r&eacute;p&eacute;tition/rafra&icirc;chissement de la commande. Uniquement pour les commandes vers l'extérieur.<br>";
+          m = "P&eacute;riode en s de r&eacute;p&eacute;tition/rafra&icirc;chissement de la commande. Uniquement pour les commandes vers l'extérieur.<br>";
           m += "0= pas de répétition.";
           break;
       case "temp":
-          var m = "Temporisation entre chaque changement d'état pour éviter des oscillations quand un appareil dans la maison consomme en dents de scie (Ex: un four)."
+          m = "Temporisation entre chaque changement d'état pour éviter des oscillations quand un appareil dans la maison consomme en dents de scie (Ex: un four).";
           break;
       case "adds":
-          var m = "Ajout ou retrait d'une p&eacute;riode horaire."
-              break;
+          m = "Ajout ou retrait d'une p&eacute;riode horaire.";
+          break;
       case "Pw_m":
-          var m = "Seuil de puissance pour activer ou désactiver le routage.";
-      m +="Attention, en cas de mode On/Off la diff&eacute;rence, seuil sup&eacute;rieur moins  seuil inf&eacute;rieur doit &ecirc;tre sup&eacute;rieure &agrave; la consommation du dipositif pour &eacute;viter l'oscillation du relais de commande."
+          m = "Seuil de puissance pour activer ou désactiver le routage.";
+          m +="Attention, en cas de mode On/Off la diff&eacute;rence, seuil sup&eacute;rieur moins  seuil inf&eacute;rieur doit &ecirc;tre sup&eacute;rieure &agrave; la consommation du dipositif pour &eacute;viter l'oscillation du relais de commande.";
           break;
       case "pwTr":
-          var m = "Seuil en W de r&eacute;gulation par le Triac de la puissance mesur&eacute;e Pw en entrée de la maison. Valeur typique : 0.";
+          m = "Seuil en W de r&eacute;gulation par le Triac de la puissance mesur&eacute;e Pw en entrée de la maison. Valeur typique : 0.";
           break;
       case "mxTr":
-          var m = "Ouverture maximum du triac ou du SSR entre 5 et 100%. Valeur typique : 100%";
+          m = "Ouverture maximum du triac ou du SSR entre 5 et 100%. Valeur typique : 100%";
           break;
       case "zOff":
-            var m = "Off forcé";
-            break;
+          m = "Off forcé";
+          break;
       case "zOn":
-            var m = "On forcé (si conditions optionnelles valides)";
-            break;
+          m = "On forcé (si conditions optionnelles valides)";
+          break;
       case "tmpr":
-            var m = "Définir la ou les températures qui permettent l'activation de la fonction On ou Routage.<br>Si condition non rempli ordre Off envoyé ou Triac se ferme.<br><br> Si seuil T>= est supérieur à seuil T<=,<br>activation de la fonction pour les valeurs inférieures de température<br>avec creation d'une hysteresis entre ces 2 seuils.<br><br>Ne rien mettre si pas d'activation en fonction de la température.";
-            break;
+          m = "Définir la ou les températures qui permettent l'activation de la fonction On ou Routage.<br>Si condition non rempli ordre Off envoyé ou Triac se ferme.<br><br> Si seuil T>= est supérieur à seuil T<=,<br>activation de la fonction pour les valeurs inférieures de température<br>avec creation d'une hysteresis entre ces 2 seuils.<br><br>Ne rien mettre si pas d'activation en fonction de la température.";
+          break;
       case "tarif":
-            var m = "Condition d'activation suivant la tarification.<br>Sinon ordre Off envoyé ou Triac se ferme.";
-            break;
+          m = "Condition d'activation suivant la tarification.<br>Sinon ordre Off envoyé ou Triac se ferme.";
+          break;
       case "sAct":
-            var m = "Définir des seuils :<br>- durée d'ouverture<br>- pourcentage d'ouverture";
-            break;
+          m = "Définir des seuils :<br>- durée d'ouverture<br>- pourcentage d'ouverture";
+          break;
       }
       GH("message", m);
       GID("message").style = "display:inline-block;";

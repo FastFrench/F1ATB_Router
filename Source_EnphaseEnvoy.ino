@@ -13,7 +13,7 @@ void Setup_Enphase() {
   if (EnphaseUser != "" && EnphasePwd != "") {
     Serial.println("Essai connexion  Enlighten server 1 pour obtention session_id!");
     clientSecu.setInsecure();  //skip verification
-    if (!clientSecu.connect(server1Enphase, 443))
+    if (!clientSecu.connect(server1Enphase, 443,3000))
       StockMessage("Connection failed to Enlighten server :" + Host);
     else {
       Serial.println("Connected to Enlighten server:" + Host);
@@ -53,7 +53,7 @@ void Setup_Enphase() {
     requestBody = "{\"session_id\":\"" + Session_id + "\", \"serial_num\":" + EnphaseSerial + ", \"username\":\"" + EnphaseUser + "\"}";
     Serial.println("Essai connexion  Enlighten server 2 pour obtention token!");
     clientSecu.setInsecure();  //skip verification
-    if (!clientSecu.connect(server2Enphase, 443))
+    if (!clientSecu.connect(server2Enphase, 443,3000))
       StockMessage("Connection failed to :" + Host);
     else {
       Serial.println("Connected to :" + Host);
@@ -109,7 +109,7 @@ void LectureEnphase() {  //Lecture des consommations
     }
 
     clientSecu.setInsecure();  //skip verification
-    if (!clientSecu.connect(host.c_str(), Num_portIQ)) {
+    if (!clientSecu.connect(host.c_str(), Num_portIQ,3000)) {
       StockMessage("Connection failed to Envoy-S server! : " + host);
     } else {
       //Serial.println("Connected to Envoy-S server!");
@@ -141,7 +141,7 @@ void LectureEnphase() {  //Lecture des consommations
   } else {  // Connexion Envoy V5
     // Use WiFiClient class to create TCP connections http
     WiFiClient clientFirmV5;
-    if (!clientFirmV5.connect(host.c_str(), 80)) {
+    if (!clientFirmV5.connect(host.c_str(), 80,3000)) {
       StockMessage("connection to client clientFirmV5 failed (call to Envoy-S)");
       delay(200);
       return;

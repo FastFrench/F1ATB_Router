@@ -14,10 +14,14 @@ void LectureShellyEm() {
   // Use WiFiClient class to create TCP connections
   WiFiClient clientESP_RMS;
   String host = IP2String(RMSextIP);
-  if (!clientESP_RMS.connect(host.c_str(), 80)) {
-    StockMessage("connection to Shelly Em failed : " + host);
-    delay(200);
-    return;
+  if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
+    clientESP_RMS.stop();
+    delay(500);
+    if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
+      StockMessage("connection to Shelly Em failed : " + host);
+      delay(100);
+      return;
+    }
   }
   int voie = EnphaseSerial.toInt();
   int Voie = voie % 2;

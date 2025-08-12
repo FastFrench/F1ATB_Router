@@ -279,8 +279,8 @@ void Action::InitGpio(int FreqPWM) {  //Initialise les sorties GPIO pour des rel
       OutOn = OrdreOn.substring(p + 1).toInt();
       OutOff = (1 + OutOn) % 2;
       if (Gpio > 0) {
-        if (Actif == 4) {  //PWM
-          ledcAttachChannel(Gpio, FreqPWM, 8,Idx); //Affectation des  channels 
+        if (Actif == 4) {                            //PWM
+          ledcAttachChannel(Gpio, FreqPWM, 8, Idx);  //Affectation des  channels
         } else {
           pinMode(Gpio, OUTPUT);
           digitalWrite(Gpio, OutOff);
@@ -295,10 +295,14 @@ void Action::CallExterne(String host, String url, int port) {
     WiFiClient clientExt;
     char hostbuf[host.length() + 1];
     host.toCharArray(hostbuf, host.length() + 1);
-
-    if (!clientExt.connect(hostbuf, port)) {
-      StockMessage("connection to :" + host + " failed");
-      return;
+    if (!clientExt.connect(hostbuf, port, 3000)) {
+      clientExt.stop();
+      delay(500);
+      if (!clientExt.connect(hostbuf, port, 3000)) {
+        StockMessage("connection to :" + host + " failed");
+        delay(100);
+        return;
+      }
     }
     clientExt.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
     unsigned long timeout = millis();

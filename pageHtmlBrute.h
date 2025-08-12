@@ -4,7 +4,7 @@
 const char *PageBrute = R"====(
  <!doctype html>
    <html><head><meta charset="UTF-8">
-   <link rel="stylesheet" href="commun.css">
+   <link rel="stylesheet" href="/commun.css">
    <style>
     .ri { text-align: right;}
     .Wh { background-color:#fdd;}
@@ -25,6 +25,7 @@ const char *PageBrute = R"====(
     #infoUxIx2,#infoUxIx3,#infoUxI,#infoLinky,#infoEnphase,#infoSmartG,#infoHomeW,#infoShellyEm,#infoPmqtt{display:none;}
     #donneeDistante{font-size:50%;text-align:center;margin-bottom:10px;display:none;}
   </style>
+  <title>Data brute F1ATB</title>
   </head>
   <body  onload='SetHautBas();LoadParaRouteur();' >
     <div id='LED'></div>
@@ -32,7 +33,7 @@ const char *PageBrute = R"====(
     <div id='date'>Date</div><br><br>
     <div id='infoUxI'>
       <div >Tension et Courant sur 20ms</div>
-      <div  class='ce'><h3 style='position:absolute;top:20px;right:40px;'><span id='Ueff'></span>
+      <div  class='ce'><h3 style='position:absolute;top:20px;right:40px;'><span id='Ueff'>.</span>
       <span id='Ieff'></span><br>
       <span id='cosphi'></span></h3><p id='SVG'></p></div>
     </div>
@@ -240,7 +241,7 @@ const char *PageBruteJS = R"====(
           }
           
         };
-        xhttp.open('GET', 'ajax_dataESP32', true);
+        xhttp.open('GET', '/ajax_dataESP32', true);
         xhttp.send();
        }
        function FinParaRouteur(){
@@ -256,7 +257,7 @@ const char *PageBruteJS = R"====(
           if (this.readyState == 4 && this.status == 200) {
             GID('LED').style='display:none;';
             var DuRMS=this.responseText;
-            var groupes=DuRMS.split(GS)
+            var groupes=DuRMS.split(GS);
             var G0=groupes[0].split(RS);
             GH('date',G0[0]);
             Source_data=G0[1];
@@ -412,8 +413,8 @@ const char *PageBruteJS = R"====(
             setCouleur();
             setTimeout('LoadData();',2000);
           }  
-        };
-        xhttp.open('GET', 'ajax_dataRMS?idx='+IdxMessage, true);
+        }
+        xhttp.open('GET', '/ajax_dataRMS?idx='+IdxMessage, true);
         xhttp.send();
       }
       

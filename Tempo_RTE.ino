@@ -40,7 +40,7 @@ void Call_RTE_data() {
     if (TempoRTEon == 1 && ModeReseau==0) {
       // Use clientSecu class to create TCP connections
       clientSecuRTE.setInsecure();  //skip verification
-      if (!clientSecuRTE.connect(adr_RTE_Host, 443)) {
+      if (!clientSecuRTE.connect(adr_RTE_Host, 443,3000)) {
         StockMessage("Connection failed to RTE server :" + Host);
       } else {
         time_t timestamp = time(NULL) - 21600;  //Decallage début période couleur  RTE de 6h.

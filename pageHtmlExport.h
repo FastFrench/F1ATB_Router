@@ -4,9 +4,9 @@
 const char *ExportHtml = R"====(
   <!doctype html>
   <html><head><meta charset="UTF-8">
-  <link rel="stylesheet" href="commun.css">
+  <link rel="stylesheet" href="/commun.css">
   <style>
-    .Zone{width:100%;border 1px solid grey;border-radius:10px;margin-top:10px;background-color:rgba(30,30,30,0.3);} 
+    .Zone{width:100%;border:1px solid grey;border-radius:10px;margin-top:10px;background-color:rgba(30,30,30,0.3);} 
     .boldT{text-align:left;font-weight:bold;padding:10px;}
     .form {margin:auto;padding:10px;display: table;text-align:left;width:100%;}
     .ligne {display: table-row;padding:10px;}
@@ -18,7 +18,7 @@ const char *ExportHtml = R"====(
     .Bparametres{border:inset 10px azure;}
     .Bexport{border:inset 4px azure;}
   </style>
-  
+  <title>Import/Export</title>
   </head>
   <body onload="Init();">
     <div id='lesOnglets'></div>
@@ -88,10 +88,10 @@ const char *ExportHtml = R"====(
           GID("adr_export").download= GID("nom_f_para").value;
         }
         function setConf(){
-          var conf="/export_file?ip=" + GID("ip_load").checked + "&para=" + GID("para_load").checked + "&action=" + GID("action_load").checked
+          let conf="/export_file?ip=" + GID("ip_load").checked + "&para=" + GID("para_load").checked + "&action=" + GID("action_load").checked
           GID("adr_export").href= conf;
         }
-        function AdaptationSource(){};
+        function AdaptationSource(){}
         function FinParaRouteur(){
           GID("Bheure").style.display= (Horloge>1) ? "inline-block": "none";
           GID("Bwifi").style.display= (ESP32_Type<10) ? "inline-block": "none";

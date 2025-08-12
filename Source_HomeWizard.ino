@@ -12,10 +12,14 @@ void LectureHomeW() {
   // Use WiFiClient class to create TCP connections
   WiFiClient clientESP_RMS;
   String host = IP2String(RMSextIP);
-  if (!clientESP_RMS.connect(host.c_str(), 80)) {  // PORT 82 pour Home Wizard
-    StockMessage("connection to HomeWizard failed : " + host);
-    delay(200);
-    return;
+  if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {  // PORT 80 pour Home Wizard
+    clientESP_RMS.stop();
+    delay(500);
+    if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
+      StockMessage("connection to HomeWizard failed : " + host);
+      delay(100);
+      return;
+    }
   }
   String url = "/api/v1/data";
   clientESP_RMS.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
@@ -58,5 +62,3 @@ void LectureHomeW() {
     cptLEDyellow = 4;
   }
 }
-
-

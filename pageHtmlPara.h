@@ -3,7 +3,7 @@
 //***************************************************
 const char *ParaHtml = R"====(
   <!doctype html>
-  <html><head><meta charset="UTF-8">
+  <html lang="fr"><head><meta charset="UTF-8">
   <link rel="stylesheet" href="commun.css">
   <style>    
     .form {margin:auto;padding:5px;display: table;text-align:left;width:100%;}
@@ -35,7 +35,7 @@ const char *ParaHtml = R"====(
     .topG{display:flex;justify-content: center;}
     .shem{font-size:12px;display:flex;}
   </style>
-  
+  <title>Params F1ATB</title>
   </head>
   <body onLoad="Init();">
     <div id="lesOnglets"></div>
@@ -77,7 +77,7 @@ const char *ParaHtml = R"====(
           </div>
           <div class='ligne'>
              <label for='RAZdata'>Remise à zéro historique des mesures</label>
-             <input  class='bouton' type='button' onclick="SendRAZ();" value='RAZ' >
+             <input  class='bouton'   id='RAZdata' type='button' onclick="SendRAZ();" value='RAZ' >
           </div>
         </div>
         <div>Configuration matérielle <span class='fsize10'>Nécessite un Reset de l'ESP32</span></div>
@@ -285,23 +285,23 @@ const char *ParaHtml = R"====(
         <div class="form"  >
           <div class='ligne' id="ligneExt">
             <label for='RMSextIP'>Adresse IP <span id='labExtIp'></span> externe (ex : 192.168.1.248) : </label>
-            <input type='text' name='RMSextIP' id='RMSextIP' >
+            <input type='text' name='RMSextIP' id='RMSextIP' autocomplete='on'>
           </div>
           <div class='ligne' id="ligneEnphaseUser">
             <label for='EnphaseUser'>Enphase Envoy-S metered User : <span class='fsize10'><br>Pour firmvare Envoy-S V7 seulement</span></label>
-            <input type='text' name='EnphaseUser' id='EnphaseUser' >
+            <input type='text' name='EnphaseUser' id='EnphaseUser' autocomplete='on'>
           </div>
           <div class='ligne' id="ligneEnphasePwd">
             <label for='EnphasePwd'>Enphase Envoy-S metered Password : <span class='fsize10'><br>Pour firmvare Envoy-S V7 seulement</span></label>
-            <input type='password' name='EnphasePwd' id='EnphasePwd' >
+            <input type='password' name='EnphasePwd' id='EnphasePwd' autocomplete='on'>
           </div>
           <div class='ligne' id="ligneEnphaseSerial">
             <label for='EnphaseSerial' id="label_enphase_shelly"></label>
-            <input type='text' name='EnphaseSerial' id='EnphaseSerial' onchange='checkDisabled();'>
+            <input type='text' name='EnphaseSerial' id='EnphaseSerial' onchange='checkDisabled();' autocomplete='on'>
           </div>
           <div class='ligne' id="ligneTopicP">
             <label for='TopicP' >MQTT Topic Puissance :</label>
-            <input type='text' name='TopicP' id='TopicP' >
+            <input type='text' name='TopicP' id='TopicP' autocomplete='on'>
           </div>
           <div><span class='fsize10'>Nécessite un Reset de l'ESP32</span></div>
         </div> 
@@ -326,11 +326,11 @@ const char *ParaHtml = R"====(
           </div>
           <div class='ligne'>
             <label for='MQTTUser'>MQTT User nom : </label>
-            <input type='text' name='MQTTUser' id='MQTTUser' >
+            <input type='text' name='MQTTUser' id='MQTTUser' autocomplete='on'>
           </div>
           <div class='ligne'>
             <label for='MQTTpwd'>MQTT mot de passe : </label>
-            <input type='password' name='MQTTpwd' id='MQTTpwd' >
+            <input type='password' name='MQTTpwd' id='MQTTpwd'  autocomplete='on'>
           </div>
           <div class='ligne'>
             <label for='MQTTPrefix'>MQTT Préfixe de découverte (1 seul mot ex : homeassistant ) : </label>
@@ -382,9 +382,9 @@ const char *ParaHtml = R"====(
     <br>
     <div id="donEnv" >
       <form action="https://www.paypal.com/donate" method="post" target="_top">
-        <input type="hidden" name="hosted_button_id" value="Z35E9D5D9N9DN" />
-        <input class="don" type="image" src="https://pics.paypal.com/00/s/MGY1NzdhY2YtYTRkNi00YzIwLWI2YzQtNWI3YjM3ZmFiNWUx/file.PNG" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Bouton Faites un don avec PayPal" />
-        <img alt="" class="donNone" border="0" src="https://www.paypal.com/fr_FR/i/scr/pixel.gif" width="1" height="1" />
+        <input type="hidden" name="hosted_button_id" value="Z35E9D5D9N9DN" >
+        <input class="don" type="image" src="https://pics.paypal.com/00/s/MGY1NzdhY2YtYTRkNi00YzIwLWI2YzQtNWI3YjM3ZmFiNWUx/file.PNG" style="border:0px;" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Bouton Faites un don avec PayPal" >
+        <img alt="" class="donNone" style="border:0px;" src="https://www.paypal.com/fr_FR/i/scr/pixel.gif" width="1" height="1" />
       </form>
 
     </div>
@@ -529,7 +529,7 @@ const char *ParaJS = R"====(
              checkDisabled();
           }         
         };
-        xhttp.open('GET', 'ParaAjax', true);
+        xhttp.open('GET', '/ParaAjax', true);
         xhttp.send();
       }
   function SendValues(){
@@ -555,7 +555,7 @@ const char *ParaJS = R"====(
         subMQTT=0; WifiSleep=1;
     }
     var S=dhcp+RS+ ip2int(GID("adrIP").value)+RS+ ip2int(GID("gateway").value);
-    S +=RS+ip2int(GID("masque").value)+RS+ ip2int(GID("dns").value) +RS +ModePara + RS +ModeReseau+ RS +Horloge
+    S +=RS+ip2int(GID("masque").value)+RS+ ip2int(GID("dns").value) +RS +ModePara + RS +ModeReseau+ RS +Horloge;
     S +=RS+Source_new+RS+ ip2int(GID("RMSextIP").value)+ RS+GID("EnphaseUser").value.trim()+RS+GID("EnphasePwd").value.trim()+RS+GID("EnphaseSerial").value.trim() +RS+GID("TopicP").value.trim();
     S +=RS+GID("MQTTRepete").value +RS+ip2int(GID("MQTTIP").value) +RS+GID("MQTTPort").value +RS+GID("MQTTUser").value.trim()+RS+GID("MQTTpwd").value.trim();
     S +=RS+GID("MQTTPrefix").value.trim()+RS+GID("MQTTPrefixEtat").value.trim()+RS+GID("MQTTdeviceName").value.trim() + RS + subMQTT;
@@ -593,7 +593,7 @@ const char *ParaJS = R"====(
             var retour=this.responseText;
           }         
         };
-        xhttp.open('GET', 'ajaxRAZhisto', true);
+        xhttp.open('GET', '/ajaxRAZhisto', true);
         xhttp.send();
     } 
   }
@@ -785,10 +785,10 @@ const char *ParaRouteurJS = R"====(
           
           }         
         };
-        xhttp.open('GET', 'ParaRouteurAjax', true);
+        xhttp.open('GET', '/ParaRouteurAjax', true);
         xhttp.send();
   }
-  function GID(id) { return document.getElementById(id); };
+  function GID(id) { return document.getElementById(id); }
   function GH(id, T) {
     if ( GID(id)){
      GID(id).innerHTML = T; }
@@ -841,7 +841,7 @@ const char *ParaRouteurJS = R"====(
             setTimeout(location.reload(),1000);
           }         
         };
-        xhttp.open('GET', 'restart', true);
+        xhttp.open('GET', '/restart', true);
         xhttp.send();
   }
 
@@ -869,7 +869,7 @@ const char *CommunCSS = R"====(
 const char *ParaCleHtml = R"====(
   <!doctype html>
   <html><head><meta charset="UTF-8">
-  <link rel="stylesheet" href="commun.css">  
+  <link rel="stylesheet" href="/commun.css">  
   <style>    
     body{color:white;}
     .form {margin:auto;padding:10px;display: table;text-align:left;width:100%;}
@@ -897,7 +897,7 @@ const char *ParaCleHtml = R"====(
             location.reload();
           }         
         };
-        xhttp.open('GET', 'CleUpdate', true);
+        xhttp.open('GET', '/CleUpdate', true);
         xhttp.send(); 
     }
     function init(){
@@ -909,7 +909,7 @@ const char *ParaCleHtml = R"====(
     function   AdaptationSource(){}  ;
     function FinParaRouteur(){};
   </script>
-  
+  <title>Pass Acces F1ATB</title>
   </head>
   <body onload="init()";>
     <div id="lesOnglets"></div>

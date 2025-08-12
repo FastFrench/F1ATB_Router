@@ -12,12 +12,15 @@ void CallESP32_Externe() {
   WiFiClient clientESP_RMS;
   if (RMS_NbCx[RMSextIdx] < 100) RMS_NbCx[RMSextIdx]++;
   String host = IP2String(RMSextIP);
-  if (!clientESP_RMS.connect(host.c_str(), 80)) {
-
-    StockMessage("Connection to ESP_RMS : " + host + " failed");
-    if (RMS_Note[RMSextIdx] > 0) RMS_Note[RMSextIdx]--;
-    delay(200);
-    return;
+  if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
+    clientESP_RMS.stop();
+    delay(500);
+    if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
+      StockMessage("Connection to ESP_RMS : " + host + " failed");
+      if (RMS_Note[RMSextIdx] > 0) RMS_Note[RMSextIdx]--;
+      delay(100);
+      return;
+    }
   }
   String url = "/ajax_data";
   clientESP_RMS.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");

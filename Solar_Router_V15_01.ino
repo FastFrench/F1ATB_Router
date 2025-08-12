@@ -1,4 +1,4 @@
-#define Version "15.00"
+#define Version "15.01"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -164,12 +164,16 @@
     Sortie au format PWM pour les Actions
     Choix du Timeout en cas de coupure de la communication
     Pilotage des Actions par MQTT : tOnOff,Mode,SeuilOn,SeuilOff,OuvreMax,Periode (Topic=DeviceName/Nom_Action)
+    Favicon
+  - V15.01
+    Nettoyage code html, javascript,css (Merci Michy)
+    Connexion Wifi :extension du timeout et 2 tentatives avant de déclarer une erreur (Merci Lolo69)
   
   Les détails sont disponibles sur / Details are available here:
   https://f1atb.fr  Section Domotique / Home Automation
 
   
-  F1ATB Juillet 2025
+  F1ATB Août 2025
 
   GNU Affero General Public License (AGPL) / AGPL-3.0-or-later
 

@@ -151,9 +151,14 @@ void handleAjaxRMS() {  // Envoi des dernières données  brutes reçues du RMS
     // Use WiFiClient class to create TCP connections
     WiFiClient clientESP_RMS;
     String host = IP2String(RMSextIP);
-    if (!clientESP_RMS.connect(host.c_str(), 80)) {
-      StockMessage("connection to ESP_RMS external failed (call from  handleAjaxRMS)");
-      return;
+    if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
+      clientESP_RMS.stop();
+      delay(500);
+      if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
+        StockMessage("connection to ESP_RMS external failed (call from  handleAjaxRMS)");
+        delay(100);
+        return;
+      }
     }
     String url = "/ajax_dataRMS?idx=" + String(LastIdx);
     clientESP_RMS.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
@@ -251,7 +256,7 @@ void handleAjaxHisto48h() {  // Envoi Historique de 50h (600points) toutes les 5
   String T = "";
   String U = "";
   String Ouverture = "";
-  String Pmaxi= String(PuisMaxS_M ) +RS + String(PuisMaxI_M ) +RS +String(PuisMaxS_T ) +RS + String(PuisMaxI_T ) ;
+  String Pmaxi = String(PuisMaxS_M) + RS + String(PuisMaxI_M) + RS + String(PuisMaxS_T) + RS + String(PuisMaxI_T);
   int iS = IdxStockPW;
   for (int i = 0; i < 600; i++) {
     S += String(tabPw_Maison_5mn[iS]) + ",";
@@ -351,7 +356,7 @@ void handleAjaxData() {  //Données page d'accueil
   S = "Deb" + RS + DateLast + RS + Source_data + RS + LTARF + RS + STGEt + RS + S + RS + String(Pva_valide);
   S += GS + String(PuissanceS_M) + RS + String(PuissanceI_M) + RS + String(PVAS_M) + RS + String(PVAI_M);
   S += RS + String(EnergieJour_M_Soutiree) + RS + String(EnergieJour_M_Injectee) + RS + String(Energie_M_Soutiree) + RS + String(Energie_M_Injectee);
-  if (Source_data == "UxIx2" || ((Source_data == "ShellyEm" || Source_data == "ShellyPro") && EnphaseSerial.toInt() != 3   )) {  //UxIx2 ou Shelly monophasé avec 2 sondes
+  if (Source_data == "UxIx2" || ((Source_data == "ShellyEm" || Source_data == "ShellyPro") && EnphaseSerial.toInt() != 3)) {  //UxIx2 ou Shelly monophasé avec 2 sondes
     S += GS + String(PuissanceS_T) + RS + String(PuissanceI_T) + RS + String(PVAS_T) + RS + String(PVAI_T);
     S += RS + String(EnergieJour_T_Soutiree) + RS + String(EnergieJour_T_Injectee) + RS + String(Energie_T_Soutiree) + RS + String(Energie_T_Injectee);
   }
@@ -441,7 +446,7 @@ void handleRestart() {  // Eventuellement Reseter l'ESP32 à distance
 void handleAjaxData10mn() {  // Envoi Historique de 10mn (300points)Energie Active Soutiré - Injecté
   String S = "";
   String T = "";
-  String Ouverture="";
+  String Ouverture = "";
   int iS = IdxStock2s;
   for (int i = 0; i < 300; i++) {
     S += String(tabPw_Maison_2s[iS]) + ",";
@@ -452,12 +457,12 @@ void handleAjaxData10mn() {  // Envoi Historique de 10mn (300points)Energie Acti
   }
   for (int i = 0; i < NbActions; i++) {
     if (LesActions[i].Actif > 0) {
-      iS = IdxStock2s;      
-        Ouverture += GS+String(i)+ES;
-        for (int j = 0; j < 300; j++) {
-          Ouverture += String(tab_histo_2s_ouverture[i][iS]) + RS;
-          iS = (1 + iS) % 300;
-        } 
+      iS = IdxStock2s;
+      Ouverture += GS + String(i) + ES;
+      for (int j = 0; j < 300; j++) {
+        Ouverture += String(tab_histo_2s_ouverture[i][iS]) + RS;
+        iS = (1 + iS) % 300;
+      }
     }
   }
   server.sendHeader("Connection", "close");
@@ -481,7 +486,7 @@ void handleActionsJS() {
 void handleActionsUpdate() {
   int adresse_max = 0;
   ReacCACSI = byte(server.arg("ReacCACSI").toInt());
-  Fpwm =server.arg("Fpwm").toInt();
+  Fpwm = server.arg("Fpwm").toInt();
   String s = server.arg("actions");
   String ligne = "";
   InitGPIOs();  //RAZ anciennes actions
@@ -503,7 +508,9 @@ void handleActionsAjax() {
   for (int c = 0; c < 4; c++) {
     S += nomTemperature[c] + US;
   }
-  S = S + RS + String(LTARFbin) + RS + String(pTriac) + RS + String(ReacCACSI)+ RS + String(Fpwm) + RS + String(ModePara) + GS;
+  if (ReacCACSI < 1) ReacCACSI = 1;
+  if (Fpwm < 5) Fpwm = 500;
+  S = S + RS + String(LTARFbin) + RS + String(pTriac) + RS + String(ReacCACSI) + RS + String(Fpwm) + RS + String(ModePara) + GS;
   for (int i = 0; i < NbActions; i++) {
     S += LesActions[i].Lire();
   }
@@ -666,7 +673,7 @@ void handleajaxRAZhisto() {
 void handleParaRouteurAjax() {
   String localIP = WiFi.localIP().toString();
   if (ESP32_Type == 10) localIP = Ethernet.localIP().toString();
-  String S = Source + GS + Source_data + GS + localIP + GS + nomRouteur + GS + Version + GS + nomSondeFixe + GS + nomSondeMobile + GS + String(RMSextIP) + GS + String(ModeReseau) + GS + String(ModePara) + GS + String(Horloge) + GS+ String(ESP32_Type) + GS;
+  String S = Source + GS + Source_data + GS + localIP + GS + nomRouteur + GS + Version + GS + nomSondeFixe + GS + nomSondeMobile + GS + String(RMSextIP) + GS + String(ModeReseau) + GS + String(ModePara) + GS + String(Horloge) + GS + String(ESP32_Type) + GS;
   for (int i = 0; i < LesRouteursMax; i++) {  //index 0 pour ESP32 local
     if (RMS_IP[i] > 0 && RMS_NomEtat[i] != "") {
       S += RMS_IP[i] + US + RMS_NomEtat[i] + RS;

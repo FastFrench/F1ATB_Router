@@ -48,7 +48,6 @@ bool testMQTTconnected() {
     sprintf(AvailableTopic, "%s%s/%s", PrefixMQTTEtat, MQTTdeviceName.c_str(), TopicA.c_str());
     clientMQTT.setServer(host.c_str(), MQTTPort);
     clientMQTT.setCallback(callback);  //Déclaration de la fonction de souscription
-    // if (clientMQTT.connect(MQTTdeviceName.c_str(), MQTTUser.c_str(), MQTTPwd.c_str())) {  // si l'utilisateur est connecté au mqtt
     if (clientMQTT.connect(MQTTdeviceName.c_str(), MQTTUser.c_str(), MQTTPwd.c_str(), AvailableTopic, 2, true, "offline")) {  // si l'utilisateur est connecté au mqtt
       StockMessage(MQTTdeviceName + " connecté au broker MQTT");
       clientMQTT.publish(AvailableTopic, "online", true);

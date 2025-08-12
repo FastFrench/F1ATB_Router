@@ -4,9 +4,9 @@
 const char *CouleursHtml = R"====(
   <!doctype html>
   <html><head><meta charset="UTF-8">
-  <link rel="stylesheet" href="commun.css">
+  <link rel="stylesheet" href="/commun.css">
   <style>
-    .Zone{width:100%;border 1px solid grey;border-radius:10px;margin-top:10px;background-color:rgba(30,30,30,0.3);} 
+    .Zone{width:100%;border:1px solid grey;border-radius:10px;margin-top:10px;background-color:rgba(30,30,30,0.3);} 
     .boldT{text-align:left;font-weight:bold;padding:10px;}
     .form {margin:auto;padding:10px;display: table;text-align:left;width:100%;}
     .ligne {display: table-row;margin-top:5px;}
@@ -18,7 +18,7 @@ const char *CouleursHtml = R"====(
     .Bcouleurs{border:inset 4px azure;}
     .les_boutons{display:flex;justify-content:space-between;}
   </style>
-  
+  <title>Colors</title>
   </head>
   <body onload="Init();">
     <div id='lesOnglets'></div>
@@ -82,7 +82,7 @@ const char *CouleursHtml = R"====(
               location.reload();
             }         
           };
-          xhttp.open('GET', 'CouleurUpdate'+S, true);
+          xhttp.open('GET', '/CouleurUpdate'+S, true);
           xhttp.send();
  
 
@@ -126,7 +126,7 @@ const char *CommunCouleurJS = R"====(
             setCouleur();
           }         
         };
-        xhttp.open('GET', 'CouleursAjax', true);
+        xhttp.open('GET', '/CouleursAjax', true);
         xhttp.send();
   }
   

@@ -10,10 +10,10 @@ void Liste_des_Noms() {  // Les noms des routeurs partenaires
 }
 
 void Liste_NomsEtats(int Idx_RMS) {
-  if (RMS_NbCx[Idx_RMS]<100) {
+  if (RMS_NbCx[Idx_RMS] < 100) {
     RMS_NbCx[Idx_RMS]++;
   } else {
-    RMS_NbCx[Idx_RMS]=2;
+    RMS_NbCx[Idx_RMS] = 2;
     RMS_Note[Idx_RMS] = 1;
   }
   if (Idx_RMS == 0) {  //Canal interne
@@ -35,18 +35,21 @@ void Liste_NomsEtats(int Idx_RMS) {
     }
     RMS_NomEtat[0] = S;
     RMS_Note[0] = 100;
-    RMS_NbCx[0] =100;
+    RMS_NbCx[0] = 100;
   } else {
     String RMSExtDataB = "";
     // Use WiFiClient class to create TCP connections
     WiFiClient clientESP_RMS;
     String host = IP2String(RMS_IP[Idx_RMS]);
-    if (!clientESP_RMS.connect(host.c_str(), 80)) {
-
-      StockMessage("Connection to ESP (Etat) : " + host + " failed");
-      if (RMS_Note[Idx_RMS] >0) RMS_Note[Idx_RMS]--;
-      delay(2);
-      return;
+    if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
+      clientESP_RMS.stop();
+      delay(500);
+      if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
+        StockMessage("Connection to ESP (Etat) : " + host + " failed");
+        if (RMS_Note[Idx_RMS] > 0) RMS_Note[Idx_RMS]--;
+        delay(100);
+        return;
+      }
     }
     String url = "/ajax_Noms";
     clientESP_RMS.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
@@ -56,7 +59,7 @@ void Liste_NomsEtats(int Idx_RMS) {
 
         StockMessage("Timeout ESP_RMS (Etat)!" + host);
         clientESP_RMS.stop();
-        if (RMS_Note[Idx_RMS] >0) RMS_Note[Idx_RMS]--;
+        if (RMS_Note[Idx_RMS] > 0) RMS_Note[Idx_RMS]--;
         return;
       }
     }
@@ -71,8 +74,8 @@ void Liste_NomsEtats(int Idx_RMS) {
     int p = RMSExtDataB.indexOf(GS);
     RMSExtDataB = RMSExtDataB.substring(p + 1);
     if (RMSExtDataB.indexOf(US) > 0) {  //Trame semble OK
-      if (RMS_Note[Idx_RMS] <100) RMS_Note[Idx_RMS]++;
-      RMS_NbCx[Idx_RMS]=max(RMS_NbCx[Idx_RMS],RMS_Note[Idx_RMS]);
+      if (RMS_Note[Idx_RMS] < 100) RMS_Note[Idx_RMS]++;
+      RMS_NbCx[Idx_RMS] = max(RMS_NbCx[Idx_RMS], RMS_Note[Idx_RMS]);
       RMS_NomEtat[Idx_RMS] = RMSExtDataB;
     }
   }
@@ -93,7 +96,7 @@ void InfoActionExterne() {  //Relevé périodique etat des actions internes et e
       } else {  //Action d'un autre ESP32
         int Idx_RMS = int(SelectAction / 10);
         int NumAction = int(SelectAction) - int(10 * Idx_RMS);
-        if (RMS_Note[Idx_RMS]>0) {
+        if (RMS_Note[Idx_RMS] > 0) {
           String Etat, Valeur;
           SplitS(RMS_NomEtat[Idx_RMS], Valeur, US, Etat);  //Nom
           SplitS(Etat, Valeur, US, Etat);                  //Températures

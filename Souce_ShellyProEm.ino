@@ -36,14 +36,14 @@ void LectureShellyProEm() {
   String url = "/rpc/Shelly.GetDeviceInfo";
   // Connaître modèle du shelly *******************************************
   if (Shelly_Name == "") {
-    if (!clientESP_RMS.connect(host.c_str(), 80)) {
+    if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
       StockMessage("connection to Shelly Pro Em failed : " + host);
       delay(200);
       return;
     }
-    
+
     clientESP_RMS.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
-    
+
     while (clientESP_RMS.available() == 0) {
       if (millis() - timeout > 5000) {
         StockMessage("client Shelly Em Timeout ! : " + host);
@@ -69,11 +69,14 @@ void LectureShellyProEm() {
     Shelly_Triphase_As_Monophase = true;
   }
   // Protocole monophasé ou triphasé FIN
-
-  if (!clientESP_RMS.connect(host.c_str(), 80)) {
-    StockMessage("connection to Shelly Em failed : " + host);
-    delay(200);
-    return;
+  if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
+    clientESP_RMS.stop();
+    delay(500);
+    if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
+      StockMessage("connection to Shelly Em failed : " + host);
+      delay(200);
+      return;
+    }
   }
 
   url = "/rpc/Shelly.GetStatus";                          // pour Pro Em

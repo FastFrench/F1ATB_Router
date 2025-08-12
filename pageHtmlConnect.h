@@ -4,7 +4,7 @@
 const char *ConnectAP_Html = R"====(
 <!doctype html>
 <html><head><meta charset="UTF-8">    
-    <link rel="stylesheet" href="commun.css">
+    <link rel="stylesheet" href="/commun.css">
     
     <style>
       #form-passe {display: none;padding:10px;text-align:center;margin:auto;width:100%;}
@@ -18,6 +18,7 @@ const char *ConnectAP_Html = R"====(
       .Bparametres{border:inset 10px azure;}
       .Bwifi{border:inset 4px azure;}
     </style>
+    <title>Access Point F1ATB</title>
 </head>
 <body onload="init();">
 <div id='lesOnglets'></div>
@@ -64,7 +65,7 @@ const char *ConnectAP_Html = R"====(
              GH("ListeWifi", S);
           }         
         };
-        xhttp.open('GET', 'AP_ScanWifi', true);
+        xhttp.open('GET', '/AP_ScanWifi', true);
         xhttp.send();
         GID("form-passe").style.display = "none";
         GID("envoyer").style.display = "none";
@@ -111,11 +112,11 @@ const char *ConnectAP_Html = R"====(
           GID("h1T").style.display = "none";
           LoadCouleurs();
   }
-  function AdaptationSource(){ };
+  function AdaptationSource(){ }
   function FinParaRouteur(){
     GID("Bheure").style.display= (Horloge>1) ? "inline-block": "none";
     GID("Bwifi").style.display= (ESP32_Type<10) ? "inline-block": "none";
-  };
+  }
 </script>
 <script src="/ParaRouteurJS"></script>
 <script src="/CommunCouleurJS"></script>

@@ -4,7 +4,7 @@
 const char *OtaHtml = R"====(
   <!doctype html>
   <html><head><meta charset="UTF-8">
-  <link rel="stylesheet" href="commun.css">
+  <link rel="stylesheet" href="/commun.css">
   <style>
     input {font-size:20px;}
     .liste{display:flex;justify-content:center;text-align:left;} 
@@ -13,7 +13,7 @@ const char *OtaHtml = R"====(
     .Bota{border:inset 4px azure;}
   </style>
   <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
-
+  <title>Update OTA F1ATB</title>
   </head>
   <body onload="Init();">
     <div id='lesOnglets'></div>
@@ -27,7 +27,7 @@ const char *OtaHtml = R"====(
       Version(s) disponible(s) :
     </div>
     <div class="liste">
-      <iframe src="https://f1atb.fr/web_tool/scan_dir_bin.php"  width=50% height=150px></iframe>
+      <iframe src="https://f1atb.fr/web_tool/scan_dir_bin.php"  style="width=50% ; height=150px"></iframe>
     </div>
     <div class="liste">
       <ul>
@@ -68,7 +68,7 @@ const char *OtaHtml = R"====(
               return xhr;
               },
               success:function(d, s) {
-              console.log('succès!')
+              console.log('succès!');
               
             },
             error: function (a, b, c) {
