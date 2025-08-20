@@ -61,6 +61,7 @@ void LectureShellyProEm() {
     Shelly_Name = Shelly_Name.substring(0, p);
     Shelly_Profile = StringJson("profile", Shelly_Data);
     Shelly_Data = "";
+    clientESP_RMS.stop();
   }
   // Modèle shelly FIN ******
 
@@ -95,6 +96,7 @@ void LectureShellyProEm() {
   while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
     Shelly_Data += clientESP_RMS.readStringUntil('\r');
   }
+  clientESP_RMS.stop();
   p = Shelly_Data.indexOf("{");
   Shelly_Data = Shelly_Data.substring(p);
   if (Shelly_Name == "shellypro3em" && voie == 3) {

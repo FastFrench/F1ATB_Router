@@ -1030,7 +1030,7 @@ void Task_LectureRMS(void *pvParameters) {
       if (Source == "ShellyPro") {
         LectureShellyProEm();
         LastRMS_Millis = millis();
-        PeriodeProgMillis = 200 + ralenti;  //On s'adapte à la vitesse réponse ShellyProEm
+        PeriodeProgMillis = 100;  //On s'adapte à la vitesse réponse ShellyProEm
       }
 
       if (Source == "Ext") {
