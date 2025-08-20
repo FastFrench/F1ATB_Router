@@ -47,6 +47,7 @@ void LectureShellyEm() {
   while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
     Shelly_Data += clientESP_RMS.readStringUntil('\r');
   }
+  clientESP_RMS.stop();
   p = Shelly_Data.indexOf("{");
   Shelly_Data = Shelly_Data.substring(p);
   if (voie == 3) {  //Triphasé

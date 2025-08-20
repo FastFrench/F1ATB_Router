@@ -141,6 +141,7 @@ void CallESP32_Externe() {
     }
     RMSExtDataB = "";
   }
+  clientESP_RMS.stop();
 }
 void IndexSource() {
   RMSextIdx = 0;

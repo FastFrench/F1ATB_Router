@@ -780,6 +780,7 @@ const char *ParaRouteurJS = R"====(
               }
              }
              IP_RMS[0] = Para[2]; 
+             document.title=nomRMS[0] +" - " + document.title;
              nomRMS[0] = nomRMS[0] +" (local)";
              FinParaRouteur();
           
