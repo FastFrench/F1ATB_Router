@@ -1,3 +1,72 @@
+
+//********************************************************************
+// Connexion au Shelly, avec TimeOut et second essai si échec. 
+//********************************************************************
+bool Connect(WiFiClient clientESP, String host, int port, int timeOutMs)
+{
+  // Protocole monophasé ou triphasé FIN
+  if (!clientESP.connect(host.c_str(), port, timeOutMs)) {
+    clientESP.stop();
+    delay(500);
+    if (!clientESP.connect(host.c_str(), port, timeOutMs)) {
+      clientESP.stop();
+      Debug("connection to Shelly Pro Em failed twice : " + host);
+      delay(200);
+      return false;
+    }
+    else
+      Debug("connection to Shelly Pro Em failed to connect in "+String(timeOutMs)+"ms, but succeeded on 2nd try : " + host);      
+  }
+  return true; 
+}
+
+//********************************************************************
+// Lecture de la réponse du Shelly à une url (appel REST API Shelly)
+// Gère la connection, déconnection, timeOut et remontée d'erreurs.  
+//********************************************************************
+unsigned long connectionDelay = 0; 
+unsigned long getDelay = 0; 
+unsigned long readDataDelay = 0; 
+unsigned long furtherProcessingDelay = 0;
+String ReadShellyData(WiFiClient clientESP, String url, String host, int port = 80, int timeOutMsConnect = 3000, int timeOutMsReading = 5000)
+{
+  connectionDelay = 0; 
+  getDelay = 0; 
+  readDataDelay = 0; 
+  furtherProcessingDelay = 0;
+  String Shelly_Data = "";
+  
+  // 1 - Connect
+  unsigned long t0 = millis();
+  if (!Connect(clientESP, host, port, timeOutMsConnect)) return Shelly_Data; 
+  connectionDelay = millis() - t0;
+  
+  // 2 - REST APi Request
+  t0 = millis();
+  clientESP.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");    
+  while (clientESP.available() == 0) {
+    if (millis() - t0 > timeOutMsReading) {
+      Debug("client Shelly Em Reading Timeout ! : " + host);
+      clientESP.stop();
+      return Shelly_Data;
+    }
+    delay(10);
+  }
+  getDelay = millis() - t0;
+  
+  // 3 - Read Data
+  t0 = millis();  
+  // Lecture des données brutes distantes
+  while (clientESP.available() && (millis() - t0 < timeOutMsReading)) {
+    Shelly_Data += clientESP.readStringUntil('\r');
+  }
+  readDataDelay = millis() - t0;
+
+  // 4 - Close connection
+  clientESP.stop();
+  return Shelly_Data;
+}
+
 //*********************************************************************
 // Variante Shelly Pro Em proposé par Raphael591 (Juillet 2024)       *
 //  + Correction Octobre 2024  et Janvier 2025                        *
@@ -18,7 +87,7 @@ void LectureShellyProEm() {
   float Pw = 0;
   float voltage = 0;
   float pf = 0;
-
+  
   // ADD PERSO : AJOUT VARIABLE JSON pour facilité la lecture des infos EM PRO
   String tmp;  // ADD PERSO
 
@@ -32,36 +101,13 @@ void LectureShellyProEm() {
   if (ShEm_comptage_appels == 1) {
     Voie = (Voie + 1) % 3;  //Pro3Em trois voies
   }
-  unsigned long timeout = millis();
-  String url = "/rpc/Shelly.GetDeviceInfo";
   // Connaître modèle du shelly *******************************************
   if (Shelly_Name == "") {
-    if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-      StockMessage("connection to Shelly Pro Em failed : " + host);
-      delay(200);
-      return;
-    }
-
-    clientESP_RMS.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
-
-    while (clientESP_RMS.available() == 0) {
-      if (millis() - timeout > 5000) {
-        StockMessage("client Shelly Em Timeout ! : " + host);
-        clientESP_RMS.stop();
-        return;
-      }
-    }
-    timeout = millis();
-    // Lecture des données brutes distantes
-    while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
-      Shelly_Data += clientESP_RMS.readStringUntil('\r');
-    }
+    Shelly_Data = ReadShellyData(clientESP_RMS, "/rpc/Shelly.GetDeviceInfo", host);
     Shelly_Name = StringJson("id", Shelly_Data);
     p = Shelly_Name.indexOf("-");
     Shelly_Name = Shelly_Name.substring(0, p);
     Shelly_Profile = StringJson("profile", Shelly_Data);
-    Shelly_Data = "";
-    clientESP_RMS.stop();
   }
   // Modèle shelly FIN ******
 
@@ -70,33 +116,9 @@ void LectureShellyProEm() {
     Shelly_Triphase_As_Monophase = true;
   }
   // Protocole monophasé ou triphasé FIN
-  if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-    clientESP_RMS.stop();
-    delay(500);
-    if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-      StockMessage("connection to Shelly Em failed : " + host);
-      delay(200);
-      return;
-    }
-  }
-
-  url = "/rpc/Shelly.GetStatus";                          // pour Pro Em
+  Shelly_Data = ReadShellyData(clientESP_RMS, "/rpc/Shelly.GetStatus", host);
   ShEm_comptage_appels = (ShEm_comptage_appels + 1) % 5;  // 1 appel sur 6 vers la deuxième voie qui ne sert pas au routeur
-  clientESP_RMS.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
-  timeout = millis();
-  while (clientESP_RMS.available() == 0) {
-    if (millis() - timeout > 5000) {
-      StockMessage("client Shelly Em Timeout 2 ! : " + host);
-      clientESP_RMS.stop();
-      return;
-    }
-  }
-  timeout = millis();
-  // Lecture des données brutes distantes
-  while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
-    Shelly_Data += clientESP_RMS.readStringUntil('\r');
-  }
-  clientESP_RMS.stop();
+  unsigned long t0 = millis();  
   p = Shelly_Data.indexOf("{");
   Shelly_Data = Shelly_Data.substring(p);
   if (Shelly_Name == "shellypro3em" && voie == 3) {
@@ -125,20 +147,18 @@ void LectureShellyProEm() {
     if (Pw >= 0) {
       PuissanceS_M_inst = Pw;
       PuissanceI_M_inst = 0;
-      if (pf > 0.01) {
+      if (pf > 0.01) 
         PVAS_M_inst = PfloatMax(Pw / pf);
-      } else {
-        PVAS_M_inst = 0;
-      }
+      else
+        PVAS_M_inst = 0;      
       PVAI_M_inst = 0;
     } else {
       PuissanceS_M_inst = 0;
       PuissanceI_M_inst = -Pw;
-      if (pf > 0.01) {
+      if (pf > 0.01)
         PVAI_M_inst = PfloatMax(-Pw / pf);
-      } else {
-        PVAI_M_inst = 0;
-      }
+      else
+        PVAI_M_inst = 0;      
       PVAS_M_inst = 0;
     }
     tmp = PrefiltreJson("emdata:0", ":", Shelly_Data);      // ADD PERSO
@@ -164,20 +184,18 @@ void LectureShellyProEm() {
     if (Pw >= 0) {
       PuissanceS_M_inst = Pw;
       PuissanceI_M_inst = 0;
-      if (pf > 0.01) {
+      if (pf > 0.01)
         PVAS_M_inst = PfloatMax(Pw / pf);
-      } else {
+      else 
         PVAS_M_inst = 0;
-      }
       PVAI_M_inst = 0;
     } else {
       PuissanceS_M_inst = 0;
       PuissanceI_M_inst = -Pw;
-      if (pf > 0.01) {
+      if (pf > 0.01) 
         PVAI_M_inst = PfloatMax(-Pw / pf);
-      } else {
+      else
         PVAI_M_inst = 0;
-      }
       PVAS_M_inst = 0;
     }
     tmp = PrefiltreJson("emdata:0", ":", Shelly_Data);                             // ADD PERSO
@@ -200,20 +218,18 @@ void LectureShellyProEm() {
       if (Pw >= 0) {
         PuissanceS_M_inst = Pw;
         PuissanceI_M_inst = 0;
-        if (pf > 0.01) {
+        if (pf > 0.01)
           PVAS_M_inst = PfloatMax(Pw / pf);
-        } else {
+        else
           PVAS_M_inst = 0;
-        }
         PVAI_M_inst = 0;
       } else {
         PuissanceS_M_inst = 0;
         PuissanceI_M_inst = -Pw;
-        if (pf > 0.01) {
+        if (pf > 0.01)
           PVAI_M_inst = PfloatMax(-Pw / pf);
-        } else {
-          PVAI_M_inst = 0;
-        }
+        else
+          PVAI_M_inst = 0;        
         PVAS_M_inst = 0;
       }
       tmp = PrefiltreJson("em1data:" + String(Voie), ":", Shelly_Data);  // ADD PERSO
@@ -232,20 +248,18 @@ void LectureShellyProEm() {
       if (Pw >= 0) {
         PuissanceS_T_inst = Pw;
         PuissanceI_T_inst = 0;
-        if (pf > 0.01) {
+        if (pf > 0.01)
           PVAS_T_inst = PfloatMax(Pw / pf);
-        } else {
-          PVAS_T_inst = 0;
-        }
+        else
+          PVAS_T_inst = 0;        
         PVAI_T_inst = 0;
       } else {
         PuissanceS_T_inst = 0;
         PuissanceI_T_inst = -Pw;
-        if (pf > 0.01) {
+        if (pf > 0.01) 
           PVAI_T_inst = PfloatMax(-Pw / pf);
-        } else {
-          PVAI_T_inst = 0;
-        }
+        else 
+          PVAI_T_inst = 0;        
         PVAS_T_inst = 0;
       }
       tmp = PrefiltreJson("em1data:" + String(Voie), ":", Shelly_Data);  // ADD PERSO
@@ -258,9 +272,8 @@ void LectureShellyProEm() {
 
     //redifinition proEm50 2 voie (0 ou 1)
     Voie = voie % 2;
-    if (ShEm_comptage_appels == 1) {
-      Voie = (Voie + 1) % 2;
-    }
+    if (ShEm_comptage_appels == 1) 
+      Voie = (Voie + 1) % 2;    
 
     ShEm_dataBrute = "<strong>" + Shelly_Name + "</strong><br>" + Shelly_Data;
     Shelly_Data = Shelly_Data + ",";
@@ -275,20 +288,18 @@ void LectureShellyProEm() {
         if (Pw >= 0) {
           PuissanceS_M_inst = Pw;
           PuissanceI_M_inst = 0;
-          if (pf > 0.01) {
+          if (pf > 0.01) 
             PVAS_M_inst = PfloatMax(Pw / pf);
-          } else {
-            PVAS_M_inst = 0;
-          }
+          else
+            PVAS_M_inst = 0;          
           PVAI_M_inst = 0;
         } else {
           PuissanceS_M_inst = 0;
           PuissanceI_M_inst = -Pw;
-          if (pf > 0.01) {
+          if (pf > 0.01) 
             PVAI_M_inst = PfloatMax(-Pw / pf);
-          } else {
-            PVAI_M_inst = 0;
-          }
+           else 
+            PVAI_M_inst = 0;          
           PVAS_M_inst = 0;
         }
         tmp = PrefiltreJson("em1data:" + String(Voie), ":", Shelly_Data);  // ADD PERSO
@@ -307,20 +318,18 @@ void LectureShellyProEm() {
         if (Pw >= 0) {
           PuissanceS_T_inst = Pw;
           PuissanceI_T_inst = 0;
-          if (pf > 0.01) {
+          if (pf > 0.01)
             PVAS_T_inst = PfloatMax(Pw / pf);
-          } else {
-            PVAS_T_inst = 0;
-          }
+          else
+            PVAS_T_inst = 0;          
           PVAI_T_inst = 0;
         } else {
           PuissanceS_T_inst = 0;
           PuissanceI_T_inst = -Pw;
-          if (pf > 0.01) {
+          if (pf > 0.01) 
             PVAI_T_inst = PfloatMax(-Pw / pf);
-          } else {
-            PVAI_T_inst = 0;
-          }
+           else 
+            PVAI_T_inst = 0;          
           PVAS_T_inst = 0;
         }
         tmp = PrefiltreJson("em1data:" + String(Voie), ":", Shelly_Data);  // ADD PERSO
@@ -330,12 +339,13 @@ void LectureShellyProEm() {
         Tension_T = voltage;
       }
     }
-  }
+  }  
   filtre_puissance();
   PuissanceRecue = true;  // Reset du Watchdog à chaque trame du Shelly reçue
   if (ShEm_comptage_appels > 1)
     EnergieActiveValide = true;
-  if (cptLEDyellow > 30) {
-    cptLEDyellow = 4;
-  }
+  if (cptLEDyellow > 30) 
+    cptLEDyellow = 4;  
+  furtherProcessingDelay = millis()-t0;
+  LastStatusRMS = String("Voie=")+Voie+" delay: C="+connectionDelay+" G="+getDelay+" R="+readDataDelay+" P="+furtherProcessingDelay;
 }
