@@ -1,4 +1,4 @@
-#define Version "15.01"
+#define Version "15.03"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -168,6 +168,12 @@
   - V15.01
     Nettoyage code html, javascript,css (Merci Michy)
     Connexion Wifi :extension du timeout et 2 tentatives avant de déclarer une erreur (Merci Lolo69)
+  - V15.02
+    Modifications proposée par Lolo69 sur les connexions WIFI avec le Shelly
+    Rajout du nom du routeur dans le titre des pages HTML
+  - V15.03
+    Arrêt par stop() de toutes les connexions WIFI comme proposée par Lolo69
+
   
   Les détails sont disponibles sur / Details are available here:
   https://f1atb.fr  Section Domotique / Home Automation
@@ -1025,12 +1031,12 @@ void Task_LectureRMS(void *pvParameters) {
       if (Source == "ShellyEm") {
         LectureShellyEm();
         LastRMS_Millis = millis();
-        PeriodeProgMillis = 200 + ralenti;  //On s'adapte à la vitesse réponse ShellyEm
+        PeriodeProgMillis = 100;  // On oublie cette histoire de ralenti
       }
       if (Source == "ShellyPro") {
         LectureShellyProEm();
         LastRMS_Millis = millis();
-        PeriodeProgMillis = 100;  //On s'adapte à la vitesse réponse ShellyProEm
+        PeriodeProgMillis = 100;  // On oublie cette histoire de ralenti
       }
 
       if (Source == "Ext") {
@@ -1178,6 +1184,7 @@ void loop() {
         if (WiFi.waitForConnectResult(10000) != WL_CONNECTED) {
           StockMessage("WIFI Connection Failed! #" + String(WIFIbug));
           WIFIbug++;
+          WiFi.begin(ssid.c_str(), password.c_str()); //WIFI auto restart
         } else {
           WIFIbug = 0;
         }

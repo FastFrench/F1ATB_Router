@@ -42,7 +42,6 @@ void Liste_NomsEtats(int Idx_RMS) {
     WiFiClient clientESP_RMS;
     String host = IP2String(RMS_IP[Idx_RMS]);
     if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-      clientESP_RMS.stop();
       delay(500);
       if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
         StockMessage("Connection to ESP (Etat) : " + host + " failed");
@@ -71,6 +70,7 @@ void Liste_NomsEtats(int Idx_RMS) {
     if (RMSExtDataB.length() > 600) {
       RMSExtDataB = "";
     }
+    clientESP_RMS.stop();
     int p = RMSExtDataB.indexOf(GS);
     RMSExtDataB = RMSExtDataB.substring(p + 1);
     if (RMSExtDataB.indexOf(US) > 0) {  //Trame semble OK

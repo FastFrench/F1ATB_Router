@@ -15,10 +15,10 @@ void LectureShellyEm() {
   WiFiClient clientESP_RMS;
   String host = IP2String(RMSextIP);
   if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-    clientESP_RMS.stop();
     delay(500);
     if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
       StockMessage("connection to Shelly Em failed : " + host);
+      clientESP_RMS.stop();
       delay(100);
       return;
     }
@@ -47,6 +47,7 @@ void LectureShellyEm() {
   while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
     Shelly_Data += clientESP_RMS.readStringUntil('\r');
   }
+  clientESP_RMS.stop();
   p = Shelly_Data.indexOf("{");
   Shelly_Data = Shelly_Data.substring(p);
   if (voie == 3) {  //Triphasé

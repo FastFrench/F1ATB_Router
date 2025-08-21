@@ -418,6 +418,7 @@ void AccueilForceClick() {
       while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
         String Reponse = clientESP_RMS.readStringUntil('\r');
       }
+      clientESP_RMS.stop();
     }
     RMS_Note[ForceIPidx] = true;
     Liste_NomsEtats(ForceIPidx);  //Pour rafraichir état

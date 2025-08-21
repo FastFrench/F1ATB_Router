@@ -11,11 +11,11 @@ void LectureSmartG() {
   // Use WiFiClient class to create TCP connections
   WiFiClient clientESP_RMS;
   String host = IP2String(RMSextIP);
-  if (!clientESP_RMS.connect(host.c_str(), 82, 3000)) {  // PORT 82 pour Smlart Gateways
-    clientESP_RMS.stop();
+  if (!clientESP_RMS.connect(host.c_str(), 82, 3000)) {  // PORT 82 pour Smlart Gateways   
     delay(500);
     if (!clientESP_RMS.connect(host.c_str(), 82, 3000)) {
       StockMessage("connection to SmartGateways failed : " + host);
+      clientESP_RMS.stop();
       delay(100);
       return;
     }
@@ -35,6 +35,7 @@ void LectureSmartG() {
   while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
     SmartG_Data += clientESP_RMS.readStringUntil('\r');
   }
+  clientESP_RMS.stop();
   int p = SmartG_Data.indexOf("{");
   SmartG_Data = SmartG_Data.substring(p + 1);
   p = SmartG_Data.indexOf("}");
