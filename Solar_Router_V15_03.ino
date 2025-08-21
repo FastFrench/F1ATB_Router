@@ -1,4 +1,4 @@
-#define Version "15.02"
+#define Version "15.03"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -171,6 +171,9 @@
   - V15.02
     Modifications proposée par Lolo69 sur les connexions WIFI avec le Shelly
     Rajout du nom du routeur dans le titre des pages HTML
+  - V15.03
+    Arrêt par stop() de toutes les connexions WIFI comme proposée par Lolo69
+
   
   Les détails sont disponibles sur / Details are available here:
   https://f1atb.fr  Section Domotique / Home Automation

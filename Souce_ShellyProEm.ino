@@ -38,6 +38,7 @@ void LectureShellyProEm() {
   if (Shelly_Name == "") {
     if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
       StockMessage("connection to Shelly Pro Em failed : " + host);
+      clientESP_RMS.stop();
       delay(200);
       return;
     }
@@ -70,10 +71,10 @@ void LectureShellyProEm() {
   }
   // Protocole monophasé ou triphasé FIN
   if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-    clientESP_RMS.stop();
     delay(500);
     if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
       StockMessage("connection to Shelly Em failed : " + host);
+      clientESP_RMS.stop();
       delay(200);
       return;
     }

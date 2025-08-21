@@ -13,10 +13,10 @@ void LectureHomeW() {
   WiFiClient clientESP_RMS;
   String host = IP2String(RMSextIP);
   if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {  // PORT 80 pour Home Wizard
-    clientESP_RMS.stop();
     delay(500);
     if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
       StockMessage("connection to HomeWizard failed : " + host);
+      clientESP_RMS.stop();
       delay(100);
       return;
     }
@@ -36,6 +36,7 @@ void LectureHomeW() {
   while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
     HomeW_Data += clientESP_RMS.readStringUntil('\r');
   }
+  
   int p = HomeW_Data.indexOf("{");
   HomeW_Data = HomeW_Data.substring(p + 1);
   p = HomeW_Data.indexOf("}");

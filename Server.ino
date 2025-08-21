@@ -152,10 +152,10 @@ void handleAjaxRMS() {  // Envoi des dernières données  brutes reçues du RMS
     WiFiClient clientESP_RMS;
     String host = IP2String(RMSextIP);
     if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-      clientESP_RMS.stop();
       delay(500);
       if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
         StockMessage("connection to ESP_RMS external failed (call from  handleAjaxRMS)");
+        clientESP_RMS.stop();
         delay(100);
         return;
       }
@@ -175,6 +175,7 @@ void handleAjaxRMS() {  // Envoi des dernières données  brutes reçues du RMS
       RMSExtDataB += clientESP_RMS.readStringUntil('\r');
     }
     S = RMSExtDataB.substring(RMSExtDataB.indexOf("\n\n") + 2);
+    clientESP_RMS.stop();
   } else {
     S = DATE + RS + Source_data;
     if (Source_data == "UxI") {
