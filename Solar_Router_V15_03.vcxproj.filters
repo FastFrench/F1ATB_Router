@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Solar_Router_V15_03.ino" />
+    <ClCompile Include="Actions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Actions.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EcranLCD.ino" />
+    <ClCompile Include="EcranLED.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EcranLED.ino" />
+    <ClCompile Include="MQTT.ino" />
+    <ClCompile Include="pageHtmlActions.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pageHtmlBrute.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pageHtmlConnect.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pageHtmlCouleurs.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pageHtmlExport.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pageHtmlHeure.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pageHtmlMain.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pageHtmlOTA.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pageHtmlPara.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RMS_Externes.ino" />
+    <ClCompile Include="Server.ino" />
+    <ClCompile Include="Souce_ShellyProEm.ino" />
+    <ClCompile Include="Source_EnphaseEnvoy.ino" />
+    <ClCompile Include="Source_Externe.ino" />
+    <ClCompile Include="Source_HomeWizard.ino" />
+    <ClCompile Include="Source_Linky.ino" />
+    <ClCompile Include="Source_MQTT.ino" />
+    <ClCompile Include="Source_ShellyEm.ino" />
+    <ClCompile Include="Source_SmartG.ino" />
+    <ClCompile Include="Source_UxI.ino" />
+    <ClCompile Include="Source_UxIx2.ino" />
+    <ClCompile Include="Source_UxIx3.ino" />
+    <ClCompile Include="Stockage.ino" />
+    <ClCompile Include="Temperature.ino" />
+    <ClCompile Include="Tempo_RTE.ino" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="__vm\.Solar_Router_V15_03.vsarduino.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

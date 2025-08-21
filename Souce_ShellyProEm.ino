@@ -1,70 +1,69 @@
-
 //********************************************************************
 // Connexion au Shelly, avec TimeOut et second essai si échec. 
 //********************************************************************
-bool Connect(WiFiClient clientESP, String host, int port, int timeOutMs)
+bool Connect(WiFiClient& clientESP, String host, int port, int timeOutMs)
 {
-  // Protocole monophasé ou triphasé FIN
-  if (!clientESP.connect(host.c_str(), port, timeOutMs)) {
-    clientESP.stop();
-    delay(500);
+    // Protocole monophasé ou triphasé FIN
     if (!clientESP.connect(host.c_str(), port, timeOutMs)) {
-      clientESP.stop();
-      Debug("connection to Shelly Pro Em failed twice : " + host);
-      delay(200);
-      return false;
+        clientESP.stop();
+        delay(200);
+        if (!clientESP.connect(host.c_str(), port, timeOutMs)) {
+            clientESP.stop();
+            Debug(String("connection to Shelly Pro Em failed twice : ") + host);
+            delay(200);
+            return false;
+        }
+        else
+            Debug(String("connection to Shelly Pro Em failed to connect in ") + String(timeOutMs) + "ms, but succeeded on 2nd try : " + host);
     }
-    else
-      Debug("connection to Shelly Pro Em failed to connect in "+String(timeOutMs)+"ms, but succeeded on 2nd try : " + host);      
-  }
-  return true; 
+    return true;
 }
 
 //********************************************************************
 // Lecture de la réponse du Shelly à une url (appel REST API Shelly)
 // Gère la connection, déconnection, timeOut et remontée d'erreurs.  
 //********************************************************************
-unsigned long connectionDelay = 0; 
-unsigned long getDelay = 0; 
-unsigned long readDataDelay = 0; 
+unsigned long connectionDelay = 0;
+unsigned long getDelay = 0;
+unsigned long readDataDelay = 0;
 unsigned long furtherProcessingDelay = 0;
-String ReadShellyData(WiFiClient clientESP, String url, String host, int port = 80, int timeOutMsConnect = 3000, int timeOutMsReading = 5000)
+String ReadShellyData(WiFiClient& clientESP, String url, String host, int port = 80, int timeOutMsConnect = 3000, int timeOutMsReading = 5000)
 {
-  connectionDelay = 0; 
-  getDelay = 0; 
-  readDataDelay = 0; 
-  furtherProcessingDelay = 0;
-  String Shelly_Data = "";
-  
-  // 1 - Connect
-  unsigned long t0 = millis();
-  if (!Connect(clientESP, host, port, timeOutMsConnect)) return Shelly_Data; 
-  connectionDelay = millis() - t0;
-  
-  // 2 - REST APi Request
-  t0 = millis();
-  clientESP.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");    
-  while (clientESP.available() == 0) {
-    if (millis() - t0 > timeOutMsReading) {
-      Debug("client Shelly Em Reading Timeout ! : " + host);
-      clientESP.stop();
-      return Shelly_Data;
-    }
-    delay(10);
-  }
-  getDelay = millis() - t0;
-  
-  // 3 - Read Data
-  t0 = millis();  
-  // Lecture des données brutes distantes
-  while (clientESP.available() && (millis() - t0 < timeOutMsReading)) {
-    Shelly_Data += clientESP.readStringUntil('\r');
-  }
-  readDataDelay = millis() - t0;
+    connectionDelay = 0;
+    getDelay = 0;
+    readDataDelay = 0;
+    furtherProcessingDelay = 0;
+    String Shelly_Data = "";
 
-  // 4 - Close connection
-  clientESP.stop();
-  return Shelly_Data;
+    // 1 - Connect
+    unsigned long t0 = millis();
+    if (!Connect(clientESP, host, port, timeOutMsConnect)) return Shelly_Data;
+    connectionDelay = millis() - t0;
+
+    // 2 - REST APi Request
+    t0 = millis();
+    clientESP.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
+    while (clientESP.available() == 0) {
+        if (millis() - t0 > timeOutMsReading) {
+            Debug("client Shelly Em Reading Timeout ! : " + host);
+            clientESP.stop();
+            return Shelly_Data;
+        }
+        delay(10);
+    }
+    getDelay = millis() - t0;
+
+    // 3 - Read Data
+    t0 = millis();
+    // Lecture des données brutes distantes
+    while (clientESP.available() && (millis() - t0 < timeOutMsReading)) {
+        Shelly_Data += clientESP.readStringUntil('\r');
+    }
+    readDataDelay = millis() - t0;
+
+    // 4 - Close connection
+    clientESP.stop();
+    return Shelly_Data;
 }
 
 //*********************************************************************

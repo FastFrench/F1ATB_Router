@@ -474,6 +474,7 @@ float previousLoopMin = 1000;
 float previousLoopMax = 0;
 float previousLoopMoy = 0;
 unsigned long previousTimeRMS;
+String LastStatusRMS = ""; // Status de la dernière execution de la commande = temps de traitement ou erreur
 float previousTimeRMSMin = 1000;
 float previousTimeRMSMax = 0;
 float previousTimeRMSMoy = 0;
@@ -571,6 +572,25 @@ int RMS_Datas_idx = 0;
 
 //Adressage IP coeur0 et coeur1
 byte arrIP[4];
+
+// Debug
+WiFiServer debugServer(2323);
+WiFiClient debugClient;
+
+void Debug(String msg) {
+    // Si un nouveau client arrive, on le prend
+    if (debugServer.hasClient()) {
+        if (debugClient && debugClient.connected()) {
+            debugClient.stop(); // On vire l’ancien si déjà connecté
+        }
+        debugClient = debugServer.accept();
+    }
+
+    // Si on a un client valide, on envoie
+    if (debugClient && debugClient.connected()) {
+        debugClient.println(msg);
+    }
+}
 
 
 //Multicoeur - Processeur 0 - Collecte données RMS local ou distant
@@ -861,6 +881,9 @@ void setup() {
     if (WiFi.status() == WL_CONNECTED && ModeReseau < 2) {
       RMS_IP[0] = String2IP(WiFi.localIP().toString());
       StockMessage("Connecté par WiFi, addresse IP : " + WiFi.localIP().toString() + " or <a href='http://" + hostname + ".local' >" + hostname + ".local</a>");
+      debugServer.begin();
+
+      Debug("Debug prêt !");
     } else {
       StockMessage("Pas de connexion WIFI. ESP32 en mode AP et STA.");
       // Go into software AP and STA modes.
@@ -882,7 +905,7 @@ void setup() {
   ArduinoOTA.begin();  //Mandatory
 
   //Adaptation à la Source
-  Serial.println("Source : " + Source);
+  Debug(String("Source : ") + Source);
 
   if (Source == "UxI") {
     Setup_UxI();
@@ -993,6 +1016,7 @@ void Task_LectureRMS(void *pvParameters) {
     //Recupération des données RMS
     //******************************
     if (tps - LastRMS_Millis > PeriodeProgMillis) {  //Attention delicat pour eviter pb overflow
+      LastStatusRMS = "N/A"; // Status de la dernière execution de la commande = temps de traitement ou erreur
       LastRMS_Millis = tps;
       unsigned long ralenti = long(PuissanceS_M / 10);  // On peut ralentir échange sur Wifi si grosse puissance en cours
       if (Source == "UxI") {
@@ -1020,35 +1044,31 @@ void Task_LectureRMS(void *pvParameters) {
       }
       if (Source == "SmartG") {
         LectureSmartG();
-        LastRMS_Millis = millis();
         PeriodeProgMillis = 200 + ralenti;  //On s'adapte à la vitesse réponse SmartGateways
       }
       if (Source == "HomeW") {
         LectureHomeW();
-        LastRMS_Millis = millis();
         PeriodeProgMillis = 200 + ralenti;  //On s'adapte à la vitesse réponse HomeWizard
       }
       if (Source == "ShellyEm") {
         LectureShellyEm();
-        LastRMS_Millis = millis();
         PeriodeProgMillis = 100;  // On oublie cette histoire de ralenti
       }
       if (Source == "ShellyPro") {
         LectureShellyProEm();
-        LastRMS_Millis = millis();
         PeriodeProgMillis = 100;  // On oublie cette histoire de ralenti
       }
 
       if (Source == "Ext") {
         CallESP32_Externe();
-        LastRMS_Millis = millis();
         PeriodeProgMillis = 200 + ralenti;  //Après pour ne pas surchargé Wifi
       }
       if (Source == "Pmqtt") {
         PeriodeProgMillis = 600;
-        LastRMS_Millis = millis();
         UpdatePmqtt();
       }
+      Debug(String("Delay mesure puissance:") + String(millis() - LastRMS_Millis) + "ms " + LastStatusRMS + "  => " + String(PuissanceS_M - PuissanceI_M));
+      LastRMS_Millis = millis();
     }
     delay(2);
   }
