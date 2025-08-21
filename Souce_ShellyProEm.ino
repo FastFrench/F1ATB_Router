@@ -27,12 +27,14 @@ unsigned long connectionDelay = 0;
 unsigned long getDelay = 0;
 unsigned long readDataDelay = 0;
 unsigned long furtherProcessingDelay = 0;
+int nbPackets = 0;
 String ReadShellyData(WiFiClient& clientESP, String url, String host, int port = 80, int timeOutMsConnect = 3000, int timeOutMsReading = 5000)
 {
     connectionDelay = 0;
     getDelay = 0;
     readDataDelay = 0;
     furtherProcessingDelay = 0;
+    nbPackets = 0;
     String Shelly_Data = "";
 
     // 1 - Connect
@@ -55,9 +57,23 @@ String ReadShellyData(WiFiClient& clientESP, String url, String host, int port =
 
     // 3 - Read Data
     t0 = millis();
-    // Lecture des données brutes distantes
-    while (clientESP.available() && (millis() - t0 < timeOutMsReading)) {
-        Shelly_Data += clientESP.readStringUntil('\r');
+    // Lecture par chunks de taille fixe
+    const int BUFFER_SIZE = 2048;
+    char buffer[BUFFER_SIZE];
+    while (clientESP.connected() && (millis() - t0 < timeOutMsReading)) {
+        int bytesAvailable = clientESP.available();
+        if (bytesAvailable > 0) {
+            int bytesToRead = min(bytesAvailable, BUFFER_SIZE - 1);
+            int bytesRead = clientESP.readBytes(buffer, bytesToRead);
+            buffer[bytesRead] = '\0';
+            Debug(String(nbPackets) + " - Read " + String(bytesRead) + " bytes at " + String(millis() - t0) + "ms");
+            //Debug("Content: " + String(buffer).substring(0, min(100, bytesRead)) + "...");
+            Shelly_Data += String(buffer);
+			nbPackets++;
+        }
+        else {
+            delay(1);
+        }
     }
     readDataDelay = millis() - t0;
 
@@ -346,5 +362,5 @@ void LectureShellyProEm() {
   if (cptLEDyellow > 30) 
     cptLEDyellow = 4;  
   furtherProcessingDelay = millis()-t0;
-  LastStatusRMS = String("Voie=")+Voie+" delay: C="+connectionDelay+" G="+getDelay+" R="+readDataDelay+" P="+furtherProcessingDelay;
+  LastStatusRMS = String("Voie=")+Voie+" delay: C="+connectionDelay+" G="+getDelay+" R*"+ nbPackets +"="+readDataDelay+" P="+furtherProcessingDelay;
 }
