@@ -1,3 +1,5 @@
+void ReportShellyProfiling();
+
 // ****************************************************
 // * Client d'un Shelly Em sur voie 0 ou 1 ou triphasé*
 // ****************************************************
@@ -10,44 +12,20 @@ void LectureShellyEm() {
   float Pva;
   int p = 0;
 
-
-  // Use WiFiClient class to create TCP connections
-  WiFiClient clientESP_RMS;
-  String host = IP2String(RMSextIP);
-  if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-    delay(500);
-    if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-      StockMessage("connection to Shelly Em failed : " + host);
-      clientESP_RMS.stop();
-      delay(100);
-      return;
-    }
-  }
   int voie = EnphaseSerial.toInt();
   int Voie = voie % 2;
 
   if (ShEm_comptage_appels == 1) {
-    Voie = (Voie + 1) % 2;
+      Voie = (Voie + 1) % 2;
   }
   String url = "/emeter/" + String(Voie);
   if (voie == 3) url = "/status";  //Triphasé Shelly 3Em
   if (voie >= 30) url = "/rpc/Shelly.GetStatus";
   ShEm_comptage_appels = (ShEm_comptage_appels + 1) % 5;  // 1 appel sur 6 vers la deuxième voie qui ne sert pas au routeur
-  clientESP_RMS.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
-  unsigned long timeout = millis();
-  while (clientESP_RMS.available() == 0) {
-    if (millis() - timeout > 5000) {
-      StockMessage("client Shelly Em Timeout ! : " + host);
-      clientESP_RMS.stop();
-      return;
-    }
-  }
-  timeout = millis();
-  // Lecture des données brutes distantes
-  while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
-    Shelly_Data += clientESP_RMS.readStringUntil('\r');
-  }
-  clientESP_RMS.stop();
+
+  WiFiClient clientESP_RMS;
+  String host = IP2String(RMSextIP);
+  Shelly_Data = ReadShellyData(clientESP_RMS, url, host, 80, 3000, 5000, "");
   p = Shelly_Data.indexOf("{");
   Shelly_Data = Shelly_Data.substring(p);
   if (voie == 3) {  //Triphasé
@@ -238,4 +216,5 @@ void LectureShellyEm() {
   if (cptLEDyellow > 30) {
     cptLEDyellow = 4;
   }
+  ReportShellyProfiling();
 }

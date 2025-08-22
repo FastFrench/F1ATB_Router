@@ -411,7 +411,7 @@ long EASF10 = 0;
 String TokenEnphase = "";
 String EnphaseUser = "";
 String EnphasePwd = "";
-String EnphaseSerial = "0";  //Sert égalemnet au Shelly comme numéro de voie
+String EnphaseSerial = "0";  //Sert également au Shelly comme numéro de voie
 String JsonToken = "";
 String Session_id = "";
 long LastwhDlvdCum = 0;  //Dernière valeur cumul Wh Soutire-injecté.
@@ -577,6 +577,7 @@ byte arrIP[4];
 WiFiServer debugServer(2323);
 WiFiClient debugClient;
 
+// Fonction d'envoi des messages de debug (en mode console telnet)
 void Debug(String msg) {
     // Si un nouveau client arrive, on le prend
     if (debugServer.hasClient()) {
@@ -591,6 +592,9 @@ void Debug(String msg) {
         debugClient.println(msg);
     }
 }
+
+// Fonction définie dans Souce_ShellyProEm.ino
+String ReadShellyData(WiFiClient& clientESP, String url, String host, int port = 80, int timeOutMsConnect = 3000, int timeOutMsReading = 5000, String stopAtString = "");
 
 
 //Multicoeur - Processeur 0 - Collecte données RMS local ou distant
