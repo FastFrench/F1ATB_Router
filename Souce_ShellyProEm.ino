@@ -19,16 +19,19 @@ bool Connect(WiFiClient& clientESP, String host, int port, int timeOutMs)
     return true;
 }
 
-//********************************************************************
-// Lecture de la réponse du Shelly à une url (appel REST API Shelly)
-// Gère la connection, déconnection, timeOut et remontée d'erreurs.  
-//********************************************************************
 unsigned long connectionDelay = 0;
 unsigned long getDelay = 0;
 unsigned long readDataDelay = 0;
 unsigned long furtherProcessingDelay = 0;
 int nbPackets = 0;
-String ReadShellyData(WiFiClient& clientESP, String url, String host, int port = 80, int timeOutMsConnect = 3000, int timeOutMsReading = 5000)
+
+//********************************************************************
+// Lecture de la réponse du Shelly à une url (appel REST API Shelly)
+// Gère la connection, déconnection, timeOut et remontée d'erreurs.  
+// Si stopAtString est fourni, on s'arrête dès qu'on trouve cette chaîne,
+// on tronque la réponse et on remplace la chaîne par '}' pour fermer le JSON
+//********************************************************************
+String ReadShellyData(WiFiClient& clientESP, String url, String host, int port = 80, int timeOutMsConnect = 3000, int timeOutMsReading = 5000, String stopAtString = "")
 {
     connectionDelay = 0;
     getDelay = 0;
@@ -42,7 +45,7 @@ String ReadShellyData(WiFiClient& clientESP, String url, String host, int port =
     if (!Connect(clientESP, host, port, timeOutMsConnect)) return Shelly_Data;
     connectionDelay = millis() - t0;
 
-    // 2 - REST APi Request
+    // 2 - REST API Request
     t0 = millis();
     clientESP.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
     while (clientESP.available() == 0) {
@@ -55,11 +58,16 @@ String ReadShellyData(WiFiClient& clientESP, String url, String host, int port =
     }
     getDelay = millis() - t0;
 
-    // 3 - Read Data
+    // 3 - Read Data avec optimisation optionnelle
     t0 = millis();
-    // Lecture par chunks de taille fixe
     const int BUFFER_SIZE = 2048;
     char buffer[BUFFER_SIZE];
+    bool headersComplete = false;
+    int contentLength = -1;
+    int bodyReceived = 0;
+    int headerEndPos = -1;
+    bool useOptimization = (stopAtString.length() > 0);
+
     while (clientESP.connected() && (millis() - t0 < timeOutMsReading)) {
         int bytesAvailable = clientESP.available();
         if (bytesAvailable > 0) {
@@ -67,12 +75,72 @@ String ReadShellyData(WiFiClient& clientESP, String url, String host, int port =
             int bytesRead = clientESP.readBytes(buffer, bytesToRead);
             buffer[bytesRead] = '\0';
             Debug(String(nbPackets) + " - Read " + String(bytesRead) + " bytes at " + String(millis() - t0) + "ms");
-            //Debug("Content: " + String(buffer).substring(0, min(100, bytesRead)) + "...");
             Shelly_Data += String(buffer);
-			nbPackets++;
+            nbPackets++;
+
+            // **OPTIMISATION : Vérifier si on a trouvé la chaîne d'arrêt**
+            if (useOptimization) {
+                int stopPos = Shelly_Data.indexOf(stopAtString);
+                if (stopPos >= 0) {
+                    // Tronquer les données à la position de la chaîne d'arrêt
+                    Shelly_Data = Shelly_Data.substring(0, stopPos);
+                    // Ajouter '}' pour fermer le JSON
+                    Shelly_Data += "}";
+                    Debug("Found stop string '" + stopAtString + "' at position " + String(stopPos) + ", truncating and stopping read");
+                    break;
+                }
+            }
+
+            // Analyser les en-têtes HTTP pour Content-Length (mode sécurisé)
+            if (!headersComplete) {
+                headerEndPos = Shelly_Data.indexOf("\r\n\r\n");
+                if (headerEndPos >= 0) {
+                    headersComplete = true;
+                    int clPos = Shelly_Data.indexOf("Content-Length: ");
+                    if (clPos >= 0 && clPos < headerEndPos) {
+                        int clStart = clPos + 16;
+                        int clEnd = Shelly_Data.indexOf('\r', clStart);
+                        if (clEnd > clStart) {
+                            String clValue = Shelly_Data.substring(clStart, clEnd);
+                            contentLength = clValue.toInt();
+                            Debug("Content-Length found: " + String(contentLength));
+                        }
+                    }
+                    bodyReceived = Shelly_Data.length() - (headerEndPos + 4);
+                    Debug("Headers complete, body received so far: " + String(bodyReceived) + "/" + String(contentLength));
+                }
+            }
+            else {
+                bodyReceived += bytesRead;
+            }
+
+            // Si on a reçu tout le contenu selon Content-Length (mode sécurisé)
+            if (!useOptimization && headersComplete && contentLength > 0 && bodyReceived >= contentLength) {
+                Debug("All content received (" + String(bodyReceived) + "/" + String(contentLength) + "), stopping read");
+                break;
+            }
         }
         else {
-            delay(1);
+            // Logique de timeout (mode sécurisé uniquement)
+            if (!useOptimization) {
+                if (headersComplete && contentLength <= 0) {
+                    unsigned long waitStart = millis();
+                    while ((millis() - waitStart < 50) && clientESP.connected()) {
+                        if (clientESP.available() > 0) break;
+                        delay(1);
+                    }
+                    if (clientESP.available() == 0) {
+                        Debug("No Content-Length found, timeout reached, stopping read");
+                        break;
+                    }
+                }
+                else {
+                    delay(1);
+                }
+            }
+            else {
+                delay(1);
+            }
         }
     }
     readDataDelay = millis() - t0;
@@ -131,7 +199,7 @@ void LectureShellyProEm() {
     Shelly_Triphase_As_Monophase = true;
   }
   // Protocole monophasé ou triphasé FIN
-  Shelly_Data = ReadShellyData(clientESP_RMS, "/rpc/Shelly.GetStatus", host);
+  Shelly_Data = ReadShellyData(clientESP_RMS, "/rpc/Shelly.GetStatus", host, 80, 3000, 5000, ",\"wifi\":");
   ShEm_comptage_appels = (ShEm_comptage_appels + 1) % 5;  // 1 appel sur 6 vers la deuxième voie qui ne sert pas au routeur
   unsigned long t0 = millis();  
   p = Shelly_Data.indexOf("{");
