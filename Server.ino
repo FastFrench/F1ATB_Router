@@ -750,6 +750,7 @@ void handleAP_SetWifi() {
   ssid = NewSsid;
   password = NewPassword;
   ModeReseau = 0;
+  EcritureEnROM();
   StockMessage("Wifi Begin : " + ssid);
   WiFi.begin(ssid.c_str(), password.c_str());
   unsigned long newstartMillis = millis();

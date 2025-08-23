@@ -14,9 +14,9 @@ void LectureSmartG() {
   if (!clientESP_RMS.connect(host.c_str(), 82, 3000)) {  // PORT 82 pour Smlart Gateways   
     delay(500);
     if (!clientESP_RMS.connect(host.c_str(), 82, 3000)) {
-      StockMessage("connection to SmartGateways failed : " + host);
-      clientESP_RMS.stop();
       delay(100);
+      clientESP_RMS.stop();
+      StockMessage("connection to SmartGateways failed : " + host);
       return;
     }
   }

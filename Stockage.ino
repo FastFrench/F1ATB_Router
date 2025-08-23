@@ -618,7 +618,6 @@ void filtre_puissance() {  //Filtre RC
 
 void StockMessage(String m) {
   m = DATE + " : " + m;
-  Serial.println(m);
   MessageH[idxMessage] = m;
   idxMessage = (idxMessage + 1) % 10;
   PrintScroll(m);
@@ -652,6 +651,7 @@ void LireSerial() {
       if (sw.indexOf("ssid") >= 0) {
         ssid = valeur;
         ModeReseau = 0;  // A priori
+        dhcpOn = 1;  //Au cas ou l'on change de mapping des adresses LAN
         if (ESP32_Type>=10){ //Carte Ethernet
           ESP32_Type=0;
         }

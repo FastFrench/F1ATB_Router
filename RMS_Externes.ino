@@ -44,9 +44,10 @@ void Liste_NomsEtats(int Idx_RMS) {
     if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
       delay(500);
       if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-        StockMessage("Connection to ESP (Etat) : " + host + " failed");
+        delay(100); //Necessaire
+        clientESP_RMS.stop();       
+        StockMessage("Connection (Name) Failed: " + host);
         if (RMS_Note[Idx_RMS] > 0) RMS_Note[Idx_RMS]--;
-        delay(100);
         return;
       }
     }

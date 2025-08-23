@@ -398,6 +398,7 @@ void AccueilForceClick() {
       String host = IP2String(RMS_IP[ForceIPidx]);
       if (!clientESP_RMS.connect(host.c_str(), 80)) {
         StockMessage("connection to ESP_RMS (Force)  : " + host + " failed");
+        clientESP_RMS.stop();
         if (RMS_Note[ForceIPidx] > 0) RMS_Note[ForceIPidx]--;
         delay(2);
         return;

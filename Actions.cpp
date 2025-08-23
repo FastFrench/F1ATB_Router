@@ -299,6 +299,7 @@ void Action::CallExterne(String host, String url, int port) {
       clientExt.stop();
       delay(500);
       if (!clientExt.connect(hostbuf, port, 3000)) {
+        delay(100); //Necessaire
         StockMessage("connection to :" + host + " failed");
         delay(100);
         return;

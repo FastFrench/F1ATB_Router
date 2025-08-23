@@ -1,4 +1,4 @@
-#define Version "15.03"
+#define Version "15.04"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -172,7 +172,10 @@
     Modifications proposée par Lolo69 sur les connexions WIFI avec le Shelly
     Rajout du nom du routeur dans le titre des pages HTML
   - V15.03
-    Arrêt par stop() de toutes les connexions WIFI comme proposée par Lolo69
+    Arrêt par stop() de toutes les connexions WIFI comme proposé par Lolo69
+  - V15.04
+    Correction conflit Wifi/OLed
+    Fin message Shelly non plus sur Timeout mais chaine de caractères. A vérifier avec tous les modèles de Shelly. Codage d'après ChatGPT
 
   
   Les détails sont disponibles sur / Details are available here:
@@ -450,7 +453,7 @@ int8_t RMSextIdx = 0;
 Action LesActions[LesActionsLength];  //Liste des actions
 volatile int NbActions = 0;
 byte ReacCACSI = 1;
-unsigned int Fpwm=500; // Frequence signaux PWM en Hz
+unsigned int Fpwm = 500;  // Frequence signaux PWM en Hz
 
 
 
@@ -553,7 +556,7 @@ bool Discovered = false;
 
 //WIFI
 int16_t WIFIbug = 0;
-int16_t ComSurv = 6; //Timeout sans Wifi par pas de 30s
+int16_t ComSurv = 6;  //Timeout sans Wifi par pas de 30s
 WiFiClientSecure clientSecu;
 WiFiClientSecure clientSecuRTE;
 String Liste_AP = "";
@@ -615,7 +618,7 @@ void GestionIT_10ms() {
           digitalWrite(pulseTriac, LOW);  //Stop Découpe Triac
         }
         break;
-      case 4: //PWM ne depend pas IT 10ms
+      case 4:  //PWM ne depend pas IT 10ms
 
         break;
       default:              // Multi Sinus ou Train de sinus
@@ -653,7 +656,7 @@ void setup() {
   startMillis = millis();
   previousLEDsMillis = startMillis;
 
- 
+
 
   //Ports Série ESP
   Serial.begin(115200);
@@ -735,6 +738,7 @@ void setup() {
   }
   Serial.printf("Chip Model: %s\n", ESP.getChipModel());
   delay(100);
+  LireSerial();
   Ethernet.init(driver);
   if (String(ESP.getChipModel()) == "ESP32-D0WD") {  //certains ESP32U et WT32-ETH01
     Serial.println("\nAncien modèle d'ESP32 que l'on trouve sur les cartes Ethernet WT32-ETH01 (branchez le câble) et certains ESP32U");
@@ -745,6 +749,7 @@ void setup() {
   }
   Serial.println("InitGPIO");
   delay(500);
+  LireSerial();
   InitGPIOs();
   Serial.println("ESP32_Type:" + String(ESP32_Type));
   delay(500);
@@ -809,6 +814,7 @@ void setup() {
     Liste_WIFI();
     Serial.print("Version : ");
     Serial.println(Version);
+    LireSerial();
     // Configure WIFI
     // **************
 
@@ -822,7 +828,7 @@ void setup() {
     }
   }
 
-
+  LireSerial();
   if (Horloge == 0) {  //heure par Internet}
     //Heure / Hour . A Mettre en priorité avant WIFI (exemple ESP32 Simple Time)
     //External timer to obtain the Hour and reset Watt Hour every day at 0h
@@ -853,6 +859,7 @@ void setup() {
           Serial.write('.');
           Gestion_LEDs();
           Serial.print(WiFi.status());
+          LireSerial();
           delay(300);
         }
         Serial.println();
@@ -868,11 +875,12 @@ void setup() {
       delay(100);
       WiFi.mode(WIFI_AP_STA);
       delay(10);
+      LireSerial();
       WiFi.softAP(ap_default_ssid, ap_default_psk);
       infoSerie();
     }
   }
-
+  LireSerial();
   Init_Server();
   Liste_des_Noms();
 
@@ -914,7 +922,7 @@ void setup() {
   } else {
     Source_data = Source;
   }
-
+  LireSerial();
 
 
 
@@ -1184,7 +1192,7 @@ void loop() {
         if (WiFi.waitForConnectResult(10000) != WL_CONNECTED) {
           StockMessage("WIFI Connection Failed! #" + String(WIFIbug));
           WIFIbug++;
-          WiFi.begin(ssid.c_str(), password.c_str()); //WIFI auto restart
+          WiFi.begin(ssid.c_str(), password.c_str());  //WIFI auto restart
         } else {
           WIFIbug = 0;
         }
@@ -1193,6 +1201,7 @@ void loop() {
         PrintScroll("IP :" + WiFi.localIP().toString());
         if (WIFIbug > 0) PrintScroll("WiFi Bug # :" + String(WIFIbug));
         if (WIFIbug > ComSurv) {  //Timeout sans WIFI =Reset
+          Serial.println("Timeout sans WIFI ==> Reset");
           delay(5000);
           ESP.restart();
         }
@@ -1203,6 +1212,8 @@ void loop() {
         if (ModeReseau < 2) {  //Normalement connecté au réseau
           WIFIbug++;
           if (WIFIbug > ComSurv) {  // TimeOut en mode AP Reset
+            Serial.println("TimeOut en mode AP ==> Reset");
+            delay(5000);
             ESP.restart();
           }
         }
@@ -1217,6 +1228,8 @@ void loop() {
         EthernetBug = 0;
       }
       if (EthernetBug > ComSurv) {  // TimeOut sans réseau
+        Serial.println("TimeOut sans réseau Ethernet => Reset ");
+        delay(5000);
         ESP.restart();
       }
     }
@@ -1232,6 +1245,7 @@ void loop() {
     if (PuissanceValide > 0) {
       PuissanceValide = PuissanceValide - 1;
     } else {
+      Serial.println("Puissances non reçues => Reset ");
       delay(5000);
       ESP.restart();
     }
@@ -1291,7 +1305,7 @@ void GestionOverproduction() {
   float Puissance = float(PuissanceS_M - PuissanceI_M);
   if (NbActions == 0) LissageLong = true;  //Cas d'un capteur seul et actions déporté sur autre ESP
   for (int i = 0; i < NbActions; i++) {
-    Actif[i] = LesActions[i].Actif;     //0=Inactif,1=Decoupe ou On/Off, 2=Multi, 3= Train , 4=PWM
+    Actif[i] = LesActions[i].Actif;                      //0=Inactif,1=Decoupe ou On/Off, 2=Multi, 3= Train , 4=PWM
     if (Actif[i] == 2 || Actif[i] == 3) lissage = true;  //En RAM
     forceOff = false;
     LeCanalTemp = LesActions[i].CanalTempEnCours(HeureCouranteDeci);
@@ -1332,8 +1346,8 @@ void GestionOverproduction() {
       RetardF[i] = 100;
     }
     Retard[i] = int(RetardF[i]);  //Valeure entiere pour piloter le Triac et les relais
-    
-    if (Retard[i] == 100) {       // Force en cas d'arret des IT
+
+    if (Retard[i] == 100) {  // Force en cas d'arret des IT
       LesActions[i].Arreter();
       PulseOn[i] = 0;  //Stop Triac ou relais
     } else {
@@ -1350,9 +1364,9 @@ void GestionOverproduction() {
           PulseOn[i] = 100 - Retard[i];
           PulseTotal[i] = 99;  //Nombre impair pour éviter courant continu
           break;
-        case 4: //PWM
-          int Vout=int(RetardF[i]*2.55);
-          if (OutOn[i]==1) Vout=255-Vout;
+        case 4:  //PWM
+          int Vout = int(RetardF[i] * 2.55);
+          if (OutOn[i] == 1) Vout = 255 - Vout;
           ledcWrite(Gpio[i], Vout);
       }
     }

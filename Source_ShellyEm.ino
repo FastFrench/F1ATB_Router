@@ -9,17 +9,15 @@ void LectureShellyEm() {
   float pf = 0;
   float Pva;
   int p = 0;
-
-
   // Use WiFiClient class to create TCP connections
   WiFiClient clientESP_RMS;
   String host = IP2String(RMSextIP);
   if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
     delay(500);
     if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-      StockMessage("connection to Shelly Em failed : " + host);
-      clientESP_RMS.stop();
       delay(100);
+      clientESP_RMS.stop();
+      StockMessage("connection to Shelly Em failed : " + host);
       return;
     }
   }
@@ -29,9 +27,17 @@ void LectureShellyEm() {
   if (ShEm_comptage_appels == 1) {
     Voie = (Voie + 1) % 2;
   }
+  char Fin;
+  if (voie<3)  Fin='}';
   String url = "/emeter/" + String(Voie);
-  if (voie == 3) url = "/status";  //Triphasé Shelly 3Em
-  if (voie >= 30) url = "/rpc/Shelly.GetStatus";
+  if (voie == 3) {
+    url = "/status";  //Triphasé Shelly 3Em
+    Fin= '],';
+  }
+  if (voie >= 30) {
+    url = "/rpc/Shelly.GetStatus";
+    Fin= '}}';
+  }
   ShEm_comptage_appels = (ShEm_comptage_appels + 1) % 5;  // 1 appel sur 6 vers la deuxième voie qui ne sert pas au routeur
   clientESP_RMS.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
   unsigned long timeout = millis();
@@ -43,13 +49,13 @@ void LectureShellyEm() {
     }
   }
   timeout = millis();
-  // Lecture des données brutes distantes
+  // Lecture des données brutes distantes jusqu'à Fin (Defini d'après ChatGPT et à verifier pour tous les Shelly)
   while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
-    Shelly_Data += clientESP_RMS.readStringUntil('\r');
+    Shelly_Data += clientESP_RMS.readStringUntil(Fin);
   }
   clientESP_RMS.stop();
-  p = Shelly_Data.indexOf("{");
-  Shelly_Data = Shelly_Data.substring(p);
+  p = Shelly_Data.indexOf("{"); 
+  Shelly_Data = Shelly_Data.substring(p) +String(Fin);
   if (voie == 3) {  //Triphasé
     ShEm_dataBrute = "<strong>Triphasé</strong><br>" + Shelly_Data;
     p = Shelly_Data.indexOf("emeters");

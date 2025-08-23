@@ -73,8 +73,10 @@ void LectureShellyProEm() {
   if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
     delay(500);
     if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-      StockMessage("connection to Shelly Em failed : " + host);
+      delay(100); //Necessaire
       clientESP_RMS.stop();
+      StockMessage("connection to Shelly Em failed : " + host);
+      
       delay(200);
       return;
     }
@@ -94,11 +96,11 @@ void LectureShellyProEm() {
   timeout = millis();
   // Lecture des données brutes distantes
   while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
-    Shelly_Data += clientESP_RMS.readStringUntil('\r');
+    Shelly_Data += clientESP_RMS.readStringUntil('}}');
   }
   clientESP_RMS.stop();
   p = Shelly_Data.indexOf("{");
-  Shelly_Data = Shelly_Data.substring(p);
+  Shelly_Data = Shelly_Data.substring(p) +"}}";
   if (Shelly_Name == "shellypro3em" && voie == 3) {
     // 3 em Triphasé
     ShEm_dataBrute = "<strong>" + Shelly_Name + "</strong><br>" + Shelly_Data;

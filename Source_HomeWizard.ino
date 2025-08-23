@@ -15,9 +15,9 @@ void LectureHomeW() {
   if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {  // PORT 80 pour Home Wizard
     delay(500);
     if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-      StockMessage("connection to HomeWizard failed : " + host);
-      clientESP_RMS.stop();
       delay(100);
+      clientESP_RMS.stop();
+      StockMessage("connection to HomeWizard failed : " + host);
       return;
     }
   }
@@ -36,7 +36,7 @@ void LectureHomeW() {
   while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
     HomeW_Data += clientESP_RMS.readStringUntil('\r');
   }
-  
+  clientESP_RMS.stop();
   int p = HomeW_Data.indexOf("{");
   HomeW_Data = HomeW_Data.substring(p + 1);
   p = HomeW_Data.indexOf("}");

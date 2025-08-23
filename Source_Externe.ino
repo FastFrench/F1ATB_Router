@@ -16,8 +16,9 @@ void CallESP32_Externe() {
   
     delay(500);
     if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-      StockMessage("Connection to ESP_RMS : " + host + " failed");
+      delay(100);
       clientESP_RMS.stop();
+      StockMessage("Connection to ESP_RMS : " + host + " failed");
       if (RMS_Note[RMSextIdx] > 0) RMS_Note[RMSextIdx]--;
       delay(100);
       return;
@@ -28,9 +29,8 @@ void CallESP32_Externe() {
   unsigned long timeout = millis();
   while (clientESP_RMS.available() == 0) {
     if (millis() - timeout > 5000) {
-
-      StockMessage("client ESP_RMS Timeout !" + host);
       clientESP_RMS.stop();
+      StockMessage("client ESP_RMS Timeout !" + host);      
       if (RMS_Note[RMSextIdx] > 0) RMS_Note[RMSextIdx]--;
       return;
     }
