@@ -51,13 +51,13 @@ void Call_RTE_data() {
         struct tm* pTime2 = localtime(&timestamp2);
         strftime(buffer, MAX_SIZE_T, "%Y-%m-%d", pTime2);
         DateRTE2 = String(buffer);
-        Serial.print("DateRTE:");
-        Serial.println(DateRTE);
-        Serial.print("DateRTE lendemain:");
-        Serial.println(DateRTE2);
-        Serial.println(urlJSON);
+        TelnetPrint("DateRTE:");
+        TelnetPrintln(DateRTE);
+        TelnetPrint("DateRTE lendemain:");
+        TelnetPrintln(DateRTE2);
+        TelnetPrintln(urlJSON);
         clientSecuRTE.print(String("GET ") + urlJSON + " HTTP/1.1\r\n" + "Host: " + Host + "\r\n" + "Connection: close\r\n\r\n");
-        Serial.println("Request vers RTE Envoyé");
+        TelnetPrintln("Request vers RTE Envoyé");
         unsigned long timeout = millis();
         while (clientSecuRTE.available() == 0) {
           if (millis() - timeout > 5000) {
@@ -75,8 +75,8 @@ void Call_RTE_data() {
           if (line.indexOf("}}") >= 0) fin = 2;
         }
         clientSecuRTE.stop();
-        Serial.print("RTEdata:");
-        Serial.println(RTEdata);
+        TelnetPrint("RTEdata:");
+        TelnetPrintln(RTEdata);
         // C'est RTE qui donne la couleur
         int p = RTEdata.indexOf("\"" + DateRTE + "\"");
         int q = RTEdata.indexOf("\"" + DateRTE2 + "\"");

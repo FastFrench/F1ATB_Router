@@ -24,6 +24,8 @@ const char *PageBrute = R"====(
     svg { border:10px inset azure;}
     #infoUxIx2,#infoUxIx3,#infoUxI,#infoLinky,#infoEnphase,#infoSmartG,#infoHomeW,#infoShellyEm,#infoPmqtt{display:none;}
     #donneeDistante{font-size:50%;text-align:center;margin-bottom:10px;display:none;}
+    .bloc a:link {color:#116;text-decoration: none;}
+    .bloc a:visited {color:#226;text-decoration: none;}
   </style>
   <title>Data brute F1ATB</title>
   </head>
@@ -73,7 +75,7 @@ const char *PageBrute = R"====(
     </div>
     <div id="donneeDistante">Données distantes</div>
     <div>Donn&eacute;es ESP32</div>
-    <div><div id='DataESP32' class='tableau'></div></div><br>
+    <div><div id='DataESP32' class='tableau bloc'></div></div><br>
     <div id='pied'></div>
     <script src="/ParaRouteurJS"></script>
     <script src='BruteJS'></script>
@@ -203,24 +205,25 @@ const char *PageBruteJS = R"====(
                 if (message[1]<10){ //WIFI
                   S+='<tr><td>Niveau WiFi :</td><td>'+message[2]+' dBm</td></tr>';
                   S+="<tr><td>Point d'acc&egrave;s WiFi :</td><td>"+message[3]+'</td></tr>';
-                  S+='<tr><td>R&eacute;seau WiFi :</td><td>'+message[5]+'</td></tr>';
+                  S+='<tr><td>R&eacute;seau WiFi :</td><td>'+message[6]+'</td></tr>';
+                  S+='<tr><td>Canal WiFi :</td><td>'+message[4]+'</td></tr>';
                 }
-                S+='<tr><td>Adresse MAC ESP32 :</td><td>'+message[4]+'</td></tr>';                
-                S+='<tr><td>Adresse IP ESP32 :</td><td>'+message[6]+'</td></tr>';
-                S+='<tr><td>Adresse passerelle :</td><td>'+message[7]+'</td></tr>';
-                S+='<tr><td>Masque du r&eacute;seau :</td><td>'+message[8]+'</td></tr>';
+                S+='<tr><td>Adresse MAC ESP32 :</td><td>'+message[5]+'</td></tr>';                
+                S+='<tr><td>Adresse IP ESP32 :</td><td>'+message[7]+'</td></tr>';
+                S+='<tr><td>Adresse passerelle :</td><td>'+message[8]+'</td></tr>';
+                S+='<tr><td>Masque du r&eacute;seau :</td><td>'+message[9]+'</td></tr>';
               } else {
                 S+="<tr><td>Adresse IP ESP32 (Point d'Accès) :</td><td>192.168.4.1</td></tr>";
               }
-              S+='<tr><td>Charge coeur 0 (Lecture Puissance) Min, Moy, Max :</td><td>'+message[9]+' ms</td></tr>';
-              S+='<tr><td>Charge coeur 1 (Calcul + Wifi) Min, Moy, Max :</td><td>'+message[10]+' ms</td></tr>';
-              S+='<tr><td>Espace mémoire EEPROM utilisé :</td><td>'+message[11]+' %</td></tr>';
-              S+='<tr><td>Mémoire RAM libre actuellement :</td><td>'+message[12]+' octet</td></tr>';
-              S+='<tr><td>Mémoire RAM libre minimum :</td><td>'+message[13]+' octet</td></tr>';
-              S+="<tr><td>Nombre d'interruptions en 15ms du Gradateur (signal Zc) : Filtrés/Brutes :</td><td>"+message[14]+'</td></tr>';
-              S+='<tr><td>Synchronisation au Secteur ou asynchrone horloge ESP32</td><td>'+message[15]+'</td></tr>';
-              var Stemp=message[16];
-              if (message[16]>0) Stemp +='<span class="fsize10">' + message[17] +'</span>';
+              S+='<tr><td>Charge coeur 0 (Lecture Puissance) Min, Moy, Max :</td><td>'+message[10]+' ms</td></tr>';
+              S+='<tr><td>Charge coeur 1 (Calcul + Wifi) Min, Moy, Max :</td><td>'+message[11]+' ms</td></tr>';
+              S+='<tr><td>Espace mémoire EEPROM utilisé :</td><td>'+message[12]+' %</td></tr>';
+              S+='<tr><td>Mémoire RAM libre actuellement :</td><td>'+message[13]+' octet</td></tr>';
+              S+='<tr><td>Mémoire RAM libre minimum :</td><td>'+message[14]+' octet</td></tr>';
+              S+="<tr><td>Nombre d'interruptions en 15ms du Gradateur (signal Zc) : Filtrés/Brutes :</td><td>"+message[15]+'</td></tr>';
+              S+='<tr><td>Synchronisation au Secteur ou asynchrone horloge ESP32</td><td>'+message[16]+'</td></tr>';
+              var Stemp=message[17];
+              if (message[17]>0) Stemp +='<span class="fsize10">' + message[18] +'</span>';
               S+="<tr><td>Nombre de capteurs de température DS18B20 :</td><td>"+Stemp+'</td></tr>';
               S +='<tr><td style="text-align:center;"><strong>Messages</strong></td><td></td></tr>';
               var message1=Messages[1].split(RS);

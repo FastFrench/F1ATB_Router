@@ -32,11 +32,11 @@ void LectureShellyEm() {
   String url = "/emeter/" + String(Voie);
   if (voie == 3) {
     url = "/status";  //Triphasé Shelly 3Em
-    Fin= '],';
+    Fin= ']';
   }
   if (voie >= 30) {
     url = "/rpc/Shelly.GetStatus";
-    Fin= '}}';
+    Fin= '}';
   }
   ShEm_comptage_appels = (ShEm_comptage_appels + 1) % 5;  // 1 appel sur 6 vers la deuxième voie qui ne sert pas au routeur
   clientESP_RMS.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");

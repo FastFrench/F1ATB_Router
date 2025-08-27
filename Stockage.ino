@@ -135,9 +135,9 @@ void JourHeureChange() {
       LectureConsoMatinJour();
     }
     //Puissance Max du jour à zero
-    PuisMaxS_T = 0; 
+    PuisMaxS_T = 0;
     PuisMaxS_M = 0;
-    PuisMaxI_T = 0; 
+    PuisMaxI_T = 0;
     PuisMaxI_M = 0;
   }
 }
@@ -188,10 +188,10 @@ void LectureEnROM() {
   int VersionMajeur = int(VersionStocke / 100);
   String V = Version;
   int Vr = V.toInt();
-  Serial.print("Version stockée (partie entière) :");
-  Serial.println(VersionMajeur);
-  Serial.print("Version du logiciel( partie entière) :");
-  Serial.println(Vr);
+  TelnetPrint("Version stockée (partie entière) :");
+  TelnetPrintln(String(VersionMajeur));
+  TelnetPrint("Version du logiciel( partie entière) :");
+  TelnetPrintln(String(Vr));
   if (Vr == VersionMajeur) {  //La partie entière  ne change pas. On lit la suite
     CleAccesRef = EEPROM.readString(address);
     address += CleAccesRef.length() + 1;
@@ -350,7 +350,6 @@ void LectureEnROM() {
       }
     }
     Calibration(address);
-    
   }
 }
 int EcritureEnROM() {
@@ -391,7 +390,7 @@ int EcritureEnROM() {
   EEPROM.writeByte(address, LEDgroupe);
   address += sizeof(byte);
   EEPROM.writeByte(address, rotation);
-  address += sizeof(byte); 
+  address += sizeof(byte);
   EEPROM.writeULong(address, DurEcran);
   address += sizeof(unsigned long);
   for (int i = 0; i < 8; i++) {
@@ -543,7 +542,7 @@ void Calibration(int address) {
   kV = KV * float(CalibU) / 1000.0;  //Calibration coefficient to be applied
   kI = KI * float(CalibI) / 1000.0;
   P_cent_EEPROM = int(100 * address / EEPROM_SIZE);
-  Serial.println("Mémoire EEPROM utilisée : " + String(P_cent_EEPROM) + "%");
+  TelnetPrintln("Mémoire EEPROM utilisée : " + String(P_cent_EEPROM) + "%");
 }
 
 void init_puissance() {
@@ -587,6 +586,7 @@ void filtre_puissance() {  //Filtre RC
   }
 
 
+
   Puissance_M_moy = A * (PuissanceS_M_inst - PuissanceI_M_inst) + B * Puissance_M_moy;
   if (Puissance_M_moy < 0) {
     PuissanceI_M = -int(Puissance_M_moy);  //Puissance Watt affichée en entier Maison
@@ -623,56 +623,7 @@ void StockMessage(String m) {
   PrintScroll(m);
 }
 
-// PORT SERIE
-void LireSerial() {
-  int inbyte;
-  while (Serial.available() > 0) {
-    inbyte = Serial.read();
-    String sw;
-    String valeur = "";
-    int p;
 
-    if ((inbyte == 10) || (inbyte == 13)) {
-      SerialIn.trim();
-      Serial.println(SerialIn);
-      p = SerialIn.indexOf(":");
-      if (p > 0) {
-        sw = SerialIn.substring(0, p);
-        valeur = SerialIn.substring(p + 1);
-        sw.trim();
-        valeur.trim();
-      } else {
-        sw = SerialIn;
-      }
-
-      if (sw.indexOf("restart") >= 0) {
-        ESP.restart();
-      }
-      if (sw.indexOf("ssid") >= 0) {
-        ssid = valeur;
-        ModeReseau = 0;  // A priori
-        dhcpOn = 1;  //Au cas ou l'on change de mapping des adresses LAN
-        if (ESP32_Type>=10){ //Carte Ethernet
-          ESP32_Type=0;
-        }
-        EcritureEnROM();
-      }
-      if (sw.indexOf("password") >= 0) {
-        password = valeur;
-        EcritureEnROM();
-      }
-      if (sw.indexOf("ETH01") >= 0) {
-        ESP32_Type=10;
-        EcritureEnROM();
-      }
-
-
-      SerialIn = "";
-    } else {
-      SerialIn += String(char(inbyte));
-    }
-  }
-}
 
 //Fichier parametres à dowloader
 String Fichier_parametres(String ip, String para, String action) {
@@ -706,9 +657,9 @@ String Fichier_parametres(String ip, String para, String action) {
       S += AddStr("TopicT" + String(c), TopicT[c]) + AddByte("canalTempExterne" + String(c), canalTempExterne[c]) + AddInt("offsetTemp" + String(c), offsetTemp[c]);
     }
     S += AddUshort("CalibU", CalibU) + AddUshort("CalibI", CalibI);
-    S += AddByte("TempoRTEon", TempoRTEon) + AddByte("WifiSleep", WifiSleep) + AddInt("ComSurv" , ComSurv)+ AddByte("pSerial", pSerial) + AddByte("pTriac", pTriac);
+    S += AddByte("TempoRTEon", TempoRTEon) + AddByte("WifiSleep", WifiSleep) + AddInt("ComSurv", ComSurv) + AddByte("pSerial", pSerial) + AddByte("pTriac", pTriac);
   }
-  if (action == "true") {    
+  if (action == "true") {
     S += AddByte("ReacCACSI", ReacCACSI) + AddUshort("Fpwm", Fpwm);
     S += AddUshort("NbActions", NbActions) + ",\"Actions\":[";
     for (int iAct = 0; iAct < NbActions; iAct++) {
@@ -828,15 +779,15 @@ void ImportParametres(String Conf) {
     TempoRTEon = ByteJson("TempoRTEon", Conf);
     WifiSleep = ByteJson("WifiSleep", Conf);
     ComSurv = ShortJson("ComSurv", Conf);
-    if (ComSurv<6) ComSurv=6;
+    if (ComSurv < 6) ComSurv = 6;
     pSerial = ByteJson("pSerial", Conf);
     pTriac = ByteJson("pTriac", Conf);
   }
   if (Conf.indexOf("\"NbActions\":") > 0) {  //ACTIONS
     ReacCACSI = ByteJson("ReacCACSI", Conf);
-    if (ReacCACSI<1) ReacCACSI=1;
+    if (ReacCACSI < 1) ReacCACSI = 1;
     Fpwm = UShortJson("Fpwm", Conf);
-    if (Fpwm <5) Fpwm=500;
+    if (Fpwm < 5) Fpwm = 500;
     NbActions = UShortJson("NbActions", Conf);
     for (int iAct = 0; iAct < NbActions; iAct++) {
       int p = Conf.indexOf("{\"Action\":");
@@ -873,10 +824,10 @@ void ImportParametres(String Conf) {
       }
     }
   }
-  
+
   EcritureEnROM();
 }
-void SplitS(String Str, String& Before, String Separ, String& After) {
+void SplitS(String Str, String &Before, String Separ, String &After) {
   int p = Str.indexOf(Separ);
   Before = Str.substring(0, p);
   After = Str.substring(p + 1);
@@ -918,4 +869,99 @@ String ULtoHex(unsigned long x) {
 }
 unsigned long ConvCouleur(String V) {  //Notation CSS en UL
   return strtoul(V.c_str(), NULL, 16);
+}
+
+//Telnet et Serial
+//****************
+
+// --- Fonction de sortie partagée ---
+void TelnetPrint(const String &message) {
+  Serial.print(message);  // Sortie sur port série
+  if (telnetClient && telnetClient.connected()) {
+    telnetClient.print(message);  // Sortie sur Telnet
+  }
+}
+void TelnetPrintln(const String &message) {
+  Serial.println(message);
+  if (telnetClient && telnetClient.connected()) {
+    telnetClient.println(message);
+  }
+}
+// PORT SERIE ou TELNET
+void LireSerial() {
+  int inbyte;
+  //Port Serie
+  while (Serial.available() > 0) {
+    inbyte = Serial.read();
+
+
+    if ((inbyte == 10) || (inbyte == 13)) {
+      DecodeSerial();
+    } else {
+      SerialIn += String(char(inbyte));
+    }
+  }
+  //Telnet
+  if (telnetClient && telnetClient.connected() && telnetClient.available()) {
+    char c = telnetClient.read();  // Lire caractère
+    if (c == '\n' || c == '\r') {  // Fin de ligne → commande complète
+      DecodeSerial();
+    } else {
+      SerialIn += c;  // Ajouter caractère au buffer
+    }
+  }
+}
+void DecodeSerial() {
+  String sw;
+  String valeur = "";
+  int p;
+  SerialIn.trim();
+  TelnetPrintln(SerialIn);
+  p = SerialIn.indexOf(":");
+  if (p > 0) {
+    sw = SerialIn.substring(0, p);
+    valeur = SerialIn.substring(p + 1);
+    sw.trim();
+    valeur.trim();
+  } else {
+    sw = SerialIn;
+  }
+
+  if (sw.indexOf("restart") >= 0) {
+    ESP.restart();
+  }
+  if (sw.indexOf("ssid") >= 0) {
+    ssid = valeur;
+    ModeReseau = 0;          // A priori
+    dhcpOn = 1;              //Au cas ou l'on change de mapping des adresses LAN
+    if (ESP32_Type >= 10) {  //Carte Ethernet
+      ESP32_Type = 0;
+    }
+    EcritureEnROM();
+  }
+  if (sw.indexOf("password") >= 0) {
+    password = valeur;
+    EcritureEnROM();
+  }
+  if (sw.indexOf("ETH01") >= 0) {
+    ESP32_Type = 10;
+    EcritureEnROM();
+  }
+  if (sw.indexOf("dispPw") >= 0) {
+    dispPw = !dispPw;
+  }
+  if (sw.indexOf("dispAct") >= 0) {
+    dispAct = !dispAct;
+  }
+  // dispAct
+  SerialIn = "";
+}
+void MessageCommandes(){
+  telnetClient.println("");
+  telnetClient.println("*** Commandes par le port série USB ou Telnet port 23 ***");
+  telnetClient.println("ssid:xxx     | pour définir le nom xxx du Wifi à utiliser");
+  telnetClient.println("password:yyy | pour définir le mot de passe yyy du Wifi");
+  telnetClient.println("restart      | pour redémarrer l'ESP32");
+  telnetClient.println("dispPw       | pour afficher les mesures de puissance Pw");
+  telnetClient.println("dispAct      | pour afficher les ouvertures des Actions");
 }

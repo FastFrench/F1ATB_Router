@@ -36,7 +36,7 @@ void GestionMQTT() {
 bool testMQTTconnected() {
   bool connecte = true;
   if (!clientMQTT.connected()) {  // si le mqtt n'est pas connecté (utile aussi lors de la 1ere connexion)
-    Serial.println("Connection au serveur MQTT ...");
+    TelnetPrintln("Connection au serveur MQTT ...");
     String host = IP2String(MQTTIP);
     String S = "";
     if (MQTTPrefix != "") S = MQTTPrefix + "/";
@@ -117,7 +117,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
   }
   Message[length] = '\0';
   String message = String(Message) + ",";
-  Serial.println("Mqtt::"+message);
+  TelnetPrintln("Mqtt::"+message);
   for (int canal = 0; canal < 4; canal++) {
     if (String(topic) == TopicT[canal] && Source_Temp[canal] == "tempMqtt") {
       temperature[canal] = ValJson("temperature", message);
@@ -248,7 +248,7 @@ void sendMQTTDiscoveryMsg_global() {
       DeviceToDiscoverWithoutClass(ActionOnOff, LesActions[i].Titre + " Force OnOff", "min", "0");
     }
   }
-  Serial.println("Paramètres Auto-Discovery publiés !");
+  TelnetPrintln("Paramètres Auto-Discovery publiés !");
   Discovered = true;
 
 

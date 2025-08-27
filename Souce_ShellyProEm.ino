@@ -96,7 +96,7 @@ void LectureShellyProEm() {
   timeout = millis();
   // Lecture des données brutes distantes
   while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
-    Shelly_Data += clientESP_RMS.readStringUntil('}}');
+    Shelly_Data += clientESP_RMS.readStringUntil('}');
   }
   clientESP_RMS.stop();
   p = Shelly_Data.indexOf("{");

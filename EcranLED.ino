@@ -92,7 +92,7 @@ void Gestion_LEDs() {
 }
 
 void PrintScroll(String m) {
-  Serial.println( m);
+  TelnetPrintln( m);
   if (LEDgroupe >= 10) {
     oled.setTextSize(1);
     oled.setTextScroll(true);

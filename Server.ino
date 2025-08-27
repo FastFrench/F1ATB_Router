@@ -64,7 +64,7 @@ void Init_Server() {
     []() {
       HTTPUpload& upload = server.upload();
       if (upload.status == UPLOAD_FILE_START) {
-        Serial.printf("Update: %s\n", upload.filename.c_str());
+        TelnetPrintln("Update: " + String(upload.filename));
         if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {  //start with max available size
           Update.printError(Serial);
         }
@@ -75,7 +75,7 @@ void Init_Server() {
         }
       } else if (upload.status == UPLOAD_FILE_END) {
         if (Update.end(true)) {  //true to set the size to the current progress
-          Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+          TelnetPrintln("Update Success: Rebooting..." + String(upload.totalSize));
         } else {
           Update.printError(Serial);
         }
@@ -93,7 +93,7 @@ void Init_Server() {
       if (opened == false) {
         opened = true;
 
-        Serial.println("Debut Upload");
+        TelnetPrintln("Debut Upload");
         ConfImport = "";
       }
       if (upload.status == UPLOAD_FILE_WRITE) {
@@ -103,8 +103,8 @@ void Init_Server() {
         }
       } else if (upload.status == UPLOAD_FILE_END) {
 
-        Serial.println("UPLOAD_FILE_END");
-        Serial.println(ConfImport);
+        TelnetPrintln("UPLOAD_FILE_END");
+        TelnetPrintln(ConfImport);
         ImportParametres(ConfImport);
         opened = false;
       }
@@ -301,11 +301,11 @@ void handleAjaxESP32() {  // Envoi des dernières infos sur l'ESP32
   String Mac = "";
   String adr = "";
   if (ESP32_Type >= 10) {
-    acces = " " + RS + " ";
+    acces = " " + RS + " " + RS + " ";
     Mac = Ethernet.macAddress();
     adr = Ethernet.localIP().toString() + RS + Ethernet.gatewayIP().toString() + RS + Ethernet.subnetMask().toString();
   } else {
-    acces = WiFi.RSSI() + RS + WiFi.BSSIDstr();
+    acces = WiFi.RSSI() + RS + WiFi.BSSIDstr() + RS + WiFi.channel();
     Mac = WiFi.macAddress();
     adr = WiFi.localIP().toString() + RS + WiFi.gatewayIP().toString() + RS + WiFi.subnetMask().toString();
   }
@@ -706,47 +706,61 @@ void handleExport_file() {
 void handleAP_ScanWifi() {
   server.send(200, "text/html", Liste_AP);
 }
-void Liste_WIFI() {  //Doit être fait avant toute connection WIFI depuis biblio ESP32 3.0.1
+bool Liste_WIFI() {  //Doit être fait avant toute connection WIFI depuis biblio ESP32 3.0.1
+  int bestNetworkDb = -1000;
+  bool bestFound = false;
   WIFIbug = 0;
   esp_task_wdt_reset();
   delay(1);
   int n = 0;
   WiFi.disconnect();
   delay(100);
-  Serial.println("Scan start");
+  TelnetPrintln("Scan start");
   // WiFi.scanNetworks will return the number of networks found.
   n = WiFi.scanNetworks();
-  Serial.println("Scan done");
+  TelnetPrintln("Scan done");
   Liste_AP = "";
   if (n == 0) {
-    Serial.println("Pas de réseau Wifi trouvé");
+    TelnetPrintln("Pas de réseau Wifi trouvé");
   } else {
-    Serial.print(n);
-    Serial.println(" réseaux trouvés");
-    Serial.println("Nr | SSID                             | RSSI | CH | Encryption");
+    TelnetPrint(String(n));
+    TelnetPrintln(" réseaux trouvés");
+    TelnetPrintln("Nr | SSID         | RSSI | MAC | Channel");
     for (int i = 0; i < n; ++i) {
       // Print SSID and RSSI for each network found
-      Serial.printf("%2d", i + 1);
-      Serial.print(" | ");
-      Serial.printf("%-32.32s", WiFi.SSID(i).c_str());
-      Serial.print(" | ");
-      Serial.printf("%4d", WiFi.RSSI(i));
-      Serial.println();
-      Liste_AP += WiFi.SSID(i).c_str() + RS + WiFi.RSSI(i) + GS;
+      TelnetPrint(String(i + 1));
+      TelnetPrint(" | ");
+      TelnetPrint(String(WiFi.SSID(i)));
+      TelnetPrint(" | ");
+      TelnetPrint(String(WiFi.RSSI(i)));
+      TelnetPrint(" | ");
+      TelnetPrint(String(WiFi.BSSIDstr(i)));
+      TelnetPrint(" | ");
+      TelnetPrintln(String(WiFi.channel(i)));
+      Liste_AP += WiFi.SSID(i).c_str() + RS + WiFi.RSSI(i) + RS + WiFi.BSSIDstr(i) + RS + String(WiFi.channel(i)) + GS;
+      if (WiFi.SSID(i) == ssid) {
+        if (WiFi.RSSI(i) > bestNetworkDb) {
+          bestNetworkDb = WiFi.RSSI(i);
+          memcpy(bestBSSID, WiFi.BSSID(i), 6);
+          bestFound = true;
+        }
+      }
     }
   }
   WiFi.scanDelete();
+  return bestFound;
 }
+
 void handleAP_SetWifi() {
   esp_task_wdt_reset();
   delay(1);
-  Serial.println("Set Wifi");
+  TelnetPrintln("Set Wifi");
   String NewSsid = server.arg("ssid");
   NewSsid.trim();
   String NewPassword = server.arg("passe");
   NewPassword.trim();
-  Serial.println(NewSsid);
-  Serial.println(NewPassword);
+  TelnetPrintln(NewSsid);
+  TelnetPrintln(NewPassword);
   ssid = NewSsid;
   password = NewPassword;
   ModeReseau = 0;
@@ -757,15 +771,15 @@ void handleAP_SetWifi() {
   while (WiFi.status() != WL_CONNECTED && (millis() - newstartMillis < 20000)) {  // Attente connexion au Wifi
     Serial.write('!');
     Gestion_LEDs();
-    Serial.print(WiFi.status());
+    TelnetPrint(String(WiFi.status()));
     delay(300);
   }
-  Serial.println();
+  TelnetPrintln("");
   String S = "";
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
+    TelnetPrint("IP address: ");
     String IP = WiFi.localIP().toString();
+    TelnetPrintln(IP);
     S = "Ok" + RS;
     S += "ESP 32 connecté avec succès au wifi : " + ssid + " avec l'adresse IP : " + IP;
     S += "<br><br> Connectez vous au wifi : " + ssid;
@@ -869,8 +883,8 @@ void lectureCookie(String S) {
     }
     CleAcces.trim();
   }
-  Serial.print("Clé accès reçue :" + CleAcces);
-  Serial.println("  Attendue :" + CleAccesRef);
+  TelnetPrint("Clé accès reçue :" + CleAcces);
+  TelnetPrintln("  Attendue :" + CleAccesRef);
   if (S != "") {
     server.sendHeader("Connection", "close");
     if (CleAccesRef == CleAcces) {

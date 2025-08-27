@@ -1,4 +1,4 @@
-#define Version "15.04"
+#define Version "15.05"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -176,6 +176,9 @@
   - V15.04
     Correction conflit Wifi/OLed
     Fin message Shelly non plus sur Timeout mais chaine de caractères. A vérifier avec tous les modèles de Shelly. Codage d'après ChatGPT
+  - V15.05
+    Si plusieurs  AP même SSID, choix du niveau le plus élevé
+    Telnet port 23 identique au port série USB si liaison ethernet/wifi
 
   
   Les détails sont disponibles sur / Details are available here:
@@ -508,8 +511,7 @@ volatile int Gpio[LesActionsLength];
 volatile int OutOn[LesActionsLength];
 volatile int OutOff[LesActionsLength];
 
-EMACDriver driver(ETH_PHY_LAN8720, 23, 18, 16);
-WebServer server(80);  // Simple Web Server on port 80
+
 
 //Port Serie 2 - Remplace Serial2 qui bug
 HardwareSerial MySerial(2);
@@ -560,9 +562,19 @@ int16_t ComSurv = 6;  //Timeout sans Wifi par pas de 30s
 WiFiClientSecure clientSecu;
 WiFiClientSecure clientSecuRTE;
 String Liste_AP = "";
+uint8_t bestBSSID[6];  //Meilleur en dBm adresse MAC
 
 //Ethernet
 int16_t EthernetBug = 0;
+EMACDriver driver(ETH_PHY_LAN8720, 23, 18, 16);
+
+WebServer server(80);  // Simple Web Server on port 80
+
+// === Serveur Telnet ===
+WiFiServer telnetServer(23);  //Port Telnet 23
+WiFiClient telnetClient;
+bool dispPw = false;   //Affiche  Power sur serial et Telnet
+bool dispAct = false;  //Affiche  Ouverture Actions sur serial et Telnet
 
 // Routeurs du réseau
 unsigned long RMS_IP[LesRouteursMax];  //RMS_IP[0] = adresse IP de cet ESP32
@@ -657,10 +669,11 @@ void setup() {
   previousLEDsMillis = startMillis;
 
 
-
   //Ports Série ESP
   Serial.begin(115200);
-  Serial.println("Booting");
+
+
+  TelnetPrintln("Booting");
 
   //Watchdog initialisation
   esp_task_wdt_deinit();
@@ -672,7 +685,7 @@ void setup() {
   };
   // Initialisation de la WDT avec la structure de configuration
   ESP32_ERROR = esp_task_wdt_init(&wdt_config);
-  Serial.println("Dernier Reset : " + String(esp_err_to_name(ESP32_ERROR)));
+  TelnetPrintln("Dernier Reset : " + String(esp_err_to_name(ESP32_ERROR)));
   esp_task_wdt_add(NULL);  //add current thread to WDT watch
   esp_task_wdt_reset();
   delay(1);  //VERY VERY IMPORTANT for Watchdog Reset
@@ -729,37 +742,38 @@ void setup() {
   //Lecture Clé pour identifier si la ROM a déjà été initialisée
   Cle_ROM = CLE_Rom_Init;
   unsigned long Rcle = LectureCle();
-  Serial.println("cle : " + String(Rcle));
+  TelnetPrintln("cle : " + String(Rcle));
   if (Rcle == Cle_ROM) {  // Programme déjà executé
     LectureEnROM();
     LectureConsoMatinJour();
   } else {
     RAZ_Histo_Conso();
   }
-  Serial.printf("Chip Model: %s\n", ESP.getChipModel());
+  TelnetPrintln("Chip Model: " + String(ESP.getChipModel()));
   delay(100);
+  MessageCommandes();
   LireSerial();
   Ethernet.init(driver);
   if (String(ESP.getChipModel()) == "ESP32-D0WD") {  //certains ESP32U et WT32-ETH01
-    Serial.println("\nAncien modèle d'ESP32 que l'on trouve sur les cartes Ethernet WT32-ETH01 (branchez le câble) et certains ESP32U");
+    TelnetPrintln("\nAncien modèle d'ESP32 que l'on trouve sur les cartes Ethernet WT32-ETH01 (branchez le câble) et certains ESP32U");
     if (Ethernet.begin() != 0) {  //C'est une carte WT-ETH01
-      Serial.println("Carte WT32-ETH01 qui Crash en Wifi. On force Ethernet.\n");
+      TelnetPrintln("Carte WT32-ETH01 qui Crash en Wifi. On force Ethernet.\n");
       ESP32_Type = 10;  //On force Ethernet
     }
   }
-  Serial.println("InitGPIO");
+  TelnetPrintln("InitGPIO");
   delay(500);
   LireSerial();
   InitGPIOs();
-  Serial.println("ESP32_Type:" + String(ESP32_Type));
+  TelnetPrintln("ESP32_Type:" + String(ESP32_Type));
   delay(500);
   if (ESP32_Type == 4) Ecran_Init();
 
   IP2String(RMS_IP[0]);
   // Set youRMS_IP[0]c IP address
   IPAddress local_IP(arrIP[3], arrIP[2], arrIP[1], arrIP[0]);
-  Serial.print("Adresse IP en mémoire : ");
-  Serial.println(local_IP);
+  TelnetPrint("Adresse IP en mémoire : ");
+  TelnetPrintln(String(local_IP));
   // Set your Gateway IP address
   IP2String(Gateway);
   IPAddress gateway(arrIP[3], arrIP[2], arrIP[1], arrIP[0]);
@@ -776,8 +790,9 @@ void setup() {
     chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
   }
   hostname += String(chipId);  //Add chip ID to hostname
-  Serial.println(hostname);    //optional
-  if (ESP32_Type == 10) {      //Ethernet (avant Horloge)
+  TelnetPrintln(hostname);     //optional
+  bool bestWifi = false;
+  if (ESP32_Type == 10) {  //Ethernet (avant Horloge)
     PrintScroll("Lancement de la liaison Ethernet");
     if (Ethernet.linkStatus() == LinkOFF) {
       PrintScroll("Câble Ethernet non connecté.");
@@ -794,26 +809,26 @@ void setup() {
       StockMessage("Adresse IP Ethernet fixe : : " + Ethernet.localIP().toString());
       RMS_IP[0] = String2IP(Ethernet.localIP().toString());
     } else {
-      Serial.println("Initialisation Ethernet par DHCP:");
+      TelnetPrintln("Initialisation Ethernet par DHCP:");
       if (Ethernet.begin()) {
         StockMessage("Adresse IP Ethernet assignée par DHCP : " + Ethernet.localIP().toString());
         RMS_IP[0] = String2IP(Ethernet.localIP().toString());
       } else {
-        Serial.println("Failed to configure Ethernet using DHCP");
+        TelnetPrintln("Failed to configure Ethernet using DHCP");
         delay(1);
       }
     }
 
   } else {  //ESP32 en WIFI
-    Serial.println("Lancement du Wifi");
+    TelnetPrintln("Lancement du Wifi");
     //Liste Wifi à faire avant connexion à un AP. Necessaire depuis biblio ESP32 3.0.1
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
     WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
     WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
-    Liste_WIFI();
-    Serial.print("Version : ");
-    Serial.println(Version);
+    bestWifi = Liste_WIFI();
+    TelnetPrint("Version : ");
+    TelnetPrintln(Version);
     LireSerial();
     // Configure WIFI
     // **************
@@ -842,27 +857,32 @@ void setup() {
   //WIFI
   if (ESP32_Type < 10) {
     if (ModeReseau < 2) {
-      Serial.println("ssid:" + ssid);
-      Serial.println("password:" + password);
+      TelnetPrintln("ssid:" + ssid);
+      TelnetPrintln("password:" + password);
       if (ssid.length() > 0) {
         if (dhcpOn == 0) {  //Static IP
                             //Adresse IP eventuelles
                             //optional
           if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
-            Serial.println("WIFI STA Failed to configure");
+            TelnetPrintln("WIFI STA Failed to configure");
           }
         }
         StockMessage("Wifi Begin : " + ssid);
-        WiFi.begin(ssid.c_str(), password.c_str());
+        if (bestWifi) {
+          WiFi.begin(ssid.c_str(), password.c_str(), 0, bestBSSID);  // Connexion forcée au BSSID choisi
+        } else {
+          WiFi.begin(ssid.c_str(), password.c_str());
+        }
+
         WiFi.setSleep(WifiSleep);
         while (WiFi.status() != WL_CONNECTED && (millis() - startMillis < 20000)) {  // Attente connexion au Wifi
-          Serial.write('.');
+          TelnetPrint(".");
           Gestion_LEDs();
-          Serial.print(WiFi.status());
+          TelnetPrint(String(WiFi.status()));
           LireSerial();
           delay(300);
         }
-        Serial.println();
+        TelnetPrintln("");
       }
     }
     if (WiFi.status() == WL_CONNECTED && ModeReseau < 2) {
@@ -880,6 +900,12 @@ void setup() {
       infoSerie();
     }
   }
+
+  // Lancer serveur Telnet
+  telnetServer.begin();
+  telnetServer.setNoDelay(true);
+  TelnetPrintln("Serveur Telnet actif sur le port 23");
+
   LireSerial();
   Init_Server();
   Liste_des_Noms();
@@ -890,7 +916,7 @@ void setup() {
   ArduinoOTA.begin();  //Mandatory
 
   //Adaptation à la Source
-  Serial.println("Source : " + Source);
+  TelnetPrintln("Source : " + Source);
 
   if (Source == "UxI") {
     Setup_UxI();
@@ -1088,6 +1114,16 @@ void loop() {
   //********************
   ArduinoOTA.handle();
   server.handleClient();
+  // Vérifie si un nouveau client Telnet
+  if (telnetServer.hasClient()) {
+    if (telnetClient && telnetClient.connected()) {
+      telnetClient.stop();  // Déconnecter ancien client
+    }
+    telnetClient = telnetServer.available();
+    TelnetPrintln("Nouveau client : " + nomRouteur + " connecté !");
+    telnetClient.println("Bienvenue !");
+    MessageCommandes();
+  }
 
   //Archivage et envois des mesures périodiquement
   //**********************************************
@@ -1117,6 +1153,8 @@ void loop() {
 
       //Discovery message pour MQTT (if HA restart)
       Discovered = false;
+      //Info Serial et Telnet
+      MessageCommandes();
     }
 
 
@@ -1186,7 +1224,7 @@ void loop() {
   if (tps - previousWifiMillis > 30000) {  //Test présence WIFI toutes les 30s et autres
     previousWifiMillis = tps;
     JourHeureChange();
-    Serial.println("\nDate : " + DATE);
+    TelnetPrintln("\nDate : " + DATE);
     if (ESP32_Type < 10) {  //ESP32 en WIFI
       if (WiFi.getMode() == WIFI_STA) {
         if (WiFi.waitForConnectResult(10000) != WL_CONNECTED) {
@@ -1201,7 +1239,7 @@ void loop() {
         PrintScroll("IP :" + WiFi.localIP().toString());
         if (WIFIbug > 0) PrintScroll("WiFi Bug # :" + String(WIFIbug));
         if (WIFIbug > ComSurv) {  //Timeout sans WIFI =Reset
-          Serial.println("Timeout sans WIFI ==> Reset");
+          TelnetPrintln("Timeout sans WIFI ==> Reset");
           delay(5000);
           ESP.restart();
         }
@@ -1212,7 +1250,7 @@ void loop() {
         if (ModeReseau < 2) {  //Normalement connecté au réseau
           WIFIbug++;
           if (WIFIbug > ComSurv) {  // TimeOut en mode AP Reset
-            Serial.println("TimeOut en mode AP ==> Reset");
+            TelnetPrintln("TimeOut en mode AP ==> Reset");
             delay(5000);
             ESP.restart();
           }
@@ -1228,7 +1266,7 @@ void loop() {
         EthernetBug = 0;
       }
       if (EthernetBug > ComSurv) {  // TimeOut sans réseau
-        Serial.println("TimeOut sans réseau Ethernet => Reset ");
+        TelnetPrintln("TimeOut sans réseau Ethernet => Reset ");
         delay(5000);
         ESP.restart();
       }
@@ -1245,17 +1283,17 @@ void loop() {
     if (PuissanceValide > 0) {
       PuissanceValide = PuissanceValide - 1;
     } else {
-      Serial.println("Puissances non reçues => Reset ");
+      TelnetPrintln("Puissances non reçues => Reset ");
       delay(5000);
       ESP.restart();
     }
-    Serial.println("Puissance reçue : " + OK);
-    Serial.println("Charge Lecture RMS (coeur 0) en ms - Min : " + String(int(previousTimeRMSMin)) + " Moy : " + String(int(previousTimeRMSMoy)) + "  Max : " + String(int(previousTimeRMSMax)));
-    Serial.println("Charge Boucle générale (coeur 1) en ms - Min : " + String(int(previousLoopMin)) + " Moy : " + String(int(previousLoopMoy)) + "  Max : " + String(int(previousLoopMax)));
-    Serial.println("Mémoire RAM libre actuellement: " + String(esp_get_free_internal_heap_size()) + " byte");
-    Serial.println("Mémoire RAM libre minimum: " + String(esp_get_minimum_free_heap_size()) + " byte");
+    TelnetPrintln("Puissance reçue : " + OK);
+    TelnetPrintln("Charge Lecture RMS (coeur 0) en ms - Min : " + String(int(previousTimeRMSMin)) + " Moy : " + String(int(previousTimeRMSMoy)) + "  Max : " + String(int(previousTimeRMSMax)));
+    TelnetPrintln("Charge Boucle générale (coeur 1) en ms - Min : " + String(int(previousLoopMin)) + " Moy : " + String(int(previousLoopMoy)) + "  Max : " + String(int(previousLoopMax)));
+    TelnetPrintln("Mémoire RAM libre actuellement: " + String(esp_get_free_internal_heap_size()) + " byte");
+    TelnetPrintln("Mémoire RAM libre minimum: " + String(esp_get_minimum_free_heap_size()) + " byte");
     float DureeOn = float(T_On_seconde) / 3600.0;
-    Serial.println("ESP32 ON depuis : " + String(DureeOn) + " heures");
+    TelnetPrintln("ESP32 ON depuis : " + String(DureeOn) + " heures");
     //RTE
     if (ModeReseau == 0) {  //Valabe pour Ethernet également
       Call_RTE_data();
@@ -1372,6 +1410,20 @@ void GestionOverproduction() {
     }
   }
   LissageLong = lissage;
+  //Sortie vers port Série ou Telnet
+  if (dispPw || dispAct) {
+    String dispOut = "";
+    if (dispPw) {
+      dispOut += "Pw : " + String(PuissanceS_M - PuissanceI_M) + "W";
+    }
+    if (dispAct) {
+      dispOut += " | ";
+      for (int i = 0; i < NbActions; i++) {
+        if (Actif[i] > 0) dispOut += String(100 - Retard[i]) + "% | ";
+      }
+    }
+    TelnetPrintln(dispOut);
+  }
 }
 
 void InitGPIOs() {
@@ -1409,8 +1461,8 @@ void InitGPIOs() {
     TXD2 = TX2_[pSerial];
   }
   if (pTemp > 0) {
-    Serial.print("InirTemp:");
-    Serial.println(pinTemp[pTemp]);
+    TelnetPrint("InirTemp:");
+    TelnetPrintln(String(pinTemp[pTemp]));
     oneWire.begin(pinTemp[pTemp]);
     ds18b20.begin();
     Nbr_DS18B20 = ds18b20.getDeviceCount();
@@ -1423,16 +1475,16 @@ void InitGPIOs() {
 }
 
 void infoSerie() {
-  Serial.println("Access Point Mode : " + hostname);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.softAPIP());
-  Serial.println("\nPar le port série vous pouvez définir le WIFI à utiliser par l'ESP32 en tapant les 3 commandes ci-dessous en remplaçant xxx par la bonne valeur :");
-  Serial.println("ssid:xxx");
-  Serial.println("password:xxx");
-  Serial.println("restart");
-  Serial.println("\nSi vous utilisez la carte ESP32-ETH01, forcez le mode Ethernet en tapant les 2 commandes ci dessous via le port série :");
-  Serial.println("ETH01");
-  Serial.println("restart\n");
+  TelnetPrintln("Access Point Mode : " + hostname);
+  TelnetPrint("IP address: ");
+  TelnetPrintln(String(WiFi.softAPIP()));
+  TelnetPrintln("\nPar le port série vous pouvez définir le WIFI à utiliser par l'ESP32 en tapant les 3 commandes ci-dessous en remplaçant xxx par la bonne valeur :");
+  TelnetPrintln("ssid:xxx");
+  TelnetPrintln("password:xxx");
+  TelnetPrintln("restart");
+  TelnetPrintln("\nSi vous utilisez la carte ESP32-ETH01, forcez le mode Ethernet en tapant les 2 commandes ci dessous via le port série :");
+  TelnetPrintln("ETH01");
+  TelnetPrintln("restart\n");
 }
 // ***********************************
 // * Calage Zéro Energie quotidienne * -
@@ -1477,10 +1529,10 @@ void H_Ouvre_Equivalent(unsigned long dt) {
 // * Heure DATE * -
 // **************
 void time_sync_notification(struct timeval *tv) {
-  Serial.println("\nNotification de l'heure ( time synchronization event ) ");
+  TelnetPrintln("\nNotification de l'heure ( time synchronization event ) ");
   HeureValide = true;
-  Serial.print("Sync time in ms : ");
-  Serial.println(sntp_get_sync_interval());
+  TelnetPrint("Sync time in ms : ");
+  TelnetPrintln(String(sntp_get_sync_interval()));
   JourHeureChange();
   StockMessage("Réception de l'heure Internet");
 }
