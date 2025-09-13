@@ -22,7 +22,7 @@ const char *PageBrute = R"====(
     .dispT{display:none;}
     .ce { text-align: center;position:relative;}
     svg { border:10px inset azure;}
-    #infoUxIx2,#infoUxIx3,#infoUxI,#infoLinky,#infoEnphase,#infoSmartG,#infoHomeW,#infoShellyEm,#infoPmqtt{display:none;}
+    #infoUxIx2,#infoUxIx3,#infoUxI,#infoNotDef,#infoLinky,#infoEnphase,#infoSmartG,#infoHomeW,#infoShellyEm,#infoPmqtt{display:none;}
     #donneeDistante{font-size:50%;text-align:center;margin-bottom:10px;display:none;}
     .bloc a:link {color:#116;text-decoration: none;}
     .bloc a:visited {color:#226;text-decoration: none;}
@@ -33,6 +33,9 @@ const char *PageBrute = R"====(
     <div id='LED'></div>
     <div id="lesOnglets"></div>
     <div id='date'>Date</div><br><br>
+    <div id='infoNotDef'>
+      <div class='tableau'>Source des mesures de puissance non définie<br>A définir au bas de la page Paramètres<br><br>Données simulées</div> <br><br>    
+    </div>
     <div id='infoUxI'>
       <div >Tension et Courant sur 20ms</div>
       <div  class='ce'><h3 style='position:absolute;top:20px;right:40px;'><span id='Ueff'>.</span>
@@ -264,6 +267,9 @@ const char *PageBruteJS = R"====(
             var G0=groupes[0].split(RS);
             GH('date',G0[0]);
             Source_data=G0[1];
+            if (Source_data == "NotDef"){
+              GID('infoNotDef').style.display="block";
+            }
             if (Source_data == "UxI"){
               GID('infoUxI').style.display="block";
               GH('Ueff',"<span style='color:#" + Koul[Coul_W][3] + ";'>_" +parseInt(G0[2],10) + "<small> V</small></span>");

@@ -178,6 +178,9 @@ void handleAjaxRMS() {  // Envoi des dernières données  brutes reçues du RMS
     clientESP_RMS.stop();
   } else {
     S = DATE + RS + Source_data;
+    if (Source_data == "NotDef"){
+      S +=GS + " ";
+    }
     if (Source_data == "UxI") {
       S += RS + String(Tension_M) + RS + String(Intensite_M) + RS + String(PowerFactor_M) + GS;
       int i0 = 0;

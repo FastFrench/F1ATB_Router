@@ -1,7 +1,31 @@
 //***********************************
 //* Source EnPhase Envoy V5 ou V7   *
 //***********************************
+
+uint32_t ipToInt(IPAddress ip) {                                                                  //SR19
+  return uint32_t(ip[0] << 24) | uint32_t(ip[1] << 16) | uint32_t(ip[2] << 8) | uint32_t(ip[3]);  //SR19
+}
+
 void Setup_Enphase() {
+
+  //Résolution mDNS de http://envoy.local en adresse IP                                                                  //SR19
+  //***************************************************                                                                  //SR19
+
+  const char* host = "envoy";                                                                      //SR19
+  IPAddress envoyIP;                                                                               //SR19
+  if (!MDNS.begin(hostname)) {                                                                     //Init mDNS                                                                              //SR19
+    TelnetPrintln("Erreur : impossible d'initialiser mDNS");                                       //SR19
+    return;                                                                                        //SR19
+  } else {                                                                                         //SR19
+    envoyIP = MDNS.queryHost(host, 2000);                                                          //avec timeout 2s                                                             //SR19
+  }                                                                                                //SR19
+  if (envoyIP.toString() != "0.0.0.0") {                                                           //SR19
+    StockMessage("IP Enphase : http://" + String(host) + ".local" + " -> " + envoyIP.toString());  //SR19
+    RMSextIP = ipToInt(envoyIP);                                                                   //IP -> uint32                                                                         //SR19
+  } else {                                                                                         //SR19
+    StockMessage("Échec! passerelle Enphase envoy déconnectée");                                   //SR19
+    return;                                                                                        //SR19
+  }
 
   //Obtention Session ID
   //********************
@@ -10,10 +34,10 @@ void Setup_Enphase() {
   String adrEnphase = "https://" + Host + "/login/login.json";
   String requestBody = "user[email]=" + EnphaseUser + "&user[password]=" + urlEncode(EnphasePwd);
 
-  if (EnphaseUser != "" && EnphasePwd != "") {
+  if (EnphaseUser != "" && EnphasePwd != "" && envoyIP.toString() != "0.0.0.0") {  // test envoyIP si perte de connexion //SR19
     TelnetPrintln("Essai connexion  Enlighten server 1 pour obtention session_id!");
     clientSecu.setInsecure();  //skip verification
-    if (!clientSecu.connect(server1Enphase, 443,3000))
+    if (!clientSecu.connect(server1Enphase, 443, 3000))
       StockMessage("Connection failed to Enlighten server :" + Host);
     else {
       TelnetPrintln("Connected to Enlighten server:" + Host);
@@ -53,7 +77,7 @@ void Setup_Enphase() {
     requestBody = "{\"session_id\":\"" + Session_id + "\", \"serial_num\":" + EnphaseSerial + ", \"username\":\"" + EnphaseUser + "\"}";
     TelnetPrintln("Essai connexion  Enlighten server 2 pour obtention token!");
     clientSecu.setInsecure();  //skip verification
-    if (!clientSecu.connect(server2Enphase, 443,3000))
+    if (!clientSecu.connect(server2Enphase, 443, 3000))
       StockMessage("Connection failed to :" + Host);
     else {
       TelnetPrintln("Connected to :" + Host);
@@ -103,13 +127,14 @@ void LectureEnphase() {  //Lecture des consommations
   int Num_portIQ = 443;
   String JsonEnPhase = "";
   String host = IP2String(RMSextIP);
-  if (TokenEnphase.length() > 50 && EnphaseUser != "") {  //Connexion por firmware V7
-    if (millis() > 2592000000) {                          //Tout les 30 jours on recherche un nouveau Token
+  if (TokenEnphase.length() > 50 && EnphaseUser != "") {  //Connexion pour firmware V7
+    if ((millis() - lastTokenUpdate) > 2592000000) {      //Tout les 30 jours on recherche un nouveau Token //SR19
+      lastTokenUpdate = millis();                         // overflow compatible!                                              //SR19
       Setup_Enphase();
     }
 
     clientSecu.setInsecure();  //skip verification
-    if (!clientSecu.connect(host.c_str(), Num_portIQ,3000)) {
+    if (!clientSecu.connect(host.c_str(), Num_portIQ, 3000)) {
       StockMessage("Connection failed to Envoy-S server! : " + host);
     } else {
       //TelnetPrintln("Connected to Envoy-S server!");
@@ -141,7 +166,7 @@ void LectureEnphase() {  //Lecture des consommations
   } else {  // Connexion Envoy V5
     // Use WiFiClient class to create TCP connections http
     WiFiClient clientFirmV5;
-    if (!clientFirmV5.connect(host.c_str(), 80,3000)) {
+    if (!clientFirmV5.connect(host.c_str(), 80, 3000)) {
       StockMessage("connection to client clientFirmV5 failed (call to Envoy-S)");
       delay(200);
       return;
@@ -237,7 +262,7 @@ String SubJson(String F1, String F2, String Json) {
   int p = Json.indexOf(F1);
   Json = Json.substring(p);
   p = Json.indexOf(F2);
-  Json = Json.substring(0,p+1);
+  Json = Json.substring(0, p + 1);
   return Json;
 }
 

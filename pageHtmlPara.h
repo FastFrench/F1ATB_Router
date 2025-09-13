@@ -256,8 +256,10 @@ const char *ParaHtml = R"====(
         <div class="boldT">Source des mesures de puissance</div>
         <div class="form"  > 
           <div class="ligne source">
+            <label for='NotDef' style='text-align:right;'>Source non définie</label>
+            <input type='radio' name='sources' id='NotDef' value="NotDef" checked   onclick="checkDisabled();">
             <label for='UxI' style='text-align:right;'>UxI</label>
-            <input type='radio' name='sources' id='UxI' value="UxI" checked   onclick="checkDisabled();">
+            <input type='radio' name='sources' id='UxI' value="UxI"  onclick="checkDisabled();">
             <label for='UxIx2' style='text-align:right;'>UxIx2</label>
             <input type='radio' name='sources' id='UxIx2' value="UxIx2"  onclick="checkDisabled();">   
             <label for='UxIx3' style='text-align:right;'>UxIx3</label>
