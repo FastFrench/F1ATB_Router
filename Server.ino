@@ -178,8 +178,8 @@ void handleAjaxRMS() {  // Envoi des dernières données  brutes reçues du RMS
     clientESP_RMS.stop();
   } else {
     S = DATE + RS + Source_data;
-    if (Source_data == "NotDef"){
-      S +=GS + " ";
+    if (Source_data == "NotDef") {
+      S += GS + " ";
     }
     if (Source_data == "UxI") {
       S += RS + String(Tension_M) + RS + String(Intensite_M) + RS + String(PowerFactor_M) + GS;
@@ -474,7 +474,7 @@ void handleAjaxData10mn() {  // Envoi Historique de 10mn (300points)Energie Acti
 }
 void handleAjaxNoms() {
   Liste_NomsEtats(0);  // Les noms de ce routeur
-  String S = GS + RMS_NomEtat[0]+"\r";
+  String S = GS + RMS_NomEtat[0] + "\r";
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
 }
@@ -538,7 +538,7 @@ void handlePara() {
 void handleParaUpdate() {
   lectureCookie("");
   CleAccesRef = CleAcces;  //Nouvelle cle d'accès ou mise à jour
-  String Vp[71];
+  String Vp[72];
   String lesparas = server.arg("lesparas") + RS;
   int idx = 0;
   while (lesparas.length() > 0) {
@@ -586,19 +586,21 @@ void handleParaUpdate() {
   DurEcran = strtoul(Vp[36].c_str(), NULL, 10);
   pUxI = byte(Vp[37].toInt());
   pTemp = byte(Vp[38].toInt());
+  if (ReacCACSI == 100) ReacCACSI = 1;
+  if (Vp[39].toInt() == 1 && Source == "Linky") ReacCACSI = 100;  //EstimCACSI
   int canal = 0;
   for (int c = 0; c < 4; c++) {
-    nomTemperature[c] = Vp[39 + 6 * c];
-    Source_Temp[c] = Vp[40 + 6 * c];
-    TopicT[c] = Vp[41 + 6 * c];
-    refTempIP[c] = byte(Vp[42 + 6 * c].toInt());
-    canalTempExterne[c] = byte(Vp[43 + 6 * c].toInt());
-    offsetTemp[c] = Vp[44 + 6 * c].toInt();
+    nomTemperature[c] = Vp[40 + 6 * c];
+    Source_Temp[c] = Vp[41 + 6 * c];
+    TopicT[c] = Vp[42 + 6 * c];
+    refTempIP[c] = byte(Vp[43 + 6 * c].toInt());
+    canalTempExterne[c] = byte(Vp[44 + 6 * c].toInt());
+    offsetTemp[c] = Vp[45 + 6 * c].toInt();
   }
   int j = 1;
   for (int i = 1; i < LesRouteursMax; i++) {
     RMS_IP[i] = 0;
-    unsigned long IP = strtoul(Vp[63 + i].c_str(), NULL, 10);
+    unsigned long IP = strtoul(Vp[64 + i].c_str(), NULL, 10);
     if (IP > 0 && ModeReseau < 2) {
       RMS_IP[j] = IP;
       j++;
@@ -635,6 +637,8 @@ void handleParaRouteurJS() {
   server.send(200, "text/javascript", ParaRouteurJS);
 }
 void handleParaAjax() {
+  int EstimCACSI = 0 ;
+  if (ReacCACSI == 100) EstimCACSI = 1;
   String S = String(dhcpOn) + RS + String(RMS_IP[0]) + RS + String(Gateway) + RS + String(masque) + RS + String(dns) + RS;
   S += String(ModePara) + RS + String(ModeReseau) + RS + String(Horloge) + RS + Source + RS + String(RMSextIP) + RS;
   S += EnphaseUser + RS + EnphasePwd + RS + EnphaseSerial + RS + TopicP;
@@ -642,7 +646,7 @@ void handleParaAjax() {
   S += RS + MQTTPrefix + RS + MQTTPrefixEtat + RS + MQTTdeviceName + RS + String(subMQTT) + RS + nomRouteur + RS + nomSondeFixe + RS + nomSondeMobile;
   S += RS + String(CalibU) + RS + String(CalibI);
   S += RS + String(TempoRTEon) + RS + String(WifiSleep) + RS + String(ComSurv) + RS + String(pSerial) + RS + String(pTriac);
-  S += RS + String(ESP32_Type) + RS + String(LEDgroupe) + RS + String(rotation) + RS + String(DurEcran) + RS + String(pUxI) + RS + String(pTemp);
+  S += RS + String(ESP32_Type) + RS + String(LEDgroupe) + RS + String(rotation) + RS + String(DurEcran) + RS + String(pUxI) + RS + String(pTemp) + RS + String(EstimCACSI);
   for (int c = 0; c < 4; c++) {
     S += GS + nomTemperature[c] + RS + Source_Temp[c] + RS + TopicT[c] + RS + String(refTempIP[c]) + RS + String(canalTempExterne[c]) + RS + String(offsetTemp[c]);
   }

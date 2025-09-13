@@ -9,7 +9,7 @@ const char *ParaHtml = R"====(
     .form {margin:auto;padding:5px;display: table;text-align:left;width:100%;}
     .form2 {margin:2px;padding:2px;display: block;width:100%;}
     .ligne {display: table-row;}
-    .ligneF {display: table-row;background: rgba(50, 50, 50, 0.2);}
+    .ligneF {display: table-row;background: rgba(50, 50, 50, 0.2);width:100%;}
     .ligne3 {display:flex;justify-content: center;padding:0px;margin: 0px;}
     .cadre {border-top:1px solid azure;}
     .canalT {display: table;}
@@ -34,6 +34,7 @@ const char *ParaHtml = R"====(
     .fsize150{font-size:140%;}
     .topG{display:flex;justify-content: center;}
     .shem{font-size:12px;display:flex;}
+    .tc{text-align:center;background: rgba(50, 50, 60, 0.2);padding:4px;}
   </style>
   <title>Params F1ATB</title>
   </head>
@@ -306,6 +307,12 @@ const char *ParaHtml = R"====(
             <input type='text' name='TopicP' id='TopicP' autocomplete='on'>
           </div>
           <div><span class='fsize10'>Nécessite un Reset de l'ESP32</span></div>
+        </div>
+        <div id="CACSI" class="form">             
+            <div class='ligne'>
+              <label for='EstimCACSI'>Estimateur injection si CACSI: </label>
+              <input type='checkbox' name='EstimCACSI' id='EstimCACSI' style='width:25px;' onclick="checkDisabled();">
+            </div>
         </div> 
     </div>
     <div class="Zone" id="LesSourcesTemp">
@@ -518,6 +525,7 @@ const char *ParaJS = R"====(
              GID("Ec" + Para[36]).checked = true;
              GID("pUxI" + Para[37]).checked = true;
              GID("pTemp" + Para[38]).checked = true;
+             GID("EstimCACSI").checked = Para[39]==1  ? true:false;
              for (var c=0;c<4;c++){
                 var ParaT=LesParas[c+1].split(RS);
                 GID("nomTemperature"+c).value=ParaT[0];
@@ -553,6 +561,8 @@ const char *ParaJS = R"====(
     var pDurEcran  = document.querySelector('input[name="pDurEcran"]:checked').value;
     var pUxI  = document.querySelector('input[name="pUxI"]:checked').value;
     var pTemp  = document.querySelector('input[name="pTemp"]:checked').value;
+    var EstimCACSI = GID("EstimCACSI").checked ? 1:0;
+    if (Source_new!="Linky") EstimCACSI=0;
     if (ModePara==0) { //Non Expert
         subMQTT=0; WifiSleep=1;
     }
@@ -563,7 +573,7 @@ const char *ParaJS = R"====(
     S +=RS+GID("MQTTPrefix").value.trim()+RS+GID("MQTTPrefixEtat").value.trim()+RS+GID("MQTTdeviceName").value.trim() + RS + subMQTT;
     S +=RS+GID("nomRouteur").value.trim()+RS+GID("nomSondeFixe").value.trim()+RS+GID("nomSondeMobile").value.trim();
     S +=RS+GID("CalibU").value+RS+GID("CalibI").value + RS + TempoRTEon + RS + WifiSleep + RS + ComSurv + RS + Serial + RS + pTriac;
-    S +=RS + pESP + RS + pLED +RS + pRot + RS + pDurEcran + RS + pUxI + RS + pTemp;
+    S +=RS + pESP + RS + pLED +RS + pRot + RS + pDurEcran + RS + pUxI + RS + pTemp+ RS + EstimCACSI;
     for (var c=0;c<4;c++){
       var QS='input[name="srcTemp' + c + '"]:checked';
       var Source_Temp = (ModePara==0) ? "tempNo":document.querySelector(QS).value;
@@ -673,6 +683,7 @@ const char *ParaJS = R"====(
       GID('ligneFixe').style.display = (Source_data=='UxIx2' || ((Source_data=='ShellyEm' || Source_data=='ShellyPro') && GID("EnphaseSerial").value !=3 ))? "table-row" : "none";
       GID('Zcalib').style.display=(Source_data=='UxI' && Source=='UxI' ) ? "table" : "none";
       GID('Analog').style.display=(Source_data=='UxI' && Source=='UxI' ) ? "table-row" : "none";
+      GID('CACSI').style.display=( Source=='Linky' ) ? "table" : "none";
       var txtExt = "ESP-RMS";
       if (Source=='Enphase') txtExt = "Enphase-Envoy";
       if (Source=='SmartG') txtExt = "SmartGateways";

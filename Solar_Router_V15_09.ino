@@ -1,4 +1,4 @@
-#define Version "15.08"
+#define Version "15.09"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -183,10 +183,12 @@
     Correction affichage IP
   - V15.07
     Modif lecture Shelly Em
-  - V15.09
-    Possibilité de trouver le réseau WIFI par WPS. Modif proposé par SR19
-    Amélioretion renouvellement token Enphase propsé par SR19
+  - V15.08
+    Possibilité de trouver le réseau WIFI par WPS. Modif proposée par SR19
+    Amélioretion renouvellement token Enphase proposée par SR19
     Création d'une source de puissance non définie pour la première mise en route
+  - V15.09
+    Estimateur injection proposé par Ludovic35
 
   
   Les détails sont disponibles sur / Details are available here:
@@ -1458,14 +1460,14 @@ void GestionOverproduction() {
       } else {  // 3 ou 4
         SeuilPw = float(LesActions[i].Valmin(HeureCouranteDeci));
         MaxTriacPw = float(LesActions[i].Valmax(HeureCouranteDeci));
-        GainBoucle = float(LesActions[i].Reactivite);                                     //Valeur stockée dans Port
-        if (Actif[i] == 1 && i > 0) {                                                     //Les relais en On/Off
-          if (Puissance > MaxTriacPw) { RetardF[i] = 100; }                               //OFF
-          if (Puissance < SeuilPw) { RetardF[i] = 0; }                                    //On
-        } else {                                                                          // le Triac ou les relais en sinus
-          RetardF[i] = RetardF[i] + 0.0001;                                               //On ferme très légèrement si pas de message reçu. Sécurité
-          if (Puissance < SeuilPw && ReacCACSI > 1) GainBoucle = GainBoucle * GainCACSI;  //On boost si besoin l'écart
-          RetardF[i] = RetardF[i] + (Puissance - SeuilPw) * GainBoucle / 10000.0;         // Gain de boucle de l'asservissement
+        GainBoucle = float(LesActions[i].Reactivite);                                                        //Valeur stockée dans Port
+        if (Actif[i] == 1 && i > 0) {                                                                        //Les relais en On/Off
+          if (Puissance > MaxTriacPw) { RetardF[i] = 100; }                                                  //OFF
+          if (Puissance < SeuilPw) { RetardF[i] = 0; }                                                       //On
+        } else {                                                                                             // le Triac ou les relais en sinus
+          RetardF[i] = RetardF[i] + 0.0001;                                                                  //On ferme très légèrement si pas de message reçu. Sécurité
+          if (Puissance < SeuilPw && ReacCACSI > 1 && ReacCACSI < 100) GainBoucle = GainBoucle * GainCACSI;  //On boost si besoin l'écart (*2, 4 ou 8)
+          RetardF[i] = RetardF[i] + (Puissance - SeuilPw) * GainBoucle / 10000.0;                            // Gain de boucle de l'asservissement
           if (RetardF[i] < 100 - MaxTriacPw) { RetardF[i] = 100 - MaxTriacPw; }
           if (ITmode < 0 && i == 0) RetardF[i] = 100;  //Triac pas possible sur synchro interne
         }

@@ -18,7 +18,7 @@ const char *ActionsHtml = R"====(
     .slideTriacIn{display:flex;justify-content:center;width:100%;}
     .planning,#CACSI,#Freq_PWM{width:100%;position:relative;margin:4px;padding:2px;border:2px inset grey;background-color:white;color:black;border-radius:8px;}
     #CACSI,#Freq_PWM{background-color:#ffa;}
-    #commun{display:none;}
+    #commun,#CACSI{display:none;}
     .periode{position:absolute;height:100%;border:outset 4px;border-radius:10px;display:flex;justify-content:space-between;align-items: center;color:white;cursor:ew-resize;}
     .curseur{position:relative;width:100%;height:30px;}
     .infoAction{position:relative;display:flex;width:100%;min-height:40px;font-size:20px;}
@@ -73,10 +73,10 @@ const char *ActionsHtml = R"====(
         <br>
         <h4>Paramètres communs aux Actions</h4>   
         <div id="CACSI"> 
-          <div>Réactivité CACSI <span class='fsize10'>Augmentée pour les valeurs de puissance inférieures au seuil Pw. Pour tous les SSR ou Triac.</span></div>
+          <div>Réactivité si CACSI <span class='fsize10'>Augmentée pour les valeurs de puissance inférieures au seuil Pw. Pour tous les SSR ou Triac.</span></div>
           <div class="form2"  >
             <div class="ligne source">
-              <label for='CACSI1' style='text-align:right;'>Pas de CACSI</label>
+              <label for='CACSI1' style='text-align:right;'>Pas d'augmentation</label>
               <input type='radio' name='ReacCACSI' id='CACSI1' value="1" checked>
               <label for='CACSI2' style='text-align:right;'>Réactivité x 2</label>
               <input type='radio' name='ReacCACSI' id='CACSI2' value="2" >
@@ -130,6 +130,7 @@ const char *ActionsJS = R"====(
   var SelectActions="";
   var LTARFbin=0;
   var pTriac=0;
+  var ReacCACSI=1;
   var IS="|"; //Input Separator
   var BordsInverse=[".Bactions"];
   function Init() {
@@ -553,6 +554,7 @@ const char *ActionsJS = R"====(
   function checkDisabled(){
     GID("sortie0").style.display ="none";
     GID("Freq_PWM").style.display="none";
+    GID("commun").style.display = (ModePara>0 && ReacCACSI<100 ) ? "block":"none";
     for (var iAct = 0; iAct < LesActions.length; iAct++) {
         for (var i=0;i<=4;i++){
             if( GID("radio" + iAct +"-"+ i).checked ) { LesActions[iAct].Actif =i;} //0=Inactif,1=Decoupe ou On/Off, 2=Multi, 3= Train, 4= PWM
@@ -579,7 +581,11 @@ const char *ActionsJS = R"====(
         if (GID("selectPin"+iAct).value==-1 && GID("ordreOn"+iAct).value.indexOf(IS)>0) GID("ordreOn"+iAct).value="";                   
         GID("ligne_bas"+iAct).style.display  =( LesActions[iAct].Actif==1 && GID("selectPin"+iAct).value<=0 && iAct>0) ?  "flex" :"none";
         GID("fen_slide"+iAct).style.display = (LesActions[iAct].Actif== 1 && iAct>0  ) ? "none" : "block";
-        if( GID("radio" + iAct +"-4").checked) GID("Freq_PWM").style.display="block";
+        if( GID("radio" + iAct +"-4").checked) {
+          GID("Freq_PWM").style.display="block";
+          GID("commun").style.display =  "block";
+        }
+        
     }
     GID("Pwm0").style.display = "none"; //Pas de PWM sur la sortie Triac
   }
@@ -595,9 +601,12 @@ const char *ActionsJS = R"====(
               NomTemperatures = LesParas[1].split(US);
               LTARFbin = parseInt(LesParas[2]);
               pTriac = parseInt(LesParas[3]);
-              GID("CACSI" + LesParas[4]).checked = true;
+              ReacCACSI = LesParas[4]; //1,24 8 ou 100 pour EstimCACSI
+              if (ReacCACSI<100) {
+                GID("CACSI" + ReacCACSI).checked = true; //Reactivité CACSI et non Estimation
+                GID("CACSI").style = "display:block;";
+              }
               GID("Fpwm" + LesParas[5]).checked = true;
-              if (LesParas[4]>1 || LesParas[6]>0) GID("commun").style = "display:block;";
               LesActions.splice(0,LesActions.length);
               for (var iAct=1;iAct<Les_ACTIONS.length-1;iAct++){
                 var champs=Les_ACTIONS[iAct].split(RS);
@@ -701,7 +710,7 @@ const char *ActionsJS = R"====(
             S +=GS;
         }
       }
-      var ReacCACSI  = document.querySelector('input[name="ReacCACSI"]:checked').value;
+      if (ReacCACSI<100) ReacCACSI  = document.querySelector('input[name="ReacCACSI"]:checked').value; //Pas d'estimation
       var Fpwm  = document.querySelector('input[name="Fpwm"]:checked').value;
       S=clean(S);
       S = "?ReacCACSI=" + ReacCACSI + "&Fpwm=" + Fpwm +"&actions="+S+"|"; //On ne peut pas terminer par GS
@@ -728,6 +737,7 @@ const char *ActionsJS = R"====(
         ListeActions[v]= T +nomActions[esp][iAct][1];    
       }
     }
+    checkDisabled();
   }
   
   function Disp(t) {
