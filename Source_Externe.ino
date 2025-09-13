@@ -30,6 +30,7 @@ void CallESP32_Externe() {
   while (clientESP_RMS.available() == 0) {
     if (millis() - timeout > 5000) {
       clientESP_RMS.stop();
+      delay(100);
       StockMessage("client ESP_RMS Timeout !" + host);      
       if (RMS_Note[RMSextIdx] > 0) RMS_Note[RMSextIdx]--;
       return;

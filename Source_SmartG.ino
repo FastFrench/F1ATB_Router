@@ -27,6 +27,7 @@ void LectureSmartG() {
     if (millis() - timeout > 5000) {
       StockMessage(">>> client SmartGateways Timeout ! : " + host);
       clientESP_RMS.stop();
+      delay(100);
       return;
     }
   }

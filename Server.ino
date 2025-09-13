@@ -361,7 +361,7 @@ void handleAjaxData() {  //Données page d'accueil
     S += GS + String(PuissanceS_T) + RS + String(PuissanceI_T) + RS + String(PVAS_T) + RS + String(PVAI_T);
     S += RS + String(EnergieJour_T_Soutiree) + RS + String(EnergieJour_T_Injectee) + RS + String(Energie_T_Soutiree) + RS + String(Energie_T_Injectee);
   }
-  S += GS + "Fin";
+  S += GS + "Fin\r";
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
 }
@@ -471,7 +471,7 @@ void handleAjaxData10mn() {  // Envoi Historique de 10mn (300points)Energie Acti
 }
 void handleAjaxNoms() {
   Liste_NomsEtats(0);  // Les noms de ce routeur
-  String S = GS + RMS_NomEtat[0];
+  String S = GS + RMS_NomEtat[0]+"\r";
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", S);
 }
@@ -734,10 +734,10 @@ bool Liste_WIFI() {  //Doit être fait avant toute connection WIFI depuis biblio
       TelnetPrint(" | ");
       TelnetPrint(String(WiFi.RSSI(i)));
       TelnetPrint(" | ");
-      TelnetPrint(String(WiFi.BSSIDstr(i)));
+      TelnetPrint(WiFi.BSSIDstr(i));
       TelnetPrint(" | ");
       TelnetPrintln(String(WiFi.channel(i)));
-      Liste_AP += WiFi.SSID(i).c_str() + RS + WiFi.RSSI(i) + RS + WiFi.BSSIDstr(i) + RS + String(WiFi.channel(i)) + GS;
+      Liste_AP += WiFi.SSID(i).c_str() + RS + String(WiFi.RSSI(i)) + RS + WiFi.BSSIDstr(i) + RS + String(WiFi.channel(i)) + GS;
       if (WiFi.SSID(i) == ssid) {
         if (WiFi.RSSI(i) > bestNetworkDb) {
           bestNetworkDb = WiFi.RSSI(i);

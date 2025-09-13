@@ -1,4 +1,4 @@
-#define Version "15.05"
+#define Version "15.07"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -179,6 +179,10 @@
   - V15.05
     Si plusieurs  AP même SSID, choix du niveau le plus élevé
     Telnet port 23 identique au port série USB si liaison ethernet/wifi
+  - V15.06
+    Correction affichage IP
+  - V15.07
+    Modif lecture Shelly Em
 
   
   Les détails sont disponibles sur / Details are available here:
@@ -773,7 +777,7 @@ void setup() {
   // Set youRMS_IP[0]c IP address
   IPAddress local_IP(arrIP[3], arrIP[2], arrIP[1], arrIP[0]);
   TelnetPrint("Adresse IP en mémoire : ");
-  TelnetPrintln(String(local_IP));
+  TelnetPrintln(local_IP.toString());
   // Set your Gateway IP address
   IP2String(Gateway);
   IPAddress gateway(arrIP[3], arrIP[2], arrIP[1], arrIP[0]);
@@ -1477,7 +1481,7 @@ void InitGPIOs() {
 void infoSerie() {
   TelnetPrintln("Access Point Mode : " + hostname);
   TelnetPrint("IP address: ");
-  TelnetPrintln(String(WiFi.softAPIP()));
+  TelnetPrintln(WiFi.softAPIP().toString());
   TelnetPrintln("\nPar le port série vous pouvez définir le WIFI à utiliser par l'ESP32 en tapant les 3 commandes ci-dessous en remplaçant xxx par la bonne valeur :");
   TelnetPrintln("ssid:xxx");
   TelnetPrintln("password:xxx");

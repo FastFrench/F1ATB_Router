@@ -1,6 +1,29 @@
 // ****************************************************
 // * Client d'un Shelly Em sur voie 0 ou 1 ou triphasé*
 // ****************************************************
+
+String ReadStringMulti(WiFiClient &client, const String &terminator, uint32_t timeout = 1000) {
+  String result = "";
+  unsigned long start = millis();
+
+  while (millis() - start < timeout) {
+    while (client.available()) {
+      char c = client.read();
+      result += c;
+
+      // Vérifie si la fin correspond au terminateur
+      if (result.endsWith(terminator)) {
+        // Supprime le terminateur si tu ne veux pas le garder
+        result.remove(result.length() - terminator.length());
+        return result;
+      }
+      start = millis();  // reset du timeout à chaque caractère reçu
+    }
+  }
+  return result;  // timeout atteint
+}
+
+
 void LectureShellyEm() {
   String S = "";
   String Shelly_Data = "";
@@ -27,17 +50,11 @@ void LectureShellyEm() {
   if (ShEm_comptage_appels == 1) {
     Voie = (Voie + 1) % 2;
   }
-  char Fin;
-  if (voie<3)  Fin='}';
+  
   String url = "/emeter/" + String(Voie);
-  if (voie == 3) {
-    url = "/status";  //Triphasé Shelly 3Em
-    Fin= ']';
-  }
-  if (voie >= 30) {
-    url = "/rpc/Shelly.GetStatus";
-    Fin= '}';
-  }
+  if (voie == 3)  url = "/status";  //Triphasé Shelly 3Em
+  if (voie >= 30) url = "/rpc/Shelly.GetStatus";
+  
   ShEm_comptage_appels = (ShEm_comptage_appels + 1) % 5;  // 1 appel sur 6 vers la deuxième voie qui ne sert pas au routeur
   clientESP_RMS.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
   unsigned long timeout = millis();
@@ -45,17 +62,23 @@ void LectureShellyEm() {
     if (millis() - timeout > 5000) {
       StockMessage("client Shelly Em Timeout ! : " + host);
       clientESP_RMS.stop();
+      delay(100);
       return;
     }
   }
-  timeout = millis();
-  // Lecture des données brutes distantes jusqu'à Fin (Defini d'après ChatGPT et à verifier pour tous les Shelly)
-  while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
-    Shelly_Data += clientESP_RMS.readStringUntil(Fin);
+  if (voie ==3) {   //Triphasé
+    Shelly_Data = ReadStringMulti(clientESP_RMS, "fs_mounted");
+  } else {
+    timeout = millis();
+    // Lecture des données brutes distantes jusqu'à Fin (Defini d'après ChatGPT et à verifier pour tous les Shelly)
+    while (clientESP_RMS.available() && (millis() - timeout < 5000)) {
+      Shelly_Data += clientESP_RMS.readStringUntil('}');
+    }
+    Shelly_Data +="}";
   }
   clientESP_RMS.stop();
-  p = Shelly_Data.indexOf("{"); 
-  Shelly_Data = Shelly_Data.substring(p) +String(Fin);
+  p = Shelly_Data.indexOf("{");
+  Shelly_Data = Shelly_Data.substring(p) ;
   if (voie == 3) {  //Triphasé
     ShEm_dataBrute = "<strong>Triphasé</strong><br>" + Shelly_Data;
     p = Shelly_Data.indexOf("emeters");

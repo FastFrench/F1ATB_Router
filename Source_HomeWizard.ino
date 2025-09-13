@@ -14,9 +14,9 @@ void LectureHomeW() {
   String host = IP2String(RMSextIP);
   if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {  // PORT 80 pour Home Wizard
     delay(500);
-    if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {
-      delay(100);
+    if (!clientESP_RMS.connect(host.c_str(), 80, 3000)) {      
       clientESP_RMS.stop();
+      delay(100);
       StockMessage("connection to HomeWizard failed : " + host);
       return;
     }
@@ -28,6 +28,7 @@ void LectureHomeW() {
     if (millis() - timeout > 5000) {
       StockMessage(">>> client HomeWizard Timeout ! : " + host);
       clientESP_RMS.stop();
+      delay(100);
       return;
     }
   }

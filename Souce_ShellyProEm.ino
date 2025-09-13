@@ -49,6 +49,7 @@ void LectureShellyProEm() {
       if (millis() - timeout > 5000) {
         StockMessage("client Shelly Em Timeout ! : " + host);
         clientESP_RMS.stop();
+        delay(200);
         return;
       }
     }
@@ -90,6 +91,7 @@ void LectureShellyProEm() {
     if (millis() - timeout > 5000) {
       StockMessage("client Shelly Em Timeout 2 ! : " + host);
       clientESP_RMS.stop();
+      delay(100);
       return;
     }
   }
