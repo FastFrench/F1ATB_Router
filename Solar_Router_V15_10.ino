@@ -1,4 +1,4 @@
-#define Version "15.09"
+#define Version "15.10"
 #define HOSTNAME "RMS-ESP32-"
 #define CLE_Rom_Init 912567899  //Valeur pour tester si ROM vierge ou pas. Un changement de valeur remet à zéro toutes les données. / Value to test whether blank ROM or not.
 
@@ -11,7 +11,7 @@
   Choix de 10 sources différentes pour lire la consommation électrique en entrée de maison
   - lecture de la tension avec un transformateur et du courant avec une sonde ampèremétrique (UxI)
   - lecture des données du Linky (Linky)
-  - module (JSY-MK-194T) intégrant une mesure de tension secteur et 2 sondes ampèmétriques (UxIx2)
+  - module (JSY-MK-194T) intégrant une mesure de tension secteur et 2 sondes ampèremétriques (UxIx2)
   - module (JSY-MK-333) pour une installation triphasé
   - Lecture passerelle Enphase - Envoy-S metered (firmware V5 et V7,V8)
   - Lecture avec Shelly Em
@@ -34,7 +34,7 @@
     Souscription MQTT pour forcer On ou Off les actionneurs.
   - V9.01_RMS fonctionne avec la bibliothèque ESP32 Version 2.0.17
     Validation Pva_valide pour les Linky en CACSI
-  - V9.02_RMS fonctionne avec la bibliothèque ES¨P32 V 3.01 . 
+  - V9.02_RMS fonctionne avec la bibliothèque ESP32 V 3.01 . 
     Suite au passage de la bibliothèque ESP32 en Version 3.01 importants changement pour le routeur sur le WIFI, les Timers, Le Watchdog et la partition mémoire FLASH. 
     Attention à ne pas utiliser la bibliothèque ESP32 en Version 3.00, elle est bugée et génère 20% de plus de code.
     Filtrage des températures pour tolérer une perte éventuelle de mesure
@@ -189,6 +189,9 @@
     Création d'une source de puissance non définie pour la première mise en route
   - V15.09
     Estimateur injection proposé par Ludovic35
+  - V15.10
+    Modification recurrence sortie MQTT pour accepter 1s
+    Affichage adresse IPV6
 
   
   Les détails sont disponibles sur / Details are available here:
@@ -199,6 +202,31 @@
 
   GNU Affero General Public License (AGPL) / AGPL-3.0-or-later
 
+  Arduino IDE 2.3.5
+  Espressif ESP V3.3.0
+  Compilation avec Partition Scheme : custom ou No FS ou minimal SPIFFS
+
+
+  Library used:
+  Utilisation de la bibliothèque WiFi version 3.3.0 dans le dossier: Arduino15\packages\esp32\hardware\esp32\3.3.0\libraries\WiFi 
+  Utilisation de la bibliothèque Networking version 3.3.0 dans le dossier: Arduino15\packages\esp32\hardware\esp32\3.3.0\libraries\Network 
+  Utilisation de la bibliothèque NetworkClientSecure version 3.3.0 dans le dossier: Arduino15\packages\esp32\hardware\esp32\3.3.0\libraries\NetworkClientSecure 
+  Utilisation de la bibliothèque ESPmDNS version 3.3.0 dans le dossier: Arduino15\packages\esp32\hardware\esp32\3.3.0\libraries\ESPmDNS 
+  Utilisation de la bibliothèque WebServer version 3.3.0 dans le dossier: Arduino15\packages\esp32\hardware\esp32\3.3.0\libraries\WebServer 
+  Utilisation de la bibliothèque FS version 3.3.0 dans le dossier: Arduino15\packages\esp32\hardware\esp32\3.3.0\libraries\FS 
+  Utilisation de la bibliothèque ArduinoOTA version 3.3.0 dans le dossier: Arduino15\packages\esp32\hardware\esp32\3.3.0\libraries\ArduinoOTA 
+  Utilisation de la bibliothèque Update version 3.3.0 dans le dossier: Arduino15\packages\esp32\hardware\esp32\3.3.0\libraries\Update 
+  Utilisation de la bibliothèque PubSubClient version 2.8 dans le dossier: Arduino\Sketchbooks\libraries\PubSubClient 
+  Utilisation de la bibliothèque EEPROM version 3.3.0 dans le dossier: Arduino15\packages\esp32\hardware\esp32\3.3.0\libraries\EEPROM 
+  Utilisation de la bibliothèque OneWire version 2.3.8 dans le dossier: Arduino\Sketchbooks\libraries\OneWire 
+  Utilisation de la bibliothèque DallasTemperature version 4.0.3 dans le dossier: Arduino\Sketchbooks\libraries\DallasTemperature 
+  Utilisation de la bibliothèque UrlEncode version 1.0.1 dans le dossier: Arduino\Sketchbooks\libraries\UrlEncode
+  Utilisation de la bibliothèque EthernetESP32 version 1.0.2 dans le dossier: Arduino\Sketchbooks\libraries\EthernetESP32 
+  Utilisation de la bibliothèque SPI version 3.3.0 dans le dossier: Arduino15\packages\esp32\hardware\esp32\3.3.0\libraries\SPI 
+  Utilisation de la bibliothèque LovyanGFX version 1.2.9 dans le dossier: Arduino\Sketchbooks\libraries\LovyanGFX  (!!! Branch develop pour IDF 5.5.0+ : https://github.com/lovyan03/LovyanGFX/tree/develop)
+
+
+
 */
 
 //Librairies
@@ -208,8 +236,8 @@
 #include <WebServer.h>
 #include <ArduinoOTA.h>    //Modification On The Air
 #include <PubSubClient.h>  //Librairie pour la gestion Mqtt
-#include "EEPROM.h"        //Librairie pour le stockage en EEPROM historique quotidien
-#include "esp_sntp.h"
+#include <EEPROM.h>        //Librairie pour le stockage en EEPROM historique quotidien
+#include <esp_sntp.h>
 #include "OneWire.h"
 #include "DallasTemperature.h"
 #include "UrlEncode.h"
@@ -286,6 +314,9 @@ String nomSondeFixe = "Données seconde sonde";
 String nomSondeMobile = "Données Maison";
 String Couleurs = "";  // Couleurs pages web
 byte WifiSleep = 1;
+bool wifi_connectedIPV6G = false;
+String STX = String((char)2);  // Start transmission
+String ETX = String((char)3);  // End   transmission
 String ES = String((char)27);  //ESC Separator
 String FS = String((char)28);  //File Separator
 String GS = String((char)29);  //Group Separator
@@ -351,7 +382,7 @@ bool Pva_valide = false;
 
 //Triac
 bool erreurTriac = false;
-byte pTriac = 0;  //Choix Pin Triac
+byte pTriac = 0;  //index table choix Pins pour Gachette Triac & ZC
 int8_t pulseTriac = 0, zeroCross = -1;
 int8_t PulseT[] = { 0, 4, 22, 21, 12 };
 int8_t ZeroT[] = { -1, 5, 23, 22, 14 };
@@ -506,7 +537,7 @@ float RetardF[LesActionsLength];  //Floating value of retard
 volatile unsigned long lastIT = 0;
 volatile int16_t IT10ms = 0;        //Interruption avant deglitch
 volatile int16_t IT10ms_in = 0;     //Interruption apres deglitch
-volatile int16_t ITmode = 0;        //IT exerne Triac ou interne
+volatile int16_t ITmode = 0;        //IT externe Triac ou interne
 volatile unsigned short CptIT = 0;  //Compeur IT Triac ou 20ms;
 volatile unsigned short StepIT = 1;
 hw_timer_t *timer = NULL;
@@ -697,28 +728,33 @@ void WiFiEvent(WiFiEvent_t event) {                                             
       ssid = (WiFi.SSID());                                                                    //Récup ssid                                                             //SR19
       TelnetPrintln("Récupération IP de " + hostname + " -> " + (WiFi.localIP().toString()));  //SR19
       TelnetPrintln("Récupération password -> " + String(WiFi.psk()));                         //SR19
-      password = (WiFi.psk());                                                                 //Récup password                                                      //SR19
-      isGOT_IP = true; /*IP reçue*/                                                            //SR19
-      break;                                                                                   //SR19
-    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:                                                  //SR19
-      TelnetPrintln("Déconnecté. Redémarrage WiFi...");                                        //SR19
-      WiFi.disconnect();                                                                       //Forçage reconnexion normale                                               //SR19
-      delay(10);                                                                               //SR19
-      WiFi.reconnect();                                                                        //SR19
-      delay(100);                                                                              //SR19
-      isGOT_IP = false;                                                                        //Réinitialiser l'événement si déconnecté                                    //SR19
-      break;                                                                                   //SR19
-    case ARDUINO_EVENT_WPS_ER_SUCCESS:                                                         //SR19
-      TelnetPrintln("WPS réussi! Stop WPS et connexion vers: " + String(WiFi.SSID()));         //SR19
-      wpsStop();                                                                               //Must disable WPS before connecting                                                //SR19
-      WiFi.begin();                                                                            //Connect using credentials from WPS                                             //SR19
-      break;                                                                                   //SR19
-    case ARDUINO_EVENT_WIFI_STA_CONNECTED:                                                     //SR19
-      TelnetPrintln("WiFi Reconnecté en Mode Station");                                        //SR19
-      break;                                                                                   //SR19
-    default:                                                                                   //SR19
-      break;                                                                                   //SR19
-  }                                                                                            //SR19
+      password = (WiFi.psk());
+      password.trim();                                                                  //Récup password                                                      //SR19
+      isGOT_IP = true;                                                                  /*IP reçue*/
+      EcritureEnROM();                                                                  //SR19
+      break;                                                                            //SR19
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:                                           //SR19
+      TelnetPrintln("Déconnecté. Redémarrage WiFi...");                                 //SR19
+      WiFi.disconnect();                                                                //Forçage reconnexion normale                                               //SR19
+      delay(10);                                                                        //SR19
+      WiFi.reconnect();                                                                 //SR19
+      delay(100);                                                                       //SR19
+      isGOT_IP = false;                                                                 //Réinitialiser l'événement si déconnecté                                    //SR19
+      break;                                                                            //SR19
+    case ARDUINO_EVENT_WPS_ER_SUCCESS:                                                  //SR19
+      TelnetPrintln("WPS réussi! Stop WPS et connexion vers: " + String(WiFi.SSID()));  //SR19
+      wpsStop();                                                                        //Must disable WPS before connecting                                                //SR19
+      WiFi.begin();                                                                     //Connect using credentials from WPS                                             //SR19
+      break;                                                                            //SR19
+    case ARDUINO_EVENT_WIFI_STA_CONNECTED:                                              //SR19
+      TelnetPrintln("WiFi Reconnecté en Mode Station");
+      ssid = WiFi.SSID();     // met à jour le SSID global
+      password = WiFi.psk();  // met à jour le mot de passe global
+      password.trim();        // supprime espaces et caractères indésirables (dont \n, \r, \t)                                      // sauvegarde dans l’EEPROM                                       //SR19
+      break;                  //SR19
+    default:                  //SR19
+      break;                  //SR19
+  }                           //SR19
 }
 
 // SETUP
@@ -927,6 +963,7 @@ void setup() {
           }
         }
         StockMessage("Wifi Begin : " + ssid);
+        WiFi.enableIPv6();  //++  Acces depuis internet !!! voir pour ajout https://randomnerdtutorials.com/esp32-esp8266-web-server-http-authentication/
         if (bestWifi) {
           WiFi.begin(ssid.c_str(), password.c_str(), 0, bestBSSID);  // Connexion forcée au BSSID choisi
         } else {
@@ -1086,7 +1123,7 @@ void setup() {
   if (Nbr_DS18B20 > 0) LectureTemperature();
   esp_task_wdt_reset();
   delay(1);  //VERY VERY IMPORTANT for Watchdog Reset
-}
+}  // end of setup
 
 /* **********************
    * ****************** *
@@ -1120,7 +1157,7 @@ void Task_LectureRMS(void *pvParameters) {
     //******************************
     if (tps - LastRMS_Millis > PeriodeProgMillis) {  //Attention delicat pour eviter pb overflow
       LastRMS_Millis = tps;
-      unsigned long ralenti = long(PuissanceS_M / 10);  // On peut ralentir échange sur Wifi si grosse puissance en cours
+      unsigned long ralenti = long(PuissanceS_M / 10);  // On peut ralentir échange sur Wifi si grosse puissance soutirée en cours
       if (Source == "NotDef") {
         LectureNotDef();
         PeriodeProgMillis = 600;
@@ -1215,7 +1252,7 @@ void loop() {
     if (telnetClient && telnetClient.connected()) {
       telnetClient.stop();  // Déconnecter ancien client
     }
-    telnetClient = telnetServer.available();
+    telnetClient = telnetServer.accept();  //.available(); // deprecié
     TelnetPrintln("Nouveau client : " + nomRouteur + " connecté !");
     telnetClient.println("Bienvenue !");
     MessageCommandes();
@@ -1318,6 +1355,10 @@ void loop() {
   //Vérification Ethernet, WIFI et de la puissance
   //*********************************************
   if (tps - previousWifiMillis > 30000) {  //Test présence WIFI toutes les 30s et autres
+    if (!wifi_connectedIPV6G && WiFi.globalIPv6().toString().length() > 4) {
+      StockMessage("IPv6 globale: [" + WiFi.globalIPv6().toString()+"]");
+      wifi_connectedIPV6G = true;
+    }
     previousWifiMillis = tps;
     JourHeureChange();
     TelnetPrintln("\nDate : " + DATE);
@@ -1332,7 +1373,10 @@ void loop() {
         }
 
         PrintScroll("Signal WiFi: " + String(WiFi.RSSI()) + "dBm");
-        PrintScroll("IP :" + WiFi.localIP().toString());
+        String msg = "";
+        msg = "IPV4 : " + WiFi.localIP().toString();
+        if (WiFi.globalIPv6().toString().length() > 4) msg += "  *  IPV6 : " + WiFi.globalIPv6().toString();  // voir selon place dispo sur écran
+        PrintScroll(msg);
         if (WIFIbug > 0) PrintScroll("WiFi Bug # :" + String(WIFIbug));
         if (WIFIbug > ComSurv) {  //Timeout sans WIFI =Reset
           TelnetPrintln("Timeout sans WIFI ==> Reset");
@@ -1402,7 +1446,9 @@ void loop() {
     }
     //Test pulse Zc Triac
     if (ITmode < 0 && pTriac > 0) {
-      if (!erreurTriac) StockMessage("Erreur : pas de signal Zc du gradateur/Triac");  //Pour ne pas répéter sans cesse
+      if (!erreurTriac) {  //Pour ne pas répéter sans cesse
+        StockMessage("Erreur : pas de signal ZC sur gpio " + String(ZeroT[pTriac]));
+      }
       erreurTriac = true;
     } else {
       erreurTriac = false;
@@ -1417,12 +1463,12 @@ void loop() {
   //Port Série
   LireSerial();
   delay(1);
-}
+}  // Fin du loop core 1
 
 // ************
 // *  ACTIONS *
 // ************
-void GestionOverproduction() {
+void GestionOverproduction() {  // chaque 200ms (adaptation 5 fois par seconde)
   float SeuilPw;
   float MaxTriacPw;
   float GainBoucle;

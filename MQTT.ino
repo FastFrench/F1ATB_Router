@@ -100,7 +100,7 @@ bool testMQTTconnected() {
 }
 void envoiVersMQTT() {
   unsigned long tps = millis();                                                     // utilisé pour l'envoie de l'état On/Off des actions.
-  if (int((tps - previousMQTTenvoiMillis) / 1000) > MQTTRepet && MQTTRepet != 0) {  // Si Service MQTT activé avec période sup à 0
+  if (int((tps - previousMQTTenvoiMillis) / 1000) >= MQTTRepet && MQTTRepet != 0) {  // Si Service MQTT activé avec période sup à 0
     previousMQTTenvoiMillis = tps;
     if (!Discovered) {  //(uniquement au démarrage discovery = 0 et toute les 5mn si HA redemarre)
       sendMQTTDiscoveryMsg_global();
